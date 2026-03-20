@@ -1,0 +1,1 @@
+export { ForumPostItem } from './ForumPostItem';

@@ -1,0 +1,67 @@
+name: Auto Review (Claude)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR diff
+        id: diff
+        run: |
+          DIFF=$(git diff origin/${{ github.base_ref }}...HEAD -- '*.ts' '*.tsx' ':!*.test.*' | head -c 50000)
+          echo "diff<<EOF" >> $GITHUB_OUTPUT
+          echo "$DIFF" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Claude Review
+        if: steps.diff.outputs.diff != ''
+        uses: anthropics/anthropic-sdk-action@v1
+        with:
+          api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: claude-sonnet-4-20250514
+          prompt: |
+            You are a senior code reviewer for the zkTalk project, a community messenger.
+            Review this PR diff for:
+            1. TypeScript type safety issues
+            2. Security vulnerabilities (SQL injection, XSS, auth bypasses)
+            3. Alignment with the project conventions in CLAUDE.md
+            4. Performance concerns
+            5. Missing error handling
+
+            Be concise. Only comment on actual issues, not style preferences.
+            Format: list each issue with file:line and severity (critical/warning/info).
+
+            ```diff
+            ${{ steps.diff.outputs.diff }}
+            ```
+
+      - name: Post review comment
+        if: steps.diff.outputs.diff != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Post Claude's review as a PR comment
+            const review = '${{ steps.review.outputs.response }}';
+            if (review && review.trim()) {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                body: `## 🤖 Claude Code Review\n\n${review}`,
+                event: 'COMMENT'
+              });
+            }

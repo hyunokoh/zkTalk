@@ -1,0 +1,35 @@
+name: Agent Task
+description: Task for AI agent to implement automatically
+labels: ["agent-task"]
+body:
+  - type: input
+    id: phase
+    attributes:
+      label: Phase
+      description: Which implementation phase does this belong to?
+      placeholder: "Phase 1"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Task Description
+      description: Detailed description of what needs to be implemented
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: What must be true for this task to be complete?
+      placeholder: |
+        - [ ] API endpoint created
+        - [ ] Tests passing
+        - [ ] Types exported from shared package
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: Files to Create/Modify
+      description: Expected file paths (optional, agent will determine if not provided)

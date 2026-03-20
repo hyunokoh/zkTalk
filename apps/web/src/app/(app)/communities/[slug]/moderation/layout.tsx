@@ -1,0 +1,111 @@
+'use client';
+
+import Link from 'next/link';
+import { useParams, usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth';
+import type { Community } from '@zktalk/shared';
+
+interface MemberRole {
+  roleName: string;
+}
+
+const NAV_ITEMS = [
+  { label: 'Overview', href: '' },
+  { label: 'Reports', href: '/reports' },
+  { label: 'Audit Log', href: '/audit-log' },
+];
+
+export default function ModerationLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const params = useParams();
+  const pathname = usePathname();
+  const slug = params.slug as string;
+  const user = useAuthStore((s) => s.user);
+
+  const { data: community } = useQuery({
+    queryKey: ['community', slug],
+    queryFn: () => api<Community>(`/api/communities/${slug}`),
+  });
+
+  const { data: memberRole, isLoading: roleLoading } = useQuery({
+    queryKey: ['member-role', community?.id, user?.id],
+    queryFn: () =>
+      api<MemberRole>(
+        `/api/communities/${community!.id}/members/${user!.id}/role`,
+      ),
+    enabled: !!community && !!user,
+  });
+
+  if (roleLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  const allowedRoles = ['owner', 'admin', 'moderator'];
+  if (memberRole && !allowedRoles.includes(memberRole.roleName)) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-gray-300">Access Denied</h2>
+          <p className="mt-2 text-sm text-gray-500">
+            You need moderator permissions to access this page.
+          </p>
+          <Link
+            href={`/communities/${slug}`}
+            className="mt-4 inline-block text-sm text-indigo-400 hover:underline"
+          >
+            Back to community
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const basePath = `/communities/${slug}/moderation`;
+
+  return (
+    <div className="flex flex-1 overflow-hidden">
+      {/* Moderation sidebar */}
+      <aside className="flex w-56 flex-col border-r border-gray-700 bg-gray-900">
+        <div className="border-b border-gray-700 px-4 py-3">
+          <h2 className="text-sm font-semibold text-gray-300">Moderation</h2>
+        </div>
+        <nav className="flex-1 overflow-y-auto p-2">
+          {NAV_ITEMS.map((item) => {
+            const href = `${basePath}${item.href}`;
+            const isActive =
+              item.href === ''
+                ? pathname === basePath
+                : pathname.startsWith(href);
+            return (
+              <Link
+                key={item.label}
+                href={href}
+                className={`block rounded px-3 py-2 text-sm transition-colors ${
+                  isActive
+                    ? 'bg-gray-800 text-white'
+                    : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* Content */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+        {children}
+      </div>
+    </div>
+  );
+}
