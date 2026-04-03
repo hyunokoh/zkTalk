@@ -1,4 +1,4 @@
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { db } from '../../lib/db/index.js';
 import {
@@ -78,12 +78,16 @@ export async function findCategoriesByCommunity(communityId: string) {
 export interface CreateChannelInput {
   communityId: string;
   categoryId?: string | null;
+  sourceDmConversationId?: string | null;
   name: string;
   description?: string | null;
-  type?: 'chat' | 'announcement' | 'forum';
+  type?: 'chat' | 'announcement' | 'forum' | 'voice';
   visibility?: 'public' | 'role_restricted';
   slowModeSeconds?: number;
   position?: number;
+  requireTopic?: boolean;
+  allowedViewRoleIds?: string[];
+  allowedPostRoleIds?: string[];
 }
 
 export async function createChannel(data: CreateChannelInput) {
@@ -94,12 +98,14 @@ export async function createChannel(data: CreateChannelInput) {
       id,
       communityId: data.communityId,
       categoryId: data.categoryId ?? null,
+      sourceDmConversationId: data.sourceDmConversationId ?? null,
       name: data.name,
       description: data.description ?? null,
       type: data.type ?? 'chat',
       visibility: data.visibility ?? 'public',
       slowModeSeconds: data.slowModeSeconds ?? 0,
       position: data.position ?? 0,
+      requireTopic: data.requireTopic ?? false,
     })
     .returning();
   return channel;
@@ -113,10 +119,17 @@ export async function updateChannel(
     visibility?: 'public' | 'role_restricted';
     slowModeSeconds?: number;
     categoryId?: string | null;
+    sourceDmConversationId?: string | null;
     position?: number;
+    disappearingDuration?: number | null;
+    requireTopic?: boolean;
+    allowedViewRoleIds?: string[];
+    allowedPostRoleIds?: string[];
   },
 ) {
   const updateData: Record<string, unknown> = { ...data, updatedAt: new Date() };
+  delete updateData.allowedViewRoleIds;
+  delete updateData.allowedPostRoleIds;
   const [channel] = await db
     .update(channels)
     .set(updateData)
@@ -129,6 +142,14 @@ export async function archiveChannel(id: string) {
   const [channel] = await db
     .update(channels)
     .set({ isArchived: true, updatedAt: new Date() })
+    .where(eq(channels.id, id))
+    .returning();
+  return channel ?? null;
+}
+
+export async function deleteChannel(id: string) {
+  const [channel] = await db
+    .delete(channels)
     .where(eq(channels.id, id))
     .returning();
   return channel ?? null;
@@ -209,6 +230,20 @@ export async function setChannelPermission(
   return created;
 }
 
+export async function clearChannelPermissionKey(
+  channelId: string,
+  permissionKey: string,
+) {
+  await db
+    .delete(channelRolePermissions)
+    .where(
+      and(
+        eq(channelRolePermissions.channelId, channelId),
+        eq(channelRolePermissions.permissionKey, permissionKey),
+      ),
+    );
+}
+
 // ---------------------------------------------------------------------------
 // User role queries (used by permission checking)
 // ---------------------------------------------------------------------------
@@ -253,4 +288,8 @@ export async function getUserMembership(userId: string, communityId: string) {
     )
     .limit(1);
   return membership ?? null;
+}
+
+export async function findRolesByCommunity(communityId: string) {
+  return db.select().from(roles).where(eq(roles.communityId, communityId));
 }

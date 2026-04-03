@@ -1,4 +1,4 @@
-import { eq, and, inArray, sql } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { db } from '../../lib/db/index.js';
 import { reactions, messages, users, channels } from '../../lib/db/schema.js';
 

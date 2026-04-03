@@ -1,4 +1,4 @@
-import { eq, and, desc, sql, lt, gt } from 'drizzle-orm';
+import { eq, and, desc, sql, lt, inArray } from 'drizzle-orm';
 import { db } from '../../lib/db/index.js';
 import {
   threads,
@@ -6,6 +6,7 @@ import {
   messages,
   users,
   channels,
+  attachments,
 } from '../../lib/db/schema.js';
 
 // ---------------------------------------------------------------------------
@@ -18,6 +19,39 @@ export interface CreateThreadInput {
   rootMessageId: string;
   title?: string;
   createdByUserId: string;
+}
+
+async function withAttachments<
+  T extends {
+    message: {
+      id: string;
+    };
+  },
+>(rows: T[]): Promise<Array<T & { attachments: typeof attachments.$inferSelect[] }>> {
+  if (rows.length === 0) {
+    return rows.map((row) => ({ ...row, attachments: [] }));
+  }
+
+  const messageIds = rows.map((row) => row.message.id);
+  const attachmentRows = await db
+    .select()
+    .from(attachments)
+    .where(inArray(attachments.messageId, messageIds));
+
+  const attachmentsByMessageId = new Map<string, typeof attachments.$inferSelect[]>();
+  for (const attachment of attachmentRows) {
+    if (!attachment.messageId) {
+      continue;
+    }
+    const existing = attachmentsByMessageId.get(attachment.messageId) ?? [];
+    existing.push(attachment);
+    attachmentsByMessageId.set(attachment.messageId, existing);
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    attachments: attachmentsByMessageId.get(row.message.id) ?? [],
+  }));
 }
 
 export async function createThread(data: CreateThreadInput) {
@@ -52,8 +86,29 @@ export async function findThreadById(id: string) {
   return result ?? null;
 }
 
+export async function findThreadsByRootMessageIds(rootMessageIds: string[]) {
+  if (rootMessageIds.length === 0) {
+    return [];
+  }
+
+  return db
+    .select({
+      thread: threads,
+      creator: {
+        id: users.id,
+        displayName: users.displayName,
+        username: users.username,
+        avatarUrl: users.avatarUrl,
+      },
+    })
+    .from(threads)
+    .innerJoin(users, eq(threads.createdByUserId, users.id))
+    .where(inArray(threads.rootMessageId, rootMessageIds));
+}
+
 export async function findThreadsByChannel(
   channelId: string,
+  userId: string,
   cursor?: string,
   limit = 20,
   sort: 'latest' | 'top' = 'latest',
@@ -97,12 +152,29 @@ export async function findThreadsByChannel(
       rootMessage: {
         id: messages.id,
         bodyMarkdown: messages.bodyMarkdown,
+        bodyPlaintext: messages.bodyPlaintext,
         createdAt: messages.createdAt,
       },
+      unreadReplyCount: sql<number>`(
+        SELECT count(*)::int
+        FROM ${messages} AS thread_messages
+        WHERE thread_messages.thread_id = ${threads.id}
+          AND thread_messages.id != ${threads.rootMessageId}
+          AND (
+            ${threadFollows.lastReadMessageId} IS NULL
+            OR thread_messages.id > ${threadFollows.lastReadMessageId}
+          )
+      )`,
+      lastReadMessageId: threadFollows.lastReadMessageId,
+      isFollowing: sql<boolean>`CASE WHEN ${threadFollows.userId} IS NULL THEN false ELSE true END`,
     })
     .from(threads)
     .innerJoin(users, eq(threads.createdByUserId, users.id))
     .innerJoin(messages, eq(threads.rootMessageId, messages.id))
+    .leftJoin(
+      threadFollows,
+      and(eq(threadFollows.threadId, threads.id), eq(threadFollows.userId, userId)),
+    )
     .where(whereCondition)
     .orderBy(desc(orderCol))
     .limit(limit + 1);
@@ -131,7 +203,7 @@ export async function getThreadMessages(
     if (cursorMsg) {
       conditions = and(
         eq(messages.threadId, threadId),
-        gt(messages.createdAt, cursorMsg.createdAt),
+        lt(messages.createdAt, cursorMsg.createdAt),
       )!;
     }
   }
@@ -149,12 +221,14 @@ export async function getThreadMessages(
     .from(messages)
     .innerJoin(users, eq(messages.authorUserId, users.id))
     .where(conditions)
-    .orderBy(messages.createdAt)
+    .orderBy(desc(messages.createdAt))
     .limit(limit + 1);
 
   const hasMore = results.length > limit;
-  const items = hasMore ? results.slice(0, limit) : results;
-  const nextCursor = hasMore ? items[items.length - 1].message.id : null;
+  const page = hasMore ? results.slice(0, limit) : results;
+  const rowsWithAttachments = await withAttachments(page);
+  const items = [...rowsWithAttachments].reverse();
+  const nextCursor = hasMore ? page[page.length - 1].message.id : null;
 
   return { items, nextCursor };
 }
@@ -216,6 +290,23 @@ export async function isFollowing(threadId: string, userId: string) {
     )
     .limit(1);
   return !!row;
+}
+
+export async function getFollowState(threadId: string, userId: string) {
+  const [row] = await db
+    .select({
+      userId: threadFollows.userId,
+      lastReadMessageId: threadFollows.lastReadMessageId,
+    })
+    .from(threadFollows)
+    .where(
+      and(
+        eq(threadFollows.threadId, threadId),
+        eq(threadFollows.userId, userId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
 }
 
 export async function getFollowers(threadId: string) {

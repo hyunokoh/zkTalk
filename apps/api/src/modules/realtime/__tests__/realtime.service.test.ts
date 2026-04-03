@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WebSocket } from 'ws';
 import { WebSocketEvent } from '@zktalk/shared';
 
@@ -27,7 +27,25 @@ vi.mock('../../../lib/redis.js', () => ({
   redisSub: mockRedisSub,
 }));
 
-import { realtimeService, type ConnectedClient } from '../realtime.service.js';
+// Mock DB for permission checks in subscribe methods
+vi.mock('../../../lib/db/index.js', () => ({
+  db: {
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ id: 'mock', communityId: 'community-1' }]),
+        }),
+      }),
+    }),
+  },
+}));
+
+vi.mock('../../../lib/db/schema.js', () => ({
+  channels: { id: 'id', communityId: 'community_id' },
+  communityMemberships: { id: 'id', userId: 'user_id', communityId: 'community_id', membershipStatus: 'membership_status' },
+}));
+
+import { realtimeService } from '../realtime.service.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -89,11 +107,11 @@ describe('RealtimeService', () => {
   // ── Channel subscriptions ───────────────────────────────────────
 
   describe('channel subscriptions', () => {
-    it('should subscribe and unsubscribe from channels', () => {
+    it('should subscribe and unsubscribe from channels', async () => {
       const ws = createMockWebSocket();
       const client = realtimeService.addClient('user-4', ws);
 
-      realtimeService.subscribeToChannel(client, 'channel-1');
+      await realtimeService.subscribeToChannel(client, 'channel-1');
       expect(client.subscribedChannels.has('channel-1')).toBe(true);
 
       realtimeService.unsubscribeFromChannel(client, 'channel-1');
@@ -102,13 +120,13 @@ describe('RealtimeService', () => {
       realtimeService.removeClient(client);
     });
 
-    it('should support subscribing to multiple channels', () => {
+    it('should support subscribing to multiple channels', async () => {
       const ws = createMockWebSocket();
       const client = realtimeService.addClient('user-5', ws);
 
-      realtimeService.subscribeToChannel(client, 'channel-a');
-      realtimeService.subscribeToChannel(client, 'channel-b');
-      realtimeService.subscribeToChannel(client, 'channel-c');
+      await realtimeService.subscribeToChannel(client, 'channel-a');
+      await realtimeService.subscribeToChannel(client, 'channel-b');
+      await realtimeService.subscribeToChannel(client, 'channel-c');
 
       expect(client.subscribedChannels.size).toBe(3);
 
@@ -291,11 +309,11 @@ describe('RealtimeService', () => {
   // ── Community subscriptions ─────────────────────────────────────
 
   describe('community subscriptions', () => {
-    it('should subscribe to community and set presence', () => {
+    it('should subscribe to community and set presence', async () => {
       const ws = createMockWebSocket();
       const client = realtimeService.addClient('user-c1', ws);
 
-      realtimeService.subscribeToCommunity(client, 'community-1');
+      await realtimeService.subscribeToCommunity(client, 'community-1');
       expect(client.subscribedCommunities.has('community-1')).toBe(true);
 
       // setOnline is called (async, via Redis)
@@ -304,14 +322,14 @@ describe('RealtimeService', () => {
       realtimeService.removeClient(client);
     });
 
-    it('should not set offline if user has other connections in community', () => {
+    it('should not set offline if user has other connections in community', async () => {
       const ws1 = createMockWebSocket();
       const ws2 = createMockWebSocket();
       const client1 = realtimeService.addClient('user-multi', ws1);
       const client2 = realtimeService.addClient('user-multi', ws2);
 
-      realtimeService.subscribeToCommunity(client1, 'community-2');
-      realtimeService.subscribeToCommunity(client2, 'community-2');
+      await realtimeService.subscribeToCommunity(client1, 'community-2');
+      await realtimeService.subscribeToCommunity(client2, 'community-2');
 
       vi.clearAllMocks();
 

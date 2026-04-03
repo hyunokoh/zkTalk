@@ -1,9 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AppError } from '../../../lib/errors.js';
 
 // ---------------------------------------------------------------------------
 // Mock the repository module
 // ---------------------------------------------------------------------------
+vi.mock('../../automod/automod.service.js', () => ({
+  checkMessage: vi.fn().mockResolvedValue({ allowed: true }),
+  createAutoReport: vi.fn(),
+}));
+
+vi.mock('../../realtime/realtime.service.js', () => ({
+  realtimeService: {
+    broadcastToChannel: vi.fn(),
+    getOnlineUsers: vi.fn().mockResolvedValue([]),
+  },
+}));
+
+vi.mock('../../unread/unread.repository.js', () => ({
+  incrementMentionCount: vi.fn(),
+}));
+
 vi.mock('../message.repository.js', () => ({
   createMessage: vi.fn(),
   findMessageById: vi.fn(),
@@ -16,6 +31,9 @@ vi.mock('../message.repository.js', () => ({
   getUserMembership: vi.fn(),
   getUserRolesInCommunity: vi.fn(),
   getChannelPermissions: vi.fn(),
+  getUnreadCountsForMessages: vi.fn().mockResolvedValue({}),
+  getCommunityMemberUserIds: vi.fn().mockResolvedValue([]),
+  findUserByDisplayName: vi.fn().mockResolvedValue(null),
 }));
 
 import * as repo from '../message.repository.js';
@@ -431,7 +449,7 @@ describe('getMessages', () => {
     mockMemberRole();
 
     const fakeMessages = Array.from({ length: 3 }, (_, i) => ({
-      message: { id: `msg-${i}` },
+      message: { id: `msg-${i}`, authorUserId: USER_ID },
       author: { id: USER_ID },
     }));
 
@@ -444,7 +462,17 @@ describe('getMessages', () => {
 
     expect(result.hasMore).toBe(true);
     expect(result.messages).toHaveLength(3);
-    expect(mockedRepo.findMessagesByChannel).toHaveBeenCalledWith(CHANNEL_ID, undefined, 3);
+    expect(mockedRepo.findMessagesByChannel).toHaveBeenCalledWith(CHANNEL_ID, undefined, 3, undefined);
+    expect(mockedRepo.getUnreadCountsForMessages).toHaveBeenCalledWith(
+      CHANNEL_ID,
+      COMMUNITY_ID,
+      ['msg-0', 'msg-1', 'msg-2'],
+      {
+        'msg-0': USER_ID,
+        'msg-1': USER_ID,
+        'msg-2': USER_ID,
+      },
+    );
   });
 
   it('returns messages with hasMore false at the end', async () => {
@@ -472,7 +500,7 @@ describe('getMessages', () => {
     } as any);
 
     await service.getMessages(USER_ID, CHANNEL_ID, 'cursor-abc', 25);
-    expect(mockedRepo.findMessagesByChannel).toHaveBeenCalledWith(CHANNEL_ID, 'cursor-abc', 25);
+    expect(mockedRepo.findMessagesByChannel).toHaveBeenCalledWith(CHANNEL_ID, 'cursor-abc', 25, undefined);
   });
 
   it('throws not found for nonexistent channel', async () => {

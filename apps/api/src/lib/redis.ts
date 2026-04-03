@@ -17,11 +17,11 @@ function createRedisClient(name: string): Redis {
   });
 
   client.on('connect', () => {
-    console.log(`[Redis:${name}] Connected to ${REDIS_URL}`);
+    console.info(`[Redis:${name}] Connected to ${REDIS_URL}`);
   });
 
   client.on('reconnecting', () => {
-    console.log(`[Redis:${name}] Reconnecting...`);
+    console.info(`[Redis:${name}] Reconnecting...`);
   });
 
   return client;

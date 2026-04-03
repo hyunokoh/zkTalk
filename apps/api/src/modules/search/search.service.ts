@@ -5,7 +5,6 @@ import {
   channels,
   communityMemberships,
   membershipRoles,
-  roles,
   channelRolePermissions,
 } from '../../lib/db/schema.js';
 import * as searchRepo from './search.repository.js';
@@ -101,6 +100,7 @@ export async function searchMessages(
     communityId: string;
     channelId?: string;
     authorId?: string;
+    author?: string;
     hasAttachment?: boolean;
     dateFrom?: string;
     dateTo?: string;

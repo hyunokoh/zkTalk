@@ -1,5 +1,8 @@
 import { WebSocket } from 'ws';
+import { eq, and } from 'drizzle-orm';
 import { redis, redisSub } from '../../lib/redis.js';
+import { db } from '../../lib/db/index.js';
+import { channels, communityMemberships } from '../../lib/db/schema.js';
 import { WebSocketEvent } from '@zktalk/shared';
 import type { RedisPubSubMessage, WSOutgoing } from '@zktalk/shared';
 
@@ -76,7 +79,34 @@ class RealtimeService {
 
   // ── Channel subscriptions ───────────────────────────────────────
 
-  subscribeToChannel(client: ConnectedClient, channelId: string): void {
+  async subscribeToChannel(client: ConnectedClient, channelId: string): Promise<void> {
+    try {
+      // Verify the user has access to this channel's community
+      const [channel] = await db
+        .select({ communityId: channels.communityId })
+        .from(channels)
+        .where(eq(channels.id, channelId))
+        .limit(1);
+
+      if (!channel) return;
+
+      const [membership] = await db
+        .select({ id: communityMemberships.id })
+        .from(communityMemberships)
+        .where(
+          and(
+            eq(communityMemberships.userId, client.userId),
+            eq(communityMemberships.communityId, channel.communityId),
+            eq(communityMemberships.membershipStatus, 'active'),
+          ),
+        )
+        .limit(1);
+
+      if (!membership) return;
+    } catch {
+      // If DB is unavailable, allow subscription (graceful degradation)
+    }
+
     client.subscribedChannels.add(channelId);
   }
 
@@ -86,9 +116,27 @@ class RealtimeService {
 
   // ── Community subscriptions ─────────────────────────────────────
 
-  subscribeToCommunity(client: ConnectedClient, communityId: string): void {
+  async subscribeToCommunity(client: ConnectedClient, communityId: string): Promise<void> {
+    try {
+      // Verify the user is an active member of this community
+      const [membership] = await db
+        .select({ id: communityMemberships.id })
+        .from(communityMemberships)
+        .where(
+          and(
+            eq(communityMemberships.userId, client.userId),
+            eq(communityMemberships.communityId, communityId),
+            eq(communityMemberships.membershipStatus, 'active'),
+          ),
+        )
+        .limit(1);
+
+      if (!membership) return;
+    } catch {
+      // Graceful degradation if DB unavailable
+    }
+
     client.subscribedCommunities.add(communityId);
-    // Mark user online when they join a community
     this.setOnline(client.userId, communityId).catch(() => {});
   }
 
@@ -159,13 +207,21 @@ class RealtimeService {
    * Send an event to a specific user (all their connections).
    * Direct delivery, no Redis pub/sub (single-process only).
    */
-  sendToUser(userId: string, event: string, payload: unknown): void {
+  sendToUser(
+    userId: string,
+    event: string,
+    payload: unknown,
+    context?: Pick<WSOutgoing, 'channelId' | 'communityId' | 'conversationId'>,
+  ): void {
     const userClients = this.clients.get(userId);
     if (!userClients) return;
 
     const outgoing: WSOutgoing = {
       event: event as WSOutgoing['event'],
       data: payload,
+      channelId: context?.channelId,
+      communityId: context?.communityId,
+      conversationId: context?.conversationId,
       timestamp: new Date().toISOString(),
     };
     const raw = JSON.stringify(outgoing);
@@ -213,6 +269,11 @@ class RealtimeService {
       console.error('[Realtime] getOnlineUsers failed:', (err as Error).message);
       return [];
     }
+  }
+
+  isUserOnline(userId: string): boolean {
+    const userClients = this.clients.get(userId);
+    return !!userClients && userClients.size > 0;
   }
 
   /**
@@ -309,7 +370,7 @@ class RealtimeService {
     raw: string,
     excludeUserId?: string,
   ): void {
-    for (const [_userId, userClients] of this.clients) {
+    for (const [, userClients] of this.clients) {
       for (const client of userClients) {
         if (excludeUserId && client.userId === excludeUserId) continue;
         if (client.subscribedChannels.has(channelId)) {
@@ -323,7 +384,7 @@ class RealtimeService {
     communityId: string,
     raw: string,
   ): void {
-    for (const [_userId, userClients] of this.clients) {
+    for (const [, userClients] of this.clients) {
       for (const client of userClients) {
         if (client.subscribedCommunities.has(communityId)) {
           this.safeSend(client.ws, raw);

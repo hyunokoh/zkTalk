@@ -1,4 +1,4 @@
-import { eq, and, desc, lt, sql } from 'drizzle-orm';
+import { eq, and, desc, lt } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { db } from '../../lib/db/index.js';
 import {
@@ -9,6 +9,7 @@ import {
   communities,
   roles,
   membershipRoles,
+  messages,
 } from '../../lib/db/schema.js';
 
 // ---------------------------------------------------------------------------
@@ -82,8 +83,25 @@ export async function findReportsByCommunity(
   }
 
   const rows = await db
-    .select()
+    .select({
+      report: reports,
+      message: {
+        id: messages.id,
+        channelId: messages.channelId,
+        authorUserId: messages.authorUserId,
+        bodyPlaintext: messages.bodyPlaintext,
+        isDeleted: messages.isDeleted,
+        isEncrypted: messages.isEncrypted,
+      },
+      reporter: {
+        id: users.id,
+        displayName: users.displayName,
+        username: users.username,
+      },
+    })
     .from(reports)
+    .leftJoin(messages, eq(reports.messageId, messages.id))
+    .leftJoin(users, eq(reports.reporterUserId, users.id))
     .where(and(...conditions))
     .orderBy(desc(reports.id))
     .limit(queryLimit);
@@ -154,9 +172,17 @@ export async function findModerationActions(
         displayName: users.displayName,
         username: users.username,
       },
+      message: {
+        id: messages.id,
+        channelId: messages.channelId,
+        bodyPlaintext: messages.bodyPlaintext,
+        isDeleted: messages.isDeleted,
+        isEncrypted: messages.isEncrypted,
+      },
     })
     .from(moderationActions)
     .innerJoin(users, eq(moderationActions.actorUserId, users.id))
+    .leftJoin(messages, eq(moderationActions.targetMessageId, messages.id))
     .where(and(...conditions))
     .orderBy(desc(moderationActions.id))
     .limit(queryLimit);

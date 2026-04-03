@@ -1,4 +1,4 @@
-import { eq, and, sql, lt, gte, lte, inArray } from 'drizzle-orm';
+import { eq, and, or, sql, lt, gte, lte, inArray, ilike, type SQLWrapper } from 'drizzle-orm';
 import { db } from '../../lib/db/index.js';
 import {
   messages,
@@ -15,6 +15,7 @@ export interface SearchFilters {
   communityId: string;
   channelId?: string;
   authorId?: string;
+  author?: string;
   hasAttachment?: boolean;
   dateFrom?: string;
   dateTo?: string;
@@ -37,11 +38,11 @@ export async function searchMessages(
 
   const queryLimit = limit + 1;
 
-  const conditions: ReturnType<typeof eq>[] = [];
+  const conditions: Array<SQLWrapper | undefined> = [];
 
   // Full-text search condition
   conditions.push(
-    sql`to_tsvector('english', ${messages.bodyPlaintext}) @@ plainto_tsquery('english', ${query})` as any,
+    sql`to_tsvector('english', ${messages.bodyPlaintext}) @@ plainto_tsquery('english', ${query})`,
   );
 
   // Community filter
@@ -60,6 +61,16 @@ export async function searchMessages(
 
   if (filters.authorId) {
     conditions.push(eq(messages.authorUserId, filters.authorId));
+  }
+
+  if (filters.author) {
+    const authorQuery = `%${filters.author}%`;
+    conditions.push(
+      or(
+        ilike(users.username, authorQuery),
+        ilike(users.displayName, authorQuery),
+      ),
+    );
   }
 
   if (filters.dateFrom) {

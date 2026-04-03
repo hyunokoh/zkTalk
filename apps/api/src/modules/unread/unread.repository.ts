@@ -3,7 +3,7 @@ import { db } from '../../lib/db/index.js';
 import {
   channelReads,
   channels,
-  communityMemberships,
+  messages,
 } from '../../lib/db/schema.js';
 
 // ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ export async function getChannelRead(channelId: string, userId: string) {
 export async function upsertChannelRead(
   channelId: string,
   userId: string,
-  lastReadMessageId: string,
+  lastReadMessageId: string | null,
 ) {
   // Try insert, on conflict update
   const [row] = await db
@@ -51,18 +51,37 @@ export async function upsertChannelRead(
   return row;
 }
 
+export async function findLatestMessageId(channelId: string) {
+  const [message] = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(and(eq(messages.channelId, channelId), sql`${messages.threadId} IS NULL`))
+    .orderBy(sql`${messages.createdAt} DESC`)
+    .limit(1);
+  return message?.id ?? null;
+}
+
 // ---------------------------------------------------------------------------
 // Unread summary for a community
 // ---------------------------------------------------------------------------
 
 export async function getUnreadSummary(communityId: string, userId: string) {
-  // Get all channels the user might have reads for in this community
   const result = await db
     .select({
       channelId: channels.id,
       channelName: channels.name,
       lastReadMessageId: channelReads.lastReadMessageId,
-      unreadCountCache: channelReads.unreadCountCache,
+      unreadCount: sql<number>`COALESCE((
+        SELECT count(*)::int
+        FROM ${messages} AS m
+        WHERE m.channel_id = ${channels.id}
+          AND m.thread_id IS NULL
+          AND m.author_user_id <> ${userId}
+          AND (
+            ${channelReads.lastReadMessageId} IS NULL
+            OR m.id > ${channelReads.lastReadMessageId}
+          )
+      ), 0)`,
       mentionCountCache: channelReads.mentionCountCache,
     })
     .from(channels)
@@ -79,7 +98,7 @@ export async function getUnreadSummary(communityId: string, userId: string) {
     channelId: row.channelId,
     channelName: row.channelName,
     lastReadMessageId: row.lastReadMessageId,
-    unreadCount: row.unreadCountCache ?? 0,
+    unreadCount: row.unreadCount ?? 0,
     mentionCount: row.mentionCountCache ?? 0,
   }));
 }
