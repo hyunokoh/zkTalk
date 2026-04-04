@@ -20,6 +20,15 @@ vi.mock('../../dm/dm.repository.js', () => ({
   isParticipant: vi.fn(),
 }));
 
+vi.mock('../../../lib/s3.js', () => ({
+  createPresignedUploadUrl: vi.fn(async ({ objectKey }: { objectKey: string }) => `https://storage.test/${objectKey}`),
+  createMultipartUpload: vi.fn(async () => 'multipart-upload-id'),
+  createMultipartPartUploadUrl: vi.fn(async ({ objectKey, partNumber }: { objectKey: string; partNumber: number }) => `https://storage.test/${objectKey}?partNumber=${partNumber}`),
+  completeMultipartUpload: vi.fn(),
+  abortMultipartUpload: vi.fn(),
+  getStorageBucket: vi.fn(() => 'zktalk-uploads'),
+}));
+
 import * as dmRepo from '../../dm/dm.repository.js';
 import {
   MAX_FILE_SIZE,
@@ -45,7 +54,7 @@ describe('upload.service generateUploadUrl', () => {
     });
 
     expect(mockedDmRepo.isParticipant).toHaveBeenCalledWith('conversation-1', 'user-1');
-    expect(result.uploadUrl).toContain('/api/upload/files/uploads/dm/conversation-1/');
+    expect(result.uploadUrl).toContain('https://storage.test/uploads/dm/conversation-1/');
     expect(result.storageKey).toContain('uploads/dm/conversation-1/');
     expect(result.storageKey).toContain('photo.png');
     expect(result.sessionId).toBeTruthy();
@@ -63,7 +72,7 @@ describe('upload.service generateUploadUrl', () => {
       fileSize: 12 * 1024 * 1024,
     });
 
-    expect(result.uploadUrl).toContain('/api/upload/files/uploads/dm/conversation-1/');
+    expect(result.uploadUrl).toContain('https://storage.test/uploads/dm/conversation-1/');
     expect(result.storageKey).toContain('report.pdf');
   });
 
@@ -77,7 +86,9 @@ describe('upload.service generateUploadUrl', () => {
       fileSize: MAX_FILE_SIZE,
     });
 
-    expect(result.uploadUrl).toContain('/api/upload/files/uploads/dm/conversation-1/');
+    expect(result.uploadMode).toBe('multipart');
+    expect(result.uploadUrl).toBeNull();
+    expect(result.partCount).toBeGreaterThan(1);
     expect(result.storageKey).toContain('large-report.pdf');
   });
 

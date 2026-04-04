@@ -7,6 +7,14 @@ import { WebSocketEvent } from '@zktalk/shared';
 import { AppError } from '../../lib/errors.js';
 import { db } from '../../lib/db/index.js';
 import { attachments, messages, channels, dmMessages, uploadSessions } from '../../lib/db/schema.js';
+import {
+  abortMultipartUpload as abortMultipartUploadInStorage,
+  completeMultipartUpload as completeMultipartUploadInStorage,
+  createMultipartPartUploadUrl,
+  createMultipartUpload,
+  createPresignedUploadUrl,
+  getStorageBucket,
+} from '../../lib/s3.js';
 import { checkPermission } from '../channel/channel.service.js';
 import * as communityRepo from '../community/community.repository.js';
 import * as messageRepo from '../message/message.repository.js';
@@ -165,6 +173,14 @@ export async function createUploadSession(
     : 1;
   const expiresAt = new Date(Date.now() + UPLOAD_SESSION_TTL_MS);
 
+  const bucket = getStorageBucket();
+  const multipartUploadId = uploadMode === 'multipart'
+    ? await createMultipartUpload({ bucket, objectKey, contentType: data.mimeType })
+    : null;
+  const uploadUrl = uploadMode === 'single'
+    ? await createPresignedUploadUrl({ bucket, objectKey, contentType: data.mimeType })
+    : null;
+
   await db.insert(uploadSessions).values({
     id: sessionId,
     uploaderUserId: userId,
@@ -177,9 +193,9 @@ export async function createUploadSession(
     sanitizedFileName,
     mimeType: data.mimeType,
     fileSize: data.fileSize,
-    bucket: 'zktalk-uploads',
+    bucket,
     objectKey,
-    multipartUploadId: uploadMode === 'multipart' ? `multipart-${sessionId}` : null,
+    multipartUploadId,
     partSize: uploadMode === 'multipart' ? MULTIPART_CHUNK_SIZE : null,
     partCount,
     status: uploadMode === 'multipart' ? 'multipart_ready' : 'single_ready',
@@ -189,7 +205,7 @@ export async function createUploadSession(
   return {
     sessionId,
     uploadMode,
-    uploadUrl: `/api/upload/files/${objectKey}`,
+    uploadUrl,
     storageKey: objectKey,
     partSize: uploadMode === 'multipart' ? MULTIPART_CHUNK_SIZE : null,
     partCount,
@@ -209,10 +225,15 @@ export async function getUploadSessionPartUrls(
 
   return {
     sessionId,
-    parts: partNumbers.map((partNumber) => ({
+    parts: await Promise.all(partNumbers.map(async (partNumber) => ({
       partNumber,
-      uploadUrl: `/api/upload/files/${session.objectKey}?partNumber=${partNumber}&uploadId=${session.multipartUploadId}`,
-    })),
+      uploadUrl: await createMultipartPartUploadUrl({
+        bucket: session.bucket,
+        objectKey: session.objectKey,
+        uploadId: session.multipartUploadId!,
+        partNumber,
+      }),
+    }))),
   };
 }
 
@@ -224,6 +245,15 @@ export async function completeUploadSession(
   const session = await getOwnedUploadSession(userId, sessionId);
   if (session.status !== 'multipart_ready' && session.status !== 'uploading' && session.status !== 'single_ready') {
     throw AppError.badRequest('Upload session cannot be completed');
+  }
+
+  if (session.multipartUploadId) {
+    await completeMultipartUploadInStorage({
+      bucket: session.bucket,
+      objectKey: session.objectKey,
+      uploadId: session.multipartUploadId,
+      parts,
+    });
   }
 
   await db
@@ -243,7 +273,14 @@ export async function completeUploadSession(
 }
 
 export async function abortUploadSession(userId: string, sessionId: string) {
-  await getOwnedUploadSession(userId, sessionId);
+  const session = await getOwnedUploadSession(userId, sessionId);
+  if (session.multipartUploadId) {
+    await abortMultipartUploadInStorage({
+      bucket: session.bucket,
+      objectKey: session.objectKey,
+      uploadId: session.multipartUploadId,
+    });
+  }
   await db
     .update(uploadSessions)
     .set({
