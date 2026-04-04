@@ -225,7 +225,7 @@ export default async function uploadRoutes(app: FastifyInstance) {
 
       reply.header('Cache-Control', 'private, max-age=300');
       reply.header('Content-Disposition', buildInlineContentDisposition(file.fileName));
-      return reply.type(file.mimeType).send(createReadStream(file.filePath));
+      return reply.type(file.mimeType).send(file.stream);
     },
   );
 

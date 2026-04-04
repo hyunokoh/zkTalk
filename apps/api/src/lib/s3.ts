@@ -2,10 +2,21 @@ import {
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3';
+import { Readable } from 'node:stream';
+import type { Readable as NodeReadable } from 'node:stream';
+
+function toNodeReadable(body: unknown): NodeReadable {
+  if (body instanceof Readable) {
+    return body;
+  }
+  throw new Error('Unsupported S3 body stream');
+}
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export const s3 = new S3Client({
@@ -104,6 +115,36 @@ export async function abortMultipartUpload(options: {
       UploadId: options.uploadId,
     }),
   );
+}
+
+export async function headStoredObject(options: {
+  bucket?: string;
+  objectKey: string;
+}) {
+  return s3.send(
+    new HeadObjectCommand({
+      Bucket: options.bucket ?? S3_BUCKET,
+      Key: options.objectKey,
+    }),
+  );
+}
+
+export async function getStoredObjectStream(options: {
+  bucket?: string;
+  objectKey: string;
+}) {
+  const result = await s3.send(
+    new GetObjectCommand({
+      Bucket: options.bucket ?? S3_BUCKET,
+      Key: options.objectKey,
+    }),
+  );
+
+  if (!result.Body) {
+    throw new Error('Stored object body is empty');
+  }
+
+  return toNodeReadable(result.Body);
 }
 
 export function getStorageBucket() {

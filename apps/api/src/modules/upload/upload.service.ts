@@ -1,4 +1,4 @@
-import { access, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { eq, and } from 'drizzle-orm';
 import { SystemRole } from '@zktalk/shared';
@@ -14,6 +14,8 @@ import {
   createMultipartUpload,
   createPresignedUploadUrl,
   getStorageBucket,
+  getStoredObjectStream,
+  headStoredObject,
 } from '../../lib/s3.js';
 import { checkPermission } from '../channel/channel.service.js';
 import * as communityRepo from '../community/community.repository.js';
@@ -457,9 +459,11 @@ export async function createAttachment(
   const fileSizeLimit = getFileSizeLimitForStorageKey(session.objectKey);
   assertWithinFileSizeLimit(data.fileSize, fileSizeLimit);
 
-  const filePath = resolveStoragePath(session.objectKey);
   try {
-    await access(filePath);
+    await headStoredObject({
+      bucket: session.bucket,
+      objectKey: session.objectKey,
+    });
   } catch {
     throw AppError.badRequest('Uploaded file was not found');
   }
@@ -613,18 +617,19 @@ export async function getAttachmentFileForUser(userId: string, attachmentId: str
       'view_channel',
     );
 
-    const filePath = resolveStoragePath(row.attachment.storageKey);
     try {
-      await access(filePath);
+      const stream = await getStoredObjectStream({
+        bucket: row.attachment.bucket,
+        objectKey: row.attachment.objectKey || row.attachment.storageKey,
+      });
+      return {
+        stream,
+        mimeType: row.attachment.mimeType,
+        fileName: row.attachment.fileName,
+      };
     } catch {
       throw AppError.notFound('Attachment file not found');
     }
-
-    return {
-      filePath,
-      mimeType: row.attachment.mimeType,
-      fileName: row.attachment.fileName,
-    };
   }
 
   const [dmRow] = await db
@@ -648,18 +653,19 @@ export async function getAttachmentFileForUser(userId: string, attachmentId: str
     throw AppError.forbidden('You do not have access to this attachment');
   }
 
-  const filePath = resolveStoragePath(dmRow.attachment.storageKey);
   try {
-    await access(filePath);
+    const stream = await getStoredObjectStream({
+      bucket: dmRow.attachment.bucket,
+      objectKey: dmRow.attachment.objectKey || dmRow.attachment.storageKey,
+    });
+    return {
+      stream,
+      mimeType: dmRow.attachment.mimeType,
+      fileName: dmRow.attachment.fileName,
+    };
   } catch {
     throw AppError.notFound('Attachment file not found');
   }
-
-  return {
-    filePath,
-    mimeType: dmRow.attachment.mimeType,
-    fileName: dmRow.attachment.fileName,
-  };
 }
 
 function inferAssetMimeType(fileName: string): string {
