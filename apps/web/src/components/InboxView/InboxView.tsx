@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { EmptyState } from '@/components/EmptyState';
 import { InboxItem } from '@/components/InboxItem';
+import { LoadingState } from '@/components/LoadingState';
 import type { InboxItemData } from '@/components/InboxItem';
 import { useTranslation } from '@/lib/i18n';
 
@@ -32,7 +34,6 @@ export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
 
   return (
     <div>
-      {/* Tabs */}
       <div className="flex border-b border-gray-700">
         {TABS.map((tab) => {
           const count = items.filter((i) => {
@@ -65,40 +66,20 @@ export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
         })}
       </div>
 
-      {/* Content */}
       <div className="mt-2">
         {isLoading ? (
-          <div className="space-y-2 p-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse rounded-lg bg-gray-800/30 p-4">
-                <div className="h-3 w-32 rounded bg-gray-700" />
-                <div className="mt-2 h-4 w-64 rounded bg-gray-700" />
-              </div>
-            ))}
-          </div>
+          <LoadingState message={t('common.loading')} compact />
         ) : filtered.length === 0 ? (
-          <div className="p-12 text-center">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-700"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859M12 3v8.25m0 0-3-3m3 3 3-3"
-              />
-            </svg>
-            <p className="mt-3 text-sm text-gray-500">
-              {activeTab === 'all'
+          <EmptyState
+            title={
+              activeTab === 'all'
                 ? t('inbox.empty')
                 : activeTab === 'mentions'
                   ? t('inbox.noMentions')
-                  : t('inbox.noThreadReplies')}
-            </p>
-          </div>
+                  : t('inbox.noThreadReplies')
+            }
+            className="m-4"
+          />
         ) : (
           <div className="divide-y divide-gray-800">
             {filtered.map((item) => (

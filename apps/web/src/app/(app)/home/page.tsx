@@ -5,6 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { EmptyState } from '@/components/EmptyState';
+import { LoadingState } from '@/components/LoadingState';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { useTranslation } from '@/lib/i18n';
@@ -133,7 +135,6 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-1 flex-col bg-[#36393f]">
-      {/* Header */}
       <header className="border-b border-[#202225] px-6 py-4 pl-14 md:pl-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
@@ -173,22 +174,23 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-3xl">
           {isLoading ? (
-            <div className="text-center text-[#72767d]">{t('community.loadingCommunities')}</div>
+            <LoadingState message={t('community.loadingCommunities')} compact />
           ) : orderedCommunities.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-[#4f545c] px-6 py-12 text-center">
-              <p className="text-sm font-medium text-[#dcddde]">{t('community.noJoined')}</p>
-              <p className="mt-2 text-sm text-[#96989d]">{t('home.noCommunityHint')}</p>
-              <Link
-                href="/communities/new"
-                className="mt-4 inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
-              >
-                {t('community.createCommunity')}
-              </Link>
-            </div>
+            <EmptyState
+              title={t('community.noJoined')}
+              description={t('home.noCommunityHint')}
+              action={(
+                <Link
+                  href="/communities/new"
+                  className="inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+                >
+                  {t('community.createCommunity')}
+                </Link>
+              )}
+            />
           ) : (
             <div className="space-y-1">
               {orderedCommunities.map((community, index) => {
