@@ -1,4 +1,4 @@
-import { PermissionKey } from '../constants/index.js';
+import { PermissionKey } from '../constants/index';
 
 /**
  * Default permissions for each system role.

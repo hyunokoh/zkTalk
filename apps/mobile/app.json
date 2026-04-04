@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "zkTalk",
+    "slug": "zktalk",
+    "version": "1.0.0",
+    "scheme": "zktalk",
+    "platforms": ["ios", "android"],
+    "icon": "./assets/branding/zktalk-icon.svg.png",
+    "splash": {
+      "backgroundColor": "#0a0a1a",
+      "image": "./assets/branding/zktalk-mark.svg.png",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "bundleIdentifier": "com.zktalk.mobile",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "zkTalk needs camera access to scan QR codes for desktop login.",
+        "NSPhotoLibraryUsageDescription": "zkTalk needs photo library access to send images and files.",
+        "NSMicrophoneUsageDescription": "zkTalk needs microphone access for voice messages."
+      }
+    },
+    "android": {
+      "package": "com.zktalk.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0a1a",
+        "foregroundImage": "./assets/branding/zktalk-mark.svg.png"
+      },
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "zkTalk needs camera access to scan QR codes for desktop login."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#6366f1"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "zkTalk needs photo library access to send images.",
+          "cameraPermission": "zkTalk needs camera access to take photos."
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "zkTalk needs contacts access to find friends."
+        }
+      ]
+    ]
+  }
+}

@@ -9,5 +9,5 @@ export const CommunityIdParamsSchema = z.object({
 });
 
 export const MarkReadSchema = z.object({
-  lastMessageId: z.string().min(1),
+  lastMessageId: z.string().min(1).optional(),
 });

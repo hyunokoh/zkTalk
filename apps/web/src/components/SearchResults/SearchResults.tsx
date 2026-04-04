@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { t } from '@/lib/i18n';
 
 export interface SearchResult {
   id: string;
@@ -41,10 +42,10 @@ function formatRelativeTime(dateStr: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMins < 1) return t('time.justNow');
+  if (diffMins < 60) return t('time.minutesAgo', { count: diffMins });
+  if (diffHours < 24) return t('time.hoursAgo', { count: diffHours });
+  if (diffDays < 7) return t('time.daysAgo', { count: diffDays });
   return date.toLocaleDateString();
 }
 
@@ -80,7 +81,7 @@ export function SearchResults({ results, isLoading, query }: SearchResultsProps)
           />
         </svg>
         <p className="mt-3 text-sm text-gray-500">
-          Enter a search term to find messages
+          {t('search.enterTerm')}
         </p>
       </div>
     );
@@ -104,7 +105,7 @@ export function SearchResults({ results, isLoading, query }: SearchResultsProps)
       {results.map((result) => (
         <Link
           key={result.id}
-          href={`/communities/${result.communitySlug}/${result.channelId}#${result.id}`}
+          href={`/communities/${result.communitySlug}/channels/${result.channelId}#${result.id}`}
           className="block rounded-lg border border-gray-700 bg-gray-800/30 p-4 transition-colors hover:border-gray-600 hover:bg-gray-800/50"
         >
           <div className="flex items-center gap-2 text-xs text-gray-500">

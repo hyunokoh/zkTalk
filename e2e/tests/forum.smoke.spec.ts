@@ -1,0 +1,34 @@
+import { expect, test } from '@playwright/test';
+import { bootstrapAuthenticatedPage } from '../utils/auth';
+import { getSeedData } from '../utils/seed';
+
+test('forum channel can create a post and open the created thread', async ({ page }) => {
+  const seed = await getSeedData();
+  const title = `playwright-forum-title-${Date.now()}`;
+  const body = `playwright-forum-body-${Date.now()}`;
+
+  await bootstrapAuthenticatedPage(
+    page,
+    seed.userA.sessionToken,
+    `/communities/${seed.communitySlug}/channels/${seed.forumChannelId}`,
+  );
+
+  await expect(page.getByTestId('forum-new-post-button')).toBeVisible();
+  await page.getByTestId('forum-new-post-button').click();
+
+  await expect(page.getByTestId('forum-create-panel')).toBeVisible();
+  await page.getByTestId('forum-create-title-input').fill(title);
+  await page.getByTestId('forum-create-body-input').fill(body);
+  await page.getByTestId('forum-create-submit-button').click();
+
+  const postLink = page.getByTestId('forum-post-link').filter({ hasText: title }).first();
+  await expect(postLink).toBeVisible();
+  await postLink.click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`/communities/${seed.communitySlug}/channels/${seed.forumChannelId}/threads/`),
+  );
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
+  await expect(page.getByTestId('thread-root-message')).toBeVisible();
+  await expect(page.getByTestId('thread-root-message-body')).toContainText(body);
+});

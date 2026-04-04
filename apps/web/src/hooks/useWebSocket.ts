@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import type { WSIncoming, WSOutgoing } from '@zktalk/shared';
+import { getWebSocketUrl } from '@/lib/runtime-config';
+import { getSessionToken } from '@/lib/session-token';
 
 // ── Constants ───────────────────────────────────────────────────────
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:4000/api/ws';
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
@@ -22,6 +23,27 @@ let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let intentionallyClosed = false;
 const listeners = new Map<string, Set<EventHandler>>();
 let refCount = 0;
+const subscribedChannels = new Set<string>();
+const subscribedCommunities = new Set<string>();
+const subscribedDms = new Set<string>();
+
+function clearSubscriptions(): void {
+  subscribedChannels.clear();
+  subscribedCommunities.clear();
+  subscribedDms.clear();
+}
+
+function replaySubscriptions(): void {
+  for (const channelId of subscribedChannels) {
+    sendRaw({ type: 'subscribe_channel', channelId });
+  }
+  for (const communityId of subscribedCommunities) {
+    sendRaw({ type: 'subscribe_community', communityId });
+  }
+  for (const conversationId of subscribedDms) {
+    sendRaw({ type: 'subscribe_dm', conversationId });
+  }
+}
 
 function getReconnectDelay(): number {
   const delay = Math.min(
@@ -77,13 +99,21 @@ function connect(): void {
 
   intentionallyClosed = false;
 
-  // Build URL - the cookie will be sent automatically
-  ws = new WebSocket(WS_URL);
+  // Build URL. Desktop/web can authenticate via query token even when
+  // there is no cookie-based session available.
+  const wsUrl = new URL(getWebSocketUrl());
+  const sessionToken = getSessionToken();
+  if (sessionToken) {
+    wsUrl.searchParams.set('token', sessionToken);
+  }
+
+  ws = new WebSocket(wsUrl.toString());
 
   ws.onopen = () => {
     console.log('[WS] Connected');
     reconnectAttempt = 0;
     startHeartbeat();
+    replaySubscriptions();
   };
 
   ws.onmessage = (event) => {
@@ -120,6 +150,7 @@ function disconnect(): void {
     reconnectTimer = null;
   }
   stopHeartbeat();
+  clearSubscriptions();
   if (ws) {
     ws.close(1000, 'Client disconnect');
     ws = null;
@@ -151,6 +182,28 @@ export function subscribe(event: string, handler: EventHandler): () => void {
 }
 
 export function send(message: WSIncoming): void {
+  switch (message.type) {
+    case 'subscribe_channel':
+      subscribedChannels.add(message.channelId);
+      break;
+    case 'unsubscribe_channel':
+      subscribedChannels.delete(message.channelId);
+      break;
+    case 'subscribe_community':
+      subscribedCommunities.add(message.communityId);
+      break;
+    case 'unsubscribe_community':
+      subscribedCommunities.delete(message.communityId);
+      break;
+    case 'subscribe_dm':
+      subscribedDms.add(message.conversationId);
+      break;
+    case 'unsubscribe_dm':
+      subscribedDms.delete(message.conversationId);
+      break;
+    default:
+      break;
+  }
   sendRaw(message);
 }
 
@@ -171,11 +224,10 @@ export function useWebSocket(): {
   isConnected: typeof isConnected;
 } {
   const user = useAuthStore((s) => s.user);
-  const userRef = useRef(user);
-  userRef.current = user;
+  const userId = user?.id ?? null;
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       disconnect();
       return;
     }
@@ -190,7 +242,7 @@ export function useWebSocket(): {
         disconnect();
       }
     };
-  }, [user]);
+  }, [userId]);
 
   return {
     send: useCallback((msg: WSIncoming) => send(msg), []),

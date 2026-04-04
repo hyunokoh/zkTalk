@@ -1,0 +1,1 @@
+export { ZkCredentialBadge } from './ZkCredentialBadge';

@@ -1,6 +1,61 @@
 import { hasPermission, DEFAULT_ROLE_PERMISSIONS } from '@zktalk/shared';
 import { AppError } from '../../lib/errors.js';
 import * as repo from './channel.repository.js';
+import * as dmRepo from '../dm/dm.repository.js';
+
+function buildSourceDmDisplayName(
+  conversation: NonNullable<Awaited<ReturnType<typeof dmRepo.findConversationById>>>,
+  userId: string,
+) {
+  const explicitName = conversation.conversation.name?.trim();
+  if (explicitName) {
+    return explicitName;
+  }
+
+  const otherParticipants = conversation.participants.filter((participant) => participant.userId !== userId);
+  if (conversation.conversation.type === 'direct') {
+    const directTarget = otherParticipants[0] ?? conversation.participants[0];
+    return directTarget?.user.displayName?.trim() || directTarget?.user.username?.trim() || null;
+  }
+
+  const participantNames = otherParticipants
+    .map((participant) => participant.user.displayName.trim())
+    .filter(Boolean);
+  if (participantNames.length === 0) {
+    return 'Group DM';
+  }
+
+  if (participantNames.length <= 3) {
+    return participantNames.join(', ');
+  }
+
+  return `${participantNames.slice(0, 3).join(', ')} +${participantNames.length - 3}`;
+}
+
+async function buildSourceDmConversationSummary(
+  sourceDmConversationId: string | null | undefined,
+  userId: string,
+) {
+  if (!sourceDmConversationId) {
+    return null;
+  }
+
+  const canAccessSourceDm = await dmRepo.isParticipant(sourceDmConversationId, userId);
+  if (!canAccessSourceDm) {
+    return null;
+  }
+
+  const sourceConversation = await dmRepo.findConversationById(sourceDmConversationId);
+  if (!sourceConversation) {
+    return null;
+  }
+
+  return {
+    id: sourceDmConversationId,
+    name: buildSourceDmDisplayName(sourceConversation, userId),
+    type: sourceConversation.conversation.type,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Permission helper
@@ -56,7 +111,17 @@ export async function createCategory(
   data: { name: string; position?: number },
 ) {
   await checkPermission(userId, communityId, null, 'manage_channels');
-  return repo.createCategory({ communityId, ...data });
+  let position = data.position;
+  if (position === undefined) {
+    const existing = await repo.findCategoriesByCommunity(communityId);
+    const lastPosition = existing.reduce(
+      (max, category) => Math.max(max, category.position ?? 0),
+      -1,
+    );
+    position = lastPosition + 1;
+  }
+
+  return repo.createCategory({ communityId, ...data, position });
 }
 
 export async function updateCategory(
@@ -92,8 +157,115 @@ export async function deleteCategory(categoryId: string, userId: string) {
   return repo.deleteCategory(categoryId);
 }
 
-export async function listCategories(communityId: string) {
+export async function listCategories(communityId: string, userId: string) {
+  await checkPermission(userId, communityId, null, 'manage_channels');
   return repo.findCategoriesByCommunity(communityId);
+}
+
+async function syncRoleRestrictedViewPermissions(
+  channelId: string,
+  communityId: string,
+  allowedViewRoleIds: string[],
+  allowedPostRoleIds: string[],
+) {
+  const roles = await repo.findRolesByCommunity(communityId);
+  const allowedViewSet = new Set(allowedViewRoleIds);
+  const allowedPostSet = new Set(allowedPostRoleIds);
+
+  await Promise.all(
+    roles.map((role) => {
+      const canView =
+        role.name === 'owner' ||
+        role.name === 'admin' ||
+        allowedViewSet.has(role.id) ||
+        allowedPostSet.has(role.id);
+      const canPost =
+        role.name === 'owner' || role.name === 'admin' || allowedPostSet.has(role.id);
+
+      return Promise.all([
+        repo.setChannelPermission(
+          channelId,
+          role.id,
+          'view_channel',
+          canView ? 'allow' : 'deny',
+        ),
+        repo.setChannelPermission(
+          channelId,
+          role.id,
+          'post_message',
+          canPost ? 'allow' : 'deny',
+        ),
+      ]);
+    }),
+  );
+}
+
+export async function getChannelPermissions(channelId: string, userId: string) {
+  const channel = await repo.findChannelById(channelId);
+  if (!channel) {
+    throw AppError.notFound('Channel not found');
+  }
+
+  await checkPermission(userId, channel.communityId, channelId, 'manage_channels');
+  return repo.getChannelPermissions(channelId);
+}
+
+export async function getMyChannelPermissions(channelId: string, userId: string) {
+  const channel = await repo.findChannelById(channelId);
+  if (!channel) {
+    throw AppError.notFound('Channel not found');
+  }
+
+  const membership = await repo.getUserMembership(userId, channel.communityId);
+  if (!membership || membership.membershipStatus !== 'active') {
+    throw AppError.forbidden('You are not an active member of this community');
+  }
+
+  const userRoles = await repo.getUserRolesInCommunity(userId, channel.communityId);
+  if (userRoles.length === 0) {
+    throw AppError.forbidden('You have no roles in this community');
+  }
+
+  const channelPermissions = await repo.getChannelPermissions(channelId);
+
+  return {
+    canViewChannel: hasPermission(
+      userRoles,
+      channelPermissions,
+      'view_channel',
+      DEFAULT_ROLE_PERMISSIONS,
+    ),
+    canPostMessage: hasPermission(
+      userRoles,
+      channelPermissions,
+      'post_message',
+      DEFAULT_ROLE_PERMISSIONS,
+    ),
+    canManageChannel: hasPermission(
+      userRoles,
+      channelPermissions,
+      'manage_channels',
+      DEFAULT_ROLE_PERMISSIONS,
+    ),
+    canReact: hasPermission(
+      userRoles,
+      channelPermissions,
+      'react',
+      DEFAULT_ROLE_PERMISSIONS,
+    ),
+    canUploadAttachment: hasPermission(
+      userRoles,
+      channelPermissions,
+      'upload_attachment',
+      DEFAULT_ROLE_PERMISSIONS,
+    ),
+    canCreateThread: hasPermission(
+      userRoles,
+      channelPermissions,
+      'create_thread',
+      DEFAULT_ROLE_PERMISSIONS,
+    ),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -106,10 +278,13 @@ export async function createChannel(
   data: {
     name: string;
     description?: string;
-    type?: 'chat' | 'announcement' | 'forum';
+    type?: 'chat' | 'announcement' | 'forum' | 'voice';
     categoryId?: string;
     visibility?: 'public' | 'role_restricted';
     slowModeSeconds?: number;
+    requireTopic?: boolean;
+    allowedViewRoleIds?: string[];
+    allowedPostRoleIds?: string[];
   },
 ) {
   await checkPermission(userId, communityId, null, 'manage_channels');
@@ -122,7 +297,18 @@ export async function createChannel(
     }
   }
 
-  return repo.createChannel({ communityId, ...data });
+  const channel = await repo.createChannel({ communityId, ...data });
+
+  if (data.visibility === 'role_restricted') {
+    await syncRoleRestrictedViewPermissions(
+      channel.id,
+      communityId,
+      data.allowedViewRoleIds ?? [],
+      data.allowedPostRoleIds ?? [],
+    );
+  }
+
+  return channel;
 }
 
 export async function updateChannel(
@@ -135,6 +321,10 @@ export async function updateChannel(
     slowModeSeconds?: number;
     categoryId?: string | null;
     position?: number;
+    disappearingDuration?: number | null;
+    requireTopic?: boolean;
+    allowedViewRoleIds?: string[];
+    allowedPostRoleIds?: string[];
   },
 ) {
   const channel = await repo.findChannelById(channelId);
@@ -152,7 +342,25 @@ export async function updateChannel(
     }
   }
 
-  return repo.updateChannel(channelId, data);
+  const updated = await repo.updateChannel(channelId, data);
+  const nextVisibility = data.visibility ?? channel.visibility;
+
+  if (nextVisibility === 'public') {
+    await repo.clearChannelPermissionKey(channelId, 'view_channel');
+    await repo.clearChannelPermissionKey(channelId, 'post_message');
+  } else if (
+    data.allowedViewRoleIds !== undefined ||
+    data.allowedPostRoleIds !== undefined
+  ) {
+    await syncRoleRestrictedViewPermissions(
+      channelId,
+      channel.communityId,
+      data.allowedViewRoleIds ?? [],
+      data.allowedPostRoleIds ?? [],
+    );
+  }
+
+  return updated;
 }
 
 export async function archiveChannel(channelId: string, userId: string) {
@@ -167,6 +375,16 @@ export async function archiveChannel(channelId: string, userId: string) {
 
   await checkPermission(userId, channel.communityId, channelId, 'manage_channels');
   return repo.archiveChannel(channelId);
+}
+
+export async function deleteChannel(channelId: string, userId: string) {
+  const channel = await repo.findChannelById(channelId);
+  if (!channel) {
+    throw AppError.notFound('Channel not found');
+  }
+
+  await checkPermission(userId, channel.communityId, channelId, 'manage_channels');
+  return repo.deleteChannel(channelId);
 }
 
 export async function listChannels(communityId: string, userId: string) {
@@ -211,12 +429,20 @@ export async function listChannels(communityId: string, userId: string) {
     }
   }
 
+  const decorateChannel = async (channel: typeof results[number]['channel']) => ({
+    ...channel,
+    sourceDmConversation: await buildSourceDmConversationSummary(
+      channel.sourceDmConversationId,
+      userId,
+    ),
+  });
+
   return {
-    uncategorized: uncategorized.map((r) => r.channel),
-    categories: Array.from(byCategory.values()).map((entry) => ({
+    uncategorized: await Promise.all(uncategorized.map((r) => decorateChannel(r.channel))),
+    categories: await Promise.all(Array.from(byCategory.values()).map(async (entry) => ({
       ...entry.category,
-      channels: entry.channels.map((r) => r.channel),
-    })),
+      channels: await Promise.all(entry.channels.map((r) => decorateChannel(r.channel))),
+    }))),
   };
 }
 
@@ -227,5 +453,16 @@ export async function getChannel(channelId: string, userId: string) {
   }
 
   await checkPermission(userId, channel.communityId, channelId, 'view_channel');
-  return channel;
+
+  const sourceDmConversation = await buildSourceDmConversationSummary(
+    channel.sourceDmConversationId,
+    userId,
+  );
+  if (!sourceDmConversation) {
+    return channel;
+  }
+  return {
+    ...channel,
+    sourceDmConversation,
+  };
 }

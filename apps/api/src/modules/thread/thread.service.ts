@@ -1,8 +1,11 @@
+import { WebSocketEvent } from '@zktalk/shared';
 import { uuidv7 } from 'uuidv7';
 import { AppError } from '../../lib/errors.js';
 import { markdownToPlaintext } from '../../lib/markdown.js';
 import { checkPermission } from '../channel/channel.service.js';
 import * as repo from './thread.repository.js';
+import * as messageRepo from '../message/message.repository.js';
+import { realtimeService } from '../realtime/realtime.service.js';
 
 // ---------------------------------------------------------------------------
 // Create a thread from an existing chat message
@@ -37,6 +40,10 @@ export async function createThreadFromMessage(userId: string, messageId: string)
   // Auto-follow the creator
   await repo.followThread(threadId, userId);
 
+  realtimeService.broadcastToChannel(channel.id, WebSocketEvent.THREAD_CREATED, {
+    thread,
+  });
+
   return thread;
 }
 
@@ -68,7 +75,6 @@ export async function createForumPost(
     id: messageId,
     communityId: channel.communityId,
     channelId: channel.id,
-    threadId,
     authorUserId: userId,
     bodyMarkdown: data.bodyMarkdown,
     bodyPlaintext: markdownToPlaintext(data.bodyMarkdown),
@@ -84,6 +90,10 @@ export async function createForumPost(
 
   // Auto-follow the creator
   await repo.followThread(threadId, userId);
+
+  realtimeService.broadcastToChannel(channel.id, WebSocketEvent.THREAD_CREATED, {
+    thread,
+  });
 
   return { thread, rootMessage: message };
 }
@@ -106,7 +116,30 @@ export async function getThreads(
 
   await checkPermission(userId, channel.communityId, channel.id, 'view_channel');
 
-  return repo.findThreadsByChannel(channelId, cursor, limit, sort);
+  return repo.findThreadsByChannel(channelId, userId, cursor, limit, sort);
+}
+
+export async function getThreadSummaries(userId: string, rootMessageIds: string[]) {
+  const summaries = await repo.findThreadsByRootMessageIds(rootMessageIds);
+  const checkedChannels = new Set<string>();
+
+  for (const summary of summaries) {
+    if (checkedChannels.has(summary.thread.channelId)) {
+      continue;
+    }
+
+    const channel = await repo.findChannelById(summary.thread.channelId);
+    if (!channel) {
+      throw AppError.notFound('Channel not found');
+    }
+
+    await checkPermission(userId, channel.communityId, channel.id, 'view_channel');
+    checkedChannels.add(summary.thread.channelId);
+  }
+
+  return {
+    items: summaries,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -132,6 +165,53 @@ export async function getThreadMessages(
   await checkPermission(userId, channel.communityId, channel.id, 'view_channel');
 
   return repo.getThreadMessages(threadId, cursor, limit);
+}
+
+export async function getThread(userId: string, threadId: string) {
+  const result = await repo.findThreadById(threadId);
+  if (!result) {
+    throw AppError.notFound('Thread not found');
+  }
+
+  const channel = await repo.findChannelById(result.thread.channelId);
+  if (!channel) {
+    throw AppError.notFound('Channel not found');
+  }
+
+  await checkPermission(userId, channel.communityId, channel.id, 'view_channel');
+
+  const rootMessage = await messageRepo.findMessageById(result.thread.rootMessageId);
+  const followState = await repo.getFollowState(threadId, userId);
+  const isFollowing = !!followState;
+
+  let canPostReply = false;
+  let canModerateThread = false;
+
+  try {
+    await checkPermission(userId, channel.communityId, channel.id, 'post_message');
+    canPostReply = true;
+  } catch {
+    canPostReply = false;
+  }
+
+  try {
+    await checkPermission(userId, channel.communityId, channel.id, 'moderate_members');
+    canModerateThread = true;
+  } catch {
+    canModerateThread = false;
+  }
+
+  return {
+    thread: result.thread,
+    creator: result.creator,
+    rootMessage,
+    isFollowing,
+    lastReadMessageId: followState?.lastReadMessageId ?? null,
+    permissions: {
+      canPostReply,
+      canModerateThread,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -179,7 +259,14 @@ export async function postToThread(
     await repo.followThread(threadId, userId);
   }
 
-  return message;
+  const refreshed = await repo.findThreadById(threadId);
+  if (refreshed) {
+    realtimeService.broadcastToChannel(channel.id, WebSocketEvent.THREAD_UPDATED, {
+      thread: refreshed.thread,
+    });
+  }
+
+  return (await messageRepo.findMessageById(message.id)) ?? message;
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +293,34 @@ export async function unfollowThread(userId: string, threadId: string) {
   return { followed: false };
 }
 
+export async function markThreadRead(
+  userId: string,
+  threadId: string,
+  messageId: string,
+) {
+  const result = await repo.findThreadById(threadId);
+  if (!result) {
+    throw AppError.notFound('Thread not found');
+  }
+
+  const channel = await repo.findChannelById(result.thread.channelId);
+  if (!channel) {
+    throw AppError.notFound('Channel not found');
+  }
+
+  await checkPermission(userId, channel.communityId, channel.id, 'view_channel');
+
+  const message = await repo.findMessageById(messageId);
+  if (!message || message.threadId !== threadId) {
+    throw AppError.badRequest('Message does not belong to this thread');
+  }
+
+  await repo.followThread(threadId, userId);
+  await repo.updateLastReadMessage(threadId, userId, messageId);
+
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Lock thread (moderation)
 // ---------------------------------------------------------------------------
@@ -223,5 +338,11 @@ export async function lockThread(userId: string, threadId: string) {
 
   await checkPermission(userId, channel.communityId, channel.id, 'moderate_members');
 
-  return repo.lockThread(threadId);
+  const thread = await repo.lockThread(threadId);
+  if (thread) {
+    realtimeService.broadcastToChannel(channel.id, WebSocketEvent.THREAD_LOCKED, {
+      thread,
+    });
+  }
+  return thread;
 }

@@ -3,23 +3,25 @@
 import { useState } from 'react';
 import { InboxItem } from '@/components/InboxItem';
 import type { InboxItemData } from '@/components/InboxItem';
+import { useTranslation } from '@/lib/i18n';
 
 type TabValue = 'all' | 'mentions' | 'threads';
 
 interface InboxViewProps {
   items: InboxItemData[];
   isLoading: boolean;
-  onMarkRead: (id: string) => void;
+  onMarkRead: (messageId: string) => Promise<void>;
 }
 
-const TABS: { label: string; value: TabValue }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Mentions', value: 'mentions' },
-  { label: 'Threads', value: 'threads' },
-];
-
 export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabValue>('all');
+
+  const TABS: { label: string; value: TabValue }[] = [
+    { label: t('inbox.all'), value: 'all' },
+    { label: t('inbox.mentions'), value: 'mentions' },
+    { label: t('inbox.threads'), value: 'threads' },
+  ];
 
   const filtered = items.filter((item) => {
     if (activeTab === 'all') return true;
@@ -91,8 +93,10 @@ export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
             </svg>
             <p className="mt-3 text-sm text-gray-500">
               {activeTab === 'all'
-                ? 'Your inbox is empty'
-                : `No ${activeTab === 'mentions' ? 'mentions' : 'thread replies'} yet`}
+                ? t('inbox.empty')
+                : activeTab === 'mentions'
+                  ? t('inbox.noMentions')
+                  : t('inbox.noThreadReplies')}
             </p>
           </div>
         ) : (

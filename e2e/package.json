@@ -1,0 +1,17 @@
+{
+  "name": "@zktalk/e2e",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test --config playwright.config.ts",
+    "test:smoke": "playwright test --config playwright.config.ts tests/auth.smoke.spec.ts tests/chat.smoke.spec.ts tests/dm.smoke.spec.ts tests/inbox.smoke.spec.ts tests/profile.smoke.spec.ts",
+    "test:headed": "playwright test --config playwright.config.ts --headed",
+    "codegen": "playwright codegen http://127.0.0.1:3000/login"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.1",
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3"
+  }
+}

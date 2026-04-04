@@ -1,0 +1,4 @@
+-- No-op migration.
+-- The original generated SQL duplicated objects already created by 0001, 0002, and 0007,
+-- which breaks clean-database bootstrap. Keep this file as a historical placeholder so
+-- the migration journal remains stable while avoiding duplicate CREATE TYPE / CREATE TABLE errors.

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import * as jose from 'jose';
 import type { WSIncoming } from '@zktalk/shared';
 import { realtimeService } from './realtime.service.js';
+import * as dmRepo from '../dm/dm.repository.js';
 
 const COOKIE_NAME = 'zktalk_session';
 
@@ -131,7 +132,7 @@ function handleMessage(
 ): void {
   switch (message.type) {
     case 'subscribe_channel':
-      realtimeService.subscribeToChannel(client, message.channelId);
+      realtimeService.subscribeToChannel(client, message.channelId).catch(() => {});
       break;
 
     case 'unsubscribe_channel':
@@ -139,7 +140,7 @@ function handleMessage(
       break;
 
     case 'subscribe_community':
-      realtimeService.subscribeToCommunity(client, message.communityId);
+      realtimeService.subscribeToCommunity(client, message.communityId).catch(() => {});
       break;
 
     case 'unsubscribe_community':
@@ -166,6 +167,50 @@ function handleMessage(
           }),
         );
       }
+      break;
+
+    // ── P2P File Transfer Signaling ──────────────────────────────────
+    case 'p2p_signal':
+      // Relay WebRTC signal (ICE/SDP) to target user
+      realtimeService.sendToUser(message.targetUserId, 'p2p.signal', {
+        fromUserId: client.userId,
+        fileId: message.fileId,
+        signal: message.signal,
+      });
+      break;
+
+    case 'p2p_file_request':
+      // Broadcast file request to channel/DM participants to find seeders
+      if (message.channelId) {
+        realtimeService.broadcastToChannel(
+          message.channelId,
+          'p2p.file_request',
+          { fileId: message.fileId, requesterId: client.userId },
+          client.userId,
+        );
+      } else if (message.conversationId) {
+        dmRepo.getParticipantUserIds(message.conversationId)
+          .then((participantUserIds) => {
+            for (const userId of participantUserIds) {
+              if (userId === client.userId) continue;
+              realtimeService.sendToUser(
+                userId,
+                'p2p.file_request',
+                { fileId: message.fileId, requesterId: client.userId },
+                { conversationId: message.conversationId },
+              );
+            }
+          })
+          .catch(() => {});
+      }
+      break;
+
+    case 'p2p_file_available':
+      // Notify the requester that a seeder is ready
+      realtimeService.sendToUser(message.targetUserId, 'p2p.file_available', {
+        fileId: message.fileId,
+        seederId: client.userId,
+      });
       break;
   }
 }

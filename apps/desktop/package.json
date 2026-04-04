@@ -1,0 +1,115 @@
+{
+  "name": "@zktalk/desktop",
+  "version": "0.0.1",
+  "private": true,
+  "author": "zkTalk",
+  "main": "main.js",
+  "scripts": {
+    "build:icons": "node ./scripts/build-icons.mjs",
+    "start": "npm run build:web && electron .",
+    "start:devserver": "electron .",
+    "build:web": "node ./scripts/build-web.js",
+    "build": "npm run build:icons && npm run build:web && electron-builder",
+    "pack": "npm run build:icons && npm run build:web && electron-builder --dir",
+    "pack:mac": "npm run build:icons && npm run build:web && electron-builder --dir --mac",
+    "pack:win:x64": "npm run build:icons && npm run build:web && electron-builder --dir --win --x64",
+    "pack:win:arm64": "npm run build:icons && npm run build:web && electron-builder --dir --win --arm64",
+    "dist:mac": "npm run build:icons && npm run build:web && electron-builder --mac",
+    "dist:win:x64": "npm run build:icons && npm run build:web && electron-builder --win --x64",
+    "dist:win:arm64": "npm run build:icons && npm run build:web && electron-builder --win --arm64",
+    "release:init-signing": "node ./scripts/init-signing-env.mjs",
+    "release:check": "node ./scripts/release-check.mjs",
+    "release:check:signed": "node ./scripts/release-check-with-signing-env.mjs",
+    "release:status": "node ./scripts/release-status.mjs",
+    "release:signing-blockers": "node ./scripts/release-signing-blockers.mjs",
+    "release:next": "node ./scripts/release-next.mjs",
+    "release:summary": "node ./scripts/release-summary.mjs",
+    "release:manifest": "node ./scripts/release-manifest.mjs",
+    "release:checksums": "node ./scripts/release-checksums.mjs",
+    "release:verify": "node ./scripts/release-verify.mjs",
+    "release:verify:bundle": "node ./scripts/release-verify.mjs --bundle",
+    "release:verify:archive": "node ./scripts/release-verify-archive.mjs",
+    "release:report": "node ./scripts/release-report.mjs",
+    "release:handoff": "node ./scripts/release-handoff.mjs",
+    "release:verification": "node ./scripts/release-verification.mjs",
+    "release:index": "node ./scripts/release-index.mjs",
+    "release:bundle": "node ./scripts/release-bundle.mjs",
+    "release:archive": "node ./scripts/release-archive.mjs",
+    "release:unsigned": "node ./scripts/release-unsigned.mjs",
+    "release:refresh": "npm run dist:mac && npm run dist:win:x64 && npm run dist:win:arm64 && npm run release:unsigned",
+    "release:signed": "node ./scripts/release-signed.mjs",
+    "release:signed:mac": "node ./scripts/release-signed-platform.mjs --target=mac",
+    "release:signed:win:x64": "node ./scripts/release-signed-platform.mjs --target=win:x64",
+    "release:signed:win:arm64": "node ./scripts/release-signed-platform.mjs --target=win:arm64"
+  },
+  "description": "Desktop shell for zkTalk",
+  "devDependencies": {
+    "@electron/notarize": "^3.1.1",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "png-to-ico": "^3.0.1"
+  },
+  "build": {
+    "appId": "com.zktalk.desktop",
+    "productName": "zkTalk",
+    "artifactName": "zkTalk-${os}-${arch}-${version}.${ext}",
+    "afterSign": "scripts/notarize.cjs",
+    "directories": {
+      "buildResources": "build"
+    },
+    "protocols": [
+      {
+        "name": "zkTalk Link",
+        "schemes": [
+          "zktalk"
+        ]
+      }
+    ],
+    "files": [
+      "main.js",
+      "go-menu.js",
+      "preload.js",
+      "protocol-route.js",
+      "window-state.js",
+      "package.json",
+      "RELEASE.md",
+      "SIGNING.example.env"
+    ],
+    "extraResources": [
+      {
+        "from": "../web/.next/standalone",
+        "to": "web/standalone"
+      },
+      {
+        "from": "../web/.next/static",
+        "to": "web/standalone/apps/web/.next/static"
+      },
+      {
+        "from": "../web/public",
+        "to": "web/standalone/apps/web/public"
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "build/icon.png"
+    }
+  }
+}

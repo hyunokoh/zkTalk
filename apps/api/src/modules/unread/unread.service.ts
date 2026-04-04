@@ -1,5 +1,7 @@
 import { AppError } from '../../lib/errors.js';
 import * as repo from './unread.repository.js';
+import { realtimeService } from '../realtime/realtime.service.js';
+import { WebSocketEvent } from '@zktalk/shared';
 
 // ---------------------------------------------------------------------------
 // Mark a channel as read
@@ -8,14 +10,28 @@ import * as repo from './unread.repository.js';
 export async function markChannelRead(
   userId: string,
   channelId: string,
-  lastMessageId: string,
+  lastMessageId?: string,
 ) {
   const channel = await repo.findChannelById(channelId);
   if (!channel) {
     throw AppError.notFound('Channel not found');
   }
 
-  return repo.upsertChannelRead(channelId, userId, lastMessageId);
+  const resolvedLastMessageId =
+    lastMessageId ?? (await repo.findLatestMessageId(channelId));
+
+  const result = await repo.upsertChannelRead(channelId, userId, resolvedLastMessageId);
+  realtimeService.broadcastToChannel(
+    channelId,
+    WebSocketEvent.CHANNEL_UPDATED,
+    {
+      channelId,
+      reason: 'read_state_changed',
+      userId,
+      lastMessageId: resolvedLastMessageId ?? null,
+    },
+  );
+  return result;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,50 @@
+appId: com.zktalk.mobile
+env:
+  FLOW_WAIT_TIMEOUT_MS: 20000
+---
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      id: main-tab-dm
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- tapOn:
+    id: main-tab-dm
+- extendedWaitUntil:
+    visible:
+      id: dm-conversation-list
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertVisible:
+    id: "dm-conversation-row-${CONVERSATION_ID}"
+- tapOn:
+    id: "dm-conversation-row-${CONVERSATION_ID}"
+- extendedWaitUntil:
+    visible:
+      id: dm-screen-title
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertVisible:
+    id: dm-screen-title
+- assertVisible: ${DISPLAY_NAME}
+- tapOn:
+    id: dm-composer-attach
+- extendedWaitUntil:
+    visible:
+      id: dm-attach-menu
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- tapOn:
+    id: dm-attach-menu-document
+- extendedWaitUntil:
+    visible:
+      id: dm-pending-attachment
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertVisible:
+    id: dm-pending-attachment
+- assertVisible:
+    id: dm-pending-attachment-name
+- assertVisible: ${DOCUMENT_FILE_NAME}
+- tapOn:
+    id: dm-composer-send
+- extendedWaitUntil:
+    visible:
+      id: dm-message-list
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}

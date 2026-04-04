@@ -1,6 +1,8 @@
+import { WebSocketEvent } from '@zktalk/shared';
 import { uuidv7 } from 'uuidv7';
 import { AppError } from '../../lib/errors.js';
 import { checkPermission } from '../channel/channel.service.js';
+import { realtimeService } from '../realtime/realtime.service.js';
 import * as repo from './reaction.repository.js';
 
 // ---------------------------------------------------------------------------
@@ -36,6 +38,18 @@ export async function addReaction(
     throw AppError.conflict('You have already reacted with this emoji');
   }
 
+  realtimeService.broadcastToChannel(
+    message.channelId,
+    WebSocketEvent.MESSAGE_REACTION_ADDED,
+    {
+      channelId: message.channelId,
+      messageId,
+      emoji,
+      userId,
+    },
+    userId,
+  );
+
   return reaction;
 }
 
@@ -58,6 +72,18 @@ export async function removeReaction(
     throw AppError.notFound('Reaction not found');
   }
 
+  realtimeService.broadcastToChannel(
+    message.channelId,
+    WebSocketEvent.MESSAGE_REACTION_REMOVED,
+    {
+      channelId: message.channelId,
+      messageId,
+      emoji,
+      userId,
+    },
+    userId,
+  );
+
   return { removed: true };
 }
 
@@ -67,4 +93,9 @@ export async function removeReaction(
 
 export async function getReactions(messageId: string) {
   return repo.getReactionsForMessage(messageId);
+}
+
+export async function getReactionsForMessages(messageIds: string[]) {
+  const uniqueMessageIds = [...new Set(messageIds.filter(Boolean))];
+  return repo.getReactionsForMessages(uniqueMessageIds);
 }

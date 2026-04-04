@@ -1,0 +1,44 @@
+appId: com.zktalk.mobile
+env:
+  FLOW_WAIT_TIMEOUT_MS: 20000
+---
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      id: main-tab-home
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- tapOn:
+    id: main-tab-home
+- extendedWaitUntil:
+    visible:
+      id: home-community-list
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertVisible:
+    id: "community-row-${COMMUNITY_ID}"
+- tapOn:
+    id: "community-row-${COMMUNITY_ID}"
+- extendedWaitUntil:
+    visible:
+      id: home-channel-list
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertVisible:
+    id: "channel-row-${CHANNEL_ID}"
+- tapOn:
+    id: "channel-row-${CHANNEL_ID}"
+- extendedWaitUntil:
+    visible:
+      id: channel-screen-title
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertVisible:
+    id: channel-screen-title
+- assertVisible: "# ${CHANNEL_NAME}"
+- tapOn:
+    id: message-composer-input
+- inputText: ${MESSAGE_BODY}
+- tapOn:
+    id: message-composer-send
+- extendedWaitUntil:
+    visible:
+      id: channel-message-list
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}

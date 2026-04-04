@@ -26,10 +26,21 @@ export async function authenticate(
   request: FastifyRequest,
   _reply: FastifyReply,
 ): Promise<void> {
-  const token = request.cookies[COOKIE_NAME];
+  // Prefer an explicit Bearer token so desktop/mobile harness flows
+  // can override a stale browser cookie during session handoff.
+  let token: string | undefined;
+
+  const authHeader = request.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+  }
 
   if (!token) {
-    throw AppError.unauthorized('Missing session cookie');
+    token = request.cookies[COOKIE_NAME];
+  }
+
+  if (!token) {
+    throw AppError.unauthorized('Missing session cookie or authorization header');
   }
 
   try {

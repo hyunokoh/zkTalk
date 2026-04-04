@@ -1,84 +1,97 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InboxView } from '@/components/InboxView';
 import type { InboxItemData } from '@/components/InboxItem';
+import { api } from '@/lib/api';
+import { useTranslation } from '@/lib/i18n';
 
-interface InboxApiItem {
-  type: 'mention' | 'thread_reply';
-  id: string;
-  channelId: string;
-  channelName: string;
-  communitySlug: string;
-  authorDisplayName: string;
-  bodyPreview: string;
-  messageId: string;
-  threadId?: string;
-  createdAt: string;
-  isRead: boolean;
+interface InboxResponse {
+  items: InboxItemData[];
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
+interface InboxSummaryResponse {
+  all: number;
+  mentions: number;
+  threads: number;
 }
 
 export default function InboxPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  const { data: items = [], isLoading } = useQuery({
+  const inboxQuery = useQuery({
     queryKey: ['inbox'],
-    queryFn: async () => {
-      const res = await api<{ items: InboxApiItem[] }>('/api/inbox');
-      return res.items.map(
-        (item): InboxItemData => ({
-          id: item.id,
-          type: item.type,
-          channelName: item.channelName,
-          communitySlug: item.communitySlug,
-          channelId: item.channelId,
-          messageId: item.messageId,
-          threadId: item.threadId,
-          authorDisplayName: item.authorDisplayName,
-          bodyPreview: item.bodyPreview,
-          createdAt: item.createdAt,
-          isRead: item.isRead,
-        }),
-      );
-    },
+    queryFn: () => api<InboxResponse>('/api/inbox'),
   });
 
-  const markRead = useMutation({
-    mutationFn: (id: string) =>
-      api(`/api/inbox/${id}/read`, { method: 'POST' }),
-    onMutate: async (id: string) => {
-      await queryClient.cancelQueries({ queryKey: ['inbox'] });
-      queryClient.setQueryData<InboxItemData[]>(['inbox'], (old) =>
-        old?.map((item) =>
-          item.id === id ? { ...item, isRead: true } : item,
-        ),
-      );
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['inbox'] });
-    },
+  const inboxSummaryQuery = useQuery({
+    queryKey: ['inbox-summary'],
+    queryFn: () => api<InboxSummaryResponse>('/api/inbox/summary'),
   });
+
+  const invalidateInboxQueries = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['inbox'] }),
+      queryClient.invalidateQueries({ queryKey: ['inbox-summary'] }),
+    ]);
+  }, [queryClient]);
+
+  const markReadMutation = useMutation({
+    mutationFn: (messageId: string) => api(`/api/inbox/${messageId}/read`, { method: 'POST' }),
+    onSuccess: invalidateInboxQueries,
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () => api('/api/inbox/read-all', { method: 'POST', body: {} }),
+    onSuccess: invalidateInboxQueries,
+  });
+
+  const items = inboxQuery.data?.items ?? [];
+  const unreadCount = inboxSummaryQuery.data?.all ?? items.filter((item) => !item.isRead).length;
 
   const handleMarkRead = useCallback(
-    (id: string) => {
-      markRead.mutate(id);
+    async (messageId: string) => {
+      await markReadMutation.mutateAsync(messageId);
     },
-    [markRead],
+    [markReadMutation],
   );
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-gray-700 px-6 py-4">
-        <h1 className="text-xl font-bold">Inbox</h1>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        <InboxView
-          items={items}
-          isLoading={isLoading}
-          onMarkRead={handleMarkRead}
-        />
+    <div className="flex-1 overflow-y-auto" data-testid="inbox-page">
+      <div className="mx-auto max-w-3xl p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-white">
+              {t('inbox.title')}
+            </h1>
+            <p className="mt-1 text-sm text-[#96989d]">
+              {t('inbox.listSubtitle')}
+            </p>
+          </div>
+          <button
+            type="button"
+            data-testid="inbox-mark-all-read-button"
+            onClick={() => markAllReadMutation.mutate()}
+            disabled={unreadCount === 0 || markAllReadMutation.isPending}
+            className="rounded-lg border border-[#4f545c] bg-[#2f3136] px-3 py-2 text-sm font-medium text-[#dcddde] transition hover:bg-[#40444b] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {markAllReadMutation.isPending
+              ? t('inbox.markingAllRead')
+              : t('inbox.markAllRead')}
+          </button>
+        </div>
+
+        <div className="mt-6 overflow-hidden rounded-2xl border border-[#40444b] bg-[#202225] shadow-sm">
+          <InboxView
+            items={items}
+            isLoading={inboxQuery.isLoading}
+            onMarkRead={handleMarkRead}
+          />
+        </div>
       </div>
     </div>
   );

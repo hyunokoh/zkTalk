@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { WebSocketEvent } from '@zktalk/shared';
 import type { WSOutgoing } from '@zktalk/shared';
 import { send, subscribe } from './useWebSocket';
@@ -17,7 +17,7 @@ interface PresenceUpdate {
  * Automatically subscribes/unsubscribes from the community on the
  * WebSocket server.
  */
-export function usePresence(communityId: string | undefined): string[] {
+export function usePresence(communityId: string | undefined) {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -51,5 +51,16 @@ export function usePresence(communityId: string | undefined): string[] {
     };
   }, [communityId]);
 
-  return Array.from(onlineUsers);
+  const isOnline = useCallback(
+    (userId: string): boolean => onlineUsers.has(userId),
+    [onlineUsers],
+  );
+
+  const onlineCount = useMemo(() => onlineUsers.size, [onlineUsers]);
+
+  return {
+    onlineUserIds: Array.from(onlineUsers),
+    isOnline,
+    onlineCount,
+  };
 }

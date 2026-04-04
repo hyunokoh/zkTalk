@@ -7,8 +7,10 @@ import {
   ThreadIdParamsSchema,
   ThreadListQuerySchema,
   ThreadMessagesQuerySchema,
+  ThreadSummaryQuerySchema,
   CreateForumPostSchema,
   PostToThreadSchema,
+  MarkThreadReadSchema,
 } from './thread.schema.js';
 
 export default async function threadRoutes(app: FastifyInstance) {
@@ -62,6 +64,20 @@ export default async function threadRoutes(app: FastifyInstance) {
    * List threads in a forum channel.
    */
   app.get(
+    '/api/threads',
+    async (
+      request: FastifyRequest<{
+        Querystring: { rootMessageIds: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const query = ThreadSummaryQuerySchema.parse(request.query);
+      const result = await threadService.getThreadSummaries(request.user.id, query.rootMessageIds);
+      return reply.send(result);
+    },
+  );
+
+  app.get(
     '/api/channels/:channelId/threads',
     async (
       request: FastifyRequest<{
@@ -88,6 +104,59 @@ export default async function threadRoutes(app: FastifyInstance) {
    * Get messages in a thread.
    */
   app.get(
+    '/api/channels/:channelId/threads/:threadId',
+    async (
+      request: FastifyRequest<{
+        Params: { channelId: string; threadId: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { threadId } = ThreadIdParamsSchema.parse(request.params);
+      const result = await threadService.getThread(request.user.id, threadId);
+      return reply.send(result);
+    },
+  );
+
+  app.get(
+    '/api/threads/:threadId',
+    async (
+      request: FastifyRequest<{
+        Params: { threadId: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { threadId } = ThreadIdParamsSchema.parse(request.params);
+      const result = await threadService.getThread(request.user.id, threadId);
+      return reply.send(result);
+    },
+  );
+
+  /**
+   * GET /api/threads/:threadId/messages?cursor=&limit=
+   * Get messages in a thread.
+   */
+  app.get(
+    '/api/channels/:channelId/threads/:threadId/messages',
+    async (
+      request: FastifyRequest<{
+        Params: { channelId: string; threadId: string };
+        Querystring: { cursor?: string; limit?: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { threadId } = ThreadIdParamsSchema.parse(request.params);
+      const query = ThreadMessagesQuerySchema.parse(request.query);
+      const result = await threadService.getThreadMessages(
+        request.user.id,
+        threadId,
+        query.cursor,
+        query.limit,
+      );
+      return reply.send(result);
+    },
+  );
+
+  app.get(
     '/api/threads/:threadId/messages',
     async (
       request: FastifyRequest<{
@@ -113,6 +182,26 @@ export default async function threadRoutes(app: FastifyInstance) {
    * Post a reply to a thread.
    */
   app.post(
+    '/api/channels/:channelId/threads/:threadId/messages',
+    async (
+      request: FastifyRequest<{
+        Params: { channelId: string; threadId: string };
+        Body: { bodyMarkdown: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { threadId } = ThreadIdParamsSchema.parse(request.params);
+      const body = PostToThreadSchema.parse(request.body);
+      const message = await threadService.postToThread(
+        request.user.id,
+        threadId,
+        body,
+      );
+      return reply.status(201).send(message);
+    },
+  );
+
+  app.post(
     '/api/threads/:threadId/messages',
     async (
       request: FastifyRequest<{
@@ -136,6 +225,26 @@ export default async function threadRoutes(app: FastifyInstance) {
    * POST /api/threads/:threadId/follow
    * Follow a thread.
    */
+  app.post(
+    '/api/threads/:threadId/read',
+    async (
+      request: FastifyRequest<{
+        Params: { threadId: string };
+        Body: { messageId: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { threadId } = ThreadIdParamsSchema.parse(request.params);
+      const body = MarkThreadReadSchema.parse(request.body);
+      const result = await threadService.markThreadRead(
+        request.user.id,
+        threadId,
+        body.messageId,
+      );
+      return reply.send(result);
+    },
+  );
+
   app.post(
     '/api/threads/:threadId/follow',
     async (

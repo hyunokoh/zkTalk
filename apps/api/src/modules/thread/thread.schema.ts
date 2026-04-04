@@ -31,6 +31,20 @@ export const ThreadMessagesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional().default(50),
 });
 
+export const ThreadSummaryQuerySchema = z.object({
+  rootMessageIds: z
+    .string()
+    .transform((value) =>
+      value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+    )
+    .refine((items) => items.length > 0 && items.length <= 100, {
+      message: 'Provide between 1 and 100 rootMessageIds',
+    }),
+});
+
 // ---------------------------------------------------------------------------
 // Body schemas
 // ---------------------------------------------------------------------------
@@ -42,4 +56,8 @@ export const CreateForumPostSchema = z.object({
 
 export const PostToThreadSchema = z.object({
   bodyMarkdown: z.string().min(1).max(40000),
+});
+
+export const MarkThreadReadSchema = z.object({
+  messageId: z.string().min(1),
 });

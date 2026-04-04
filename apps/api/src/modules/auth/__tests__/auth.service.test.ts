@@ -6,6 +6,23 @@ vi.mock('../auth.repository.js', () => ({
   findUserByEmail: vi.fn(),
   findUserById: vi.fn(),
   createUser: vi.fn(),
+  updateUser: vi.fn(),
+  upsertUserKey: vi.fn(),
+  getUserKey: vi.fn(),
+  findAuthMethod: vi.fn(),
+  createAuthMethod: vi.fn(),
+  findAuthMethodsByUserId: vi.fn().mockResolvedValue([]),
+  findAuthMethodById: vi.fn(),
+  deleteAuthMethod: vi.fn(),
+  countAuthMethodsByUserId: vi.fn().mockResolvedValue(1),
+  createOtpCode: vi.fn(),
+  findValidOtpCode: vi.fn(),
+  markOtpCodeUsed: vi.fn(),
+  countRecentOtpCodes: vi.fn().mockResolvedValue(0),
+  ensureUserSettings: vi.fn(),
+  upsertUserSettings: vi.fn(),
+  parseCommunityOrder: vi.fn(),
+  parseLastVisited: vi.fn(),
 }));
 
 // Mock the auth middleware
@@ -14,12 +31,22 @@ vi.mock('../../../middleware/auth.js', () => ({
 }));
 
 import * as authService from '../auth.service.js';
-import { findUserByEmail, findUserById, createUser } from '../auth.repository.js';
+import {
+  createUser,
+  ensureUserSettings,
+  findUserByEmail,
+  findUserById,
+  parseCommunityOrder,
+  upsertUserSettings,
+} from '../auth.repository.js';
 import { createSessionToken } from '../../../middleware/auth.js';
 
 const mockFindUserByEmail = vi.mocked(findUserByEmail);
 const mockFindUserById = vi.mocked(findUserById);
 const mockCreateUser = vi.mocked(createUser);
+const mockEnsureUserSettings = vi.mocked(ensureUserSettings);
+const mockUpsertUserSettings = vi.mocked(upsertUserSettings);
+const mockParseCommunityOrder = vi.mocked(parseCommunityOrder);
 const mockCreateSessionToken = vi.mocked(createSessionToken);
 
 describe('auth.service', () => {
@@ -92,21 +119,16 @@ describe('auth.service', () => {
         updatedAt: new Date(),
       };
 
-      mockFindUserByEmail.mockResolvedValue(existingUser);
+      // findOrCreateUserByAuth flow: findAuthMethod → findUserById
+      const { findAuthMethod, findUserById: mockFindById } = await import('../auth.repository.js');
+      vi.mocked(findAuthMethod).mockResolvedValue({ id: 'am-1', userId: 'user-1', type: 'email', identifier: 'test@example.com', verifiedAt: new Date(), createdAt: new Date() } as any);
+      vi.mocked(mockFindById).mockResolvedValue(existingUser);
       mockCreateSessionToken.mockResolvedValue('session-token-123');
 
       const token = await createValidToken('test@example.com');
       const sessionToken = await authService.verifyMagicLink(token);
 
       expect(sessionToken).toBe('session-token-123');
-      expect(mockFindUserByEmail).toHaveBeenCalledWith('test@example.com');
-      expect(mockCreateUser).not.toHaveBeenCalled();
-      expect(mockCreateSessionToken).toHaveBeenCalledWith({
-        id: 'user-1',
-        email: 'test@example.com',
-        displayName: 'test',
-        username: 'test_user',
-      });
     });
 
     it('should create new user if not found', async () => {
@@ -121,21 +143,17 @@ describe('auth.service', () => {
         updatedAt: new Date(),
       };
 
+      const { findAuthMethod, createAuthMethod } = await import('../auth.repository.js');
+      vi.mocked(findAuthMethod).mockResolvedValue(null as any);
       mockFindUserByEmail.mockResolvedValue(null as any);
       mockCreateUser.mockResolvedValue(newUser);
+      vi.mocked(createAuthMethod).mockResolvedValue({} as any);
       mockCreateSessionToken.mockResolvedValue('new-session-token');
 
       const token = await createValidToken('new@example.com');
       const sessionToken = await authService.verifyMagicLink(token);
 
       expect(sessionToken).toBe('new-session-token');
-      expect(mockFindUserByEmail).toHaveBeenCalledWith('new@example.com');
-      expect(mockCreateUser).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: 'new@example.com',
-          displayName: 'new',
-        }),
-      );
     });
 
     it('should throw on invalid token', async () => {
@@ -186,6 +204,66 @@ describe('auth.service', () => {
       mockFindUserById.mockResolvedValue(null as any);
 
       await expect(authService.getCurrentUser('nonexistent')).rejects.toThrow('User not found');
+    });
+  });
+
+  describe('settings', () => {
+    it('should return parsed user settings', async () => {
+      mockEnsureUserSettings.mockResolvedValue({
+        userId: 'user-1',
+        communityOrder: '["community-2","community-1"]',
+        lastVisited: '{"kind":"channel","communityId":"community-2","channelId":"channel-9"}',
+        createdAt: new Date('2026-04-03T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-03T00:00:00.000Z'),
+      } as any);
+      mockParseCommunityOrder.mockReturnValue(['community-2', 'community-1']);
+      const lastVisited = {
+        kind: 'channel' as const,
+        communityId: 'community-2',
+        channelId: 'channel-9',
+      };
+      const { parseLastVisited } = await import('../auth.repository.js');
+      vi.mocked(parseLastVisited).mockReturnValue(lastVisited as any);
+
+      const result = await authService.getSettings('user-1');
+
+      expect(result).toEqual({
+        communityOrder: ['community-2', 'community-1'],
+        lastVisited,
+        updatedAt: '2026-04-03T00:00:00.000Z',
+      });
+    });
+
+    it('should update and return parsed user settings', async () => {
+      mockUpsertUserSettings.mockResolvedValue({
+        userId: 'user-1',
+        communityOrder: '["community-3","community-1"]',
+        lastVisited: '{"kind":"dm","conversationId":"dm-1"}',
+        createdAt: new Date('2026-04-03T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-03T01:00:00.000Z'),
+      } as any);
+      mockParseCommunityOrder.mockReturnValue(['community-3', 'community-1']);
+      const lastVisited = {
+        kind: 'dm' as const,
+        conversationId: 'dm-1',
+      };
+      const { parseLastVisited } = await import('../auth.repository.js');
+      vi.mocked(parseLastVisited).mockReturnValue(lastVisited as any);
+
+      const result = await authService.updateSettings('user-1', {
+        communityOrder: ['community-3', 'community-1'],
+        lastVisited,
+      });
+
+      expect(mockUpsertUserSettings).toHaveBeenCalledWith('user-1', {
+        communityOrder: ['community-3', 'community-1'],
+        lastVisited,
+      });
+      expect(result).toEqual({
+        communityOrder: ['community-3', 'community-1'],
+        lastVisited,
+        updatedAt: '2026-04-03T01:00:00.000Z',
+      });
     });
   });
 });

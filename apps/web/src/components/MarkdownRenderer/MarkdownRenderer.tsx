@@ -1,6 +1,37 @@
 'use client';
 
 import { useMemo } from 'react';
+import hljs from 'highlight.js/lib/core';
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import python from 'highlight.js/lib/languages/python';
+import java from 'highlight.js/lib/languages/java';
+import go from 'highlight.js/lib/languages/go';
+import rust from 'highlight.js/lib/languages/rust';
+import xml from 'highlight.js/lib/languages/xml';
+import css from 'highlight.js/lib/languages/css';
+import json from 'highlight.js/lib/languages/json';
+import bash from 'highlight.js/lib/languages/bash';
+import sql from 'highlight.js/lib/languages/sql';
+import 'highlight.js/styles/github-dark.css';
+
+// Register languages
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('js', javascript);
+hljs.registerLanguage('typescript', typescript);
+hljs.registerLanguage('ts', typescript);
+hljs.registerLanguage('python', python);
+hljs.registerLanguage('py', python);
+hljs.registerLanguage('java', java);
+hljs.registerLanguage('go', go);
+hljs.registerLanguage('rust', rust);
+hljs.registerLanguage('html', xml);
+hljs.registerLanguage('xml', xml);
+hljs.registerLanguage('css', css);
+hljs.registerLanguage('json', json);
+hljs.registerLanguage('bash', bash);
+hljs.registerLanguage('sh', bash);
+hljs.registerLanguage('sql', sql);
 
 interface MarkdownRendererProps {
   content: string;
@@ -16,6 +47,34 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
+/**
+ * Sanitize a URL to prevent XSS via javascript:, data:, vbscript:, etc.
+ * Only allows http:, https:, and mailto: protocols.
+ */
+function sanitizeUrl(url: string): string {
+  const trimmed = url.trim();
+  // Block dangerous protocols (javascript:, data:, vbscript:, etc.)
+  if (/^\s*(?:javascript|data|vbscript)\s*:/i.test(trimmed)) {
+    return '#';
+  }
+  return escapeHtml(trimmed);
+}
+
+function highlightCode(code: string, language?: string): string {
+  if (language && hljs.getLanguage(language)) {
+    try {
+      return hljs.highlight(code, { language }).value;
+    } catch {
+      // fall through to auto-detect
+    }
+  }
+  try {
+    return hljs.highlightAuto(code).value;
+  } catch {
+    return escapeHtml(code);
+  }
+}
+
 function renderInline(text: string): string {
   let result = escapeHtml(text);
 
@@ -28,20 +87,29 @@ function renderInline(text: string): string {
   // Italic
   result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
-  // Links
+  // Links - sanitize URLs to prevent javascript: and other dangerous protocols
   result = result.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" class="text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">$1</a>',
+    (_match, text, url) => {
+      const safeUrl = sanitizeUrl(url);
+      return `<a href="${safeUrl}" class="text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    },
   );
 
-  // Auto-link URLs
+  // Auto-link URLs (only http/https)
   result = result.replace(
     /(?<!\])\(?(https?:\/\/[^\s<)]+)/g,
     (match, url) => {
-      // Skip if already inside a markdown link
       if (match.startsWith('(')) return match;
-      return `<a href="${url}" class="text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      const safeUrl = sanitizeUrl(url);
+      return `<a href="${safeUrl}" class="text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
     },
+  );
+
+  // @mentions: @everyone, @here, @username
+  result = result.replace(
+    /@(everyone|here|\w+)/g,
+    '<span class="mention-highlight rounded bg-indigo-500/20 px-1 py-0.5 text-indigo-400 font-medium">@$1</span>',
   );
 
   return result;
@@ -52,17 +120,24 @@ function renderMarkdown(raw: string): string {
   const outputParts: string[] = [];
   let inCodeBlock = false;
   let codeBlockLines: string[] = [];
+  let codeBlockLang = '';
 
   for (const line of lines) {
     if (line.startsWith('```')) {
       if (inCodeBlock) {
-        // Close code block
+        const code = codeBlockLines.join('\n');
+        const highlighted = highlightCode(code, codeBlockLang);
+        const langLabel = codeBlockLang
+          ? `<div class="mb-1 text-xs text-gray-500">${escapeHtml(codeBlockLang)}</div>`
+          : '';
         outputParts.push(
-          `<pre class="my-2 overflow-x-auto rounded-lg bg-gray-800 p-3 text-sm"><code class="font-mono text-gray-300">${escapeHtml(codeBlockLines.join('\n'))}</code></pre>`,
+          `<pre class="hljs my-2 overflow-x-auto rounded-lg bg-[#0d1117] p-3 text-sm">${langLabel}<code class="font-mono">${highlighted}</code></pre>`,
         );
         codeBlockLines = [];
+        codeBlockLang = '';
         inCodeBlock = false;
       } else {
+        codeBlockLang = line.slice(3).trim();
         inCodeBlock = true;
       }
       continue;
@@ -80,10 +155,11 @@ function renderMarkdown(raw: string): string {
     }
   }
 
-  // If we never closed a code block, render remaining as code
   if (inCodeBlock && codeBlockLines.length > 0) {
+    const code = codeBlockLines.join('\n');
+    const highlighted = highlightCode(code, codeBlockLang);
     outputParts.push(
-      `<pre class="my-2 overflow-x-auto rounded-lg bg-gray-800 p-3 text-sm"><code class="font-mono text-gray-300">${escapeHtml(codeBlockLines.join('\n'))}</code></pre>`,
+      `<pre class="hljs my-2 overflow-x-auto rounded-lg bg-[#0d1117] p-3 text-sm"><code class="font-mono">${highlighted}</code></pre>`,
     );
   }
 

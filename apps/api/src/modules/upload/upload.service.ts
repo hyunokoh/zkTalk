@@ -687,17 +687,18 @@ function inferAssetMimeType(fileName: string): string {
 
 export async function getAssetFile(assetPath: string) {
   const storageKey = `uploads/assets/${assetPath}`;
-  const filePath = resolveStoragePath(storageKey);
 
   try {
-    await access(filePath);
+    const stream = await getStoredObjectStream({
+      bucket: getStorageBucket(),
+      objectKey: storageKey,
+    });
+    return {
+      stream,
+      fileName: path.posix.basename(storageKey),
+      mimeType: inferAssetMimeType(storageKey),
+    };
   } catch {
     throw AppError.notFound('Asset file not found');
   }
-
-  return {
-    filePath,
-    fileName: path.basename(filePath),
-    mimeType: inferAssetMimeType(filePath),
-  };
 }

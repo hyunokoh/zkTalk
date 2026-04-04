@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { t } from '@/lib/i18n';
 
 export interface SearchFilterValues {
   channelId?: string;
@@ -45,7 +46,7 @@ export function SearchFilters({ channels, filters, onChange }: SearchFiltersProp
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
           </svg>
-          Filters
+          {t('search.filters')}
           {activeCount > 0 && (
             <span className="rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
               {activeCount}
@@ -69,7 +70,7 @@ export function SearchFilters({ channels, filters, onChange }: SearchFiltersProp
             {/* Channel filter */}
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-400">
-                Channel
+                {t('search.channel')}
               </label>
               <select
                 value={filters.channelId ?? ''}
@@ -78,7 +79,7 @@ export function SearchFilters({ channels, filters, onChange }: SearchFiltersProp
                 }
                 className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 focus:border-indigo-500 focus:outline-none"
               >
-                <option value="">All channels</option>
+                <option value="">{t('search.allChannels')}</option>
                 {channels.map((ch) => (
                   <option key={ch.id} value={ch.id}>
                     # {ch.name}
@@ -90,7 +91,7 @@ export function SearchFilters({ channels, filters, onChange }: SearchFiltersProp
             {/* Author filter */}
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-400">
-                Author
+                {t('search.author')}
               </label>
               <input
                 type="text"
@@ -98,7 +99,7 @@ export function SearchFilters({ channels, filters, onChange }: SearchFiltersProp
                 onChange={(e) =>
                   update({ author: e.target.value || undefined })
                 }
-                placeholder="Username"
+                placeholder={t('search.authorPlaceholder')}
                 className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none"
               />
             </div>
@@ -106,7 +107,7 @@ export function SearchFilters({ channels, filters, onChange }: SearchFiltersProp
             {/* Date from */}
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-400">
-                From
+                {t('search.dateFrom')}
               </label>
               <input
                 type="date"
@@ -121,7 +122,7 @@ export function SearchFilters({ channels, filters, onChange }: SearchFiltersProp
             {/* Date to */}
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-400">
-                To
+                {t('search.dateTo')}
               </label>
               <input
                 type="date"
@@ -146,7 +147,7 @@ export function SearchFilters({ channels, filters, onChange }: SearchFiltersProp
               }
               className="rounded border-gray-600 bg-gray-900 text-indigo-500 focus:ring-indigo-500"
             />
-            Has attachment
+            {t('search.hasAttachment')}
           </label>
 
           {activeCount > 0 && (
@@ -154,7 +155,7 @@ export function SearchFilters({ channels, filters, onChange }: SearchFiltersProp
               onClick={clearAll}
               className="mt-4 text-xs text-indigo-400 hover:underline"
             >
-              Clear all filters
+              {t('search.clearFilters')}
             </button>
           )}
         </div>

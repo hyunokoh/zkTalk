@@ -1,0 +1,37 @@
+import { expect, test } from '@playwright/test';
+import { bootstrapAuthenticatedPage } from '../utils/auth';
+import { getSeedData } from '../utils/seed';
+
+test('bookmarked message can be reopened from the bookmarks page', async ({ page }) => {
+  const seed = await getSeedData();
+  const body = `playwright-bookmark-body-${Date.now()}`;
+
+  await bootstrapAuthenticatedPage(
+    page,
+    seed.userA.sessionToken,
+    `/communities/${seed.communitySlug}/channels/${seed.channelId}`,
+  );
+
+  await page.getByTestId('channel-composer-input').fill(body);
+  await page.getByTestId('channel-composer-send-button').click();
+
+  const row = page.getByTestId('message-row').filter({ hasText: body }).first();
+  await expect(row).toBeVisible();
+  const messageId = await row.getAttribute('data-message-id');
+  expect(messageId).toBeTruthy();
+
+  await row.hover();
+  await row.getByTestId('message-bookmark-button').click();
+
+  await page.goto('/bookmarks');
+  await expect(page.getByTestId('bookmarks-page')).toBeVisible();
+
+  const bookmarkItem = page.getByTestId('bookmark-item').filter({ hasText: body }).first();
+  await expect(bookmarkItem).toBeVisible();
+  await bookmarkItem.click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`/communities/${seed.communitySlug}/channels/${seed.channelId}#${messageId}`),
+  );
+  await expect(page.getByTestId('message-row').filter({ hasText: body }).first()).toBeVisible();
+});

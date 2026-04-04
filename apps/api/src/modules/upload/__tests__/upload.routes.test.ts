@@ -66,7 +66,7 @@ describe('upload.routes auth behavior', () => {
 
   it('serves public assets without authentication', async () => {
     mockedUploadService.getAssetFile.mockResolvedValue({
-      filePath: tmpFile,
+      stream: fs.createReadStream(tmpFile),
       fileName: 'asset.png',
       mimeType: 'image/png',
     } as Awaited<ReturnType<typeof uploadService.getAssetFile>>);

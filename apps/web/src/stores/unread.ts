@@ -6,33 +6,61 @@ interface UnreadEntry {
   mentions: number;
 }
 
+interface UnreadSummaryRow {
+  channelId: string;
+  channelName: string;
+  lastReadMessageId: string | null;
+  unreadCount: number;
+  mentionCount: number;
+}
+
 interface UnreadState {
   unreadMap: Record<string, UnreadEntry>;
+  /** Maps communityId -> set of channelIds that belong to it */
+  communityChannelIds: Record<string, string[]>;
   fetchUnread: (communityId: string) => Promise<void>;
-  markRead: (channelId: string) => Promise<void>;
+  markRead: (channelId: string, lastMessageId?: string | null) => Promise<void>;
   decrementUnread: (channelId: string) => void;
   incrementUnread: (channelId: string, isMention?: boolean) => void;
+  /** Returns true if any channel in the given community has unread messages */
+  hasCommunityUnread: (communityId: string) => boolean;
 }
 
 export const useUnreadStore = create<UnreadState>((set, get) => ({
   unreadMap: {},
+  communityChannelIds: {},
 
   fetchUnread: async (communityId: string) => {
     try {
-      const data = await api<Record<string, UnreadEntry>>(
+      const rows = await api<UnreadSummaryRow[]>(
         `/api/communities/${communityId}/unread`,
       );
+      const data = rows.reduce<Record<string, UnreadEntry>>((acc, row) => {
+        acc[row.channelId] = {
+          unread: row.unreadCount,
+          mentions: row.mentionCount,
+        };
+        return acc;
+      }, {});
+      const channelIds = rows.map((row) => row.channelId);
       set((state) => ({
         unreadMap: { ...state.unreadMap, ...data },
+        communityChannelIds: {
+          ...state.communityChannelIds,
+          [communityId]: channelIds,
+        },
       }));
     } catch {
       // silently fail – unread counts are non-critical
     }
   },
 
-  markRead: async (channelId: string) => {
+  markRead: async (channelId: string, lastMessageId?: string | null) => {
     try {
-      await api(`/api/channels/${channelId}/read`, { method: 'POST' });
+      await api(`/api/channels/${channelId}/read`, {
+        method: 'POST',
+        body: lastMessageId ? { lastMessageId } : {},
+      });
       set((state) => ({
         unreadMap: {
           ...state.unreadMap,
@@ -72,6 +100,16 @@ export const useUnreadStore = create<UnreadState>((set, get) => ({
           },
         },
       };
+    });
+  },
+
+  hasCommunityUnread: (communityId: string) => {
+    const state = get();
+    const channelIds = state.communityChannelIds[communityId];
+    if (!channelIds) return false;
+    return channelIds.some((id) => {
+      const entry = state.unreadMap[id];
+      return entry && entry.unread > 0;
     });
   },
 }));

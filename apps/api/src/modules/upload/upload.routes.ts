@@ -1,4 +1,3 @@
-import { createReadStream } from 'node:fs';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authenticate } from '../../middleware/auth.js';
 import * as uploadService from './upload.service.js';
@@ -240,7 +239,7 @@ export default async function uploadRoutes(app: FastifyInstance) {
       const asset = await uploadService.getAssetFile(request.params['*']);
       reply.header('Cache-Control', 'public, max-age=300');
       reply.header('Content-Disposition', buildInlineContentDisposition(asset.fileName));
-      return reply.type(asset.mimeType).send(createReadStream(asset.filePath));
+      return reply.type(asset.mimeType).send(asset.stream);
     },
   );
 }

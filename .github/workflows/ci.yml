@@ -6,10 +6,15 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     name: Quality Gates
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -40,8 +45,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -50,11 +53,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm turbo lint
-
       - name: Type Check
         run: pnpm turbo typecheck
+
+      - name: Lint
+        run: pnpm turbo lint
 
       - name: Unit Tests
         run: pnpm turbo test
@@ -64,3 +67,43 @@ jobs:
 
       - name: Build
         run: pnpm turbo build
+
+      - name: Install Playwright Chromium
+        run: pnpm --dir e2e exec playwright install --with-deps chromium
+
+      - name: UI Smoke E2E
+        run: pnpm e2e:smoke:web
+
+      - name: UI Smoke Verify Freshness
+        run: pnpm ui:smoke:verify -- --max-age-minutes 180
+
+      - name: UI Smoke Summary
+        if: always()
+        run: |
+          pnpm ui:smoke:report
+          pnpm ui:smoke:brief
+          cat .tmp/manual-smoke-brief-latest.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Playwright Artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-artifacts
+          if-no-files-found: ignore
+          path: |
+            e2e/test-results
+            e2e/playwright-report
+            .tmp/ui-smoke-*-last-result.json
+            .tmp/manual-smoke-status-last-result.json
+            .tmp/manual-smoke-open-last-result.json
+            .tmp/manual-smoke-refresh-last-result.json
+            .tmp/manual-smoke-brief-last-result.json
+            .tmp/manual-smoke-brief-latest.md
+            .tmp/manual-smoke-brief-2026-03-27.md
+            .tmp/manual-smoke-capture-last-result.json
+            .tmp/manual-smoke-report-last-result.json
+            .tmp/manual-smoke-report-latest.md
+            .tmp/manual-smoke-report-latest.json
+            .tmp/manual-smoke-history.md
+            .tmp/manual-smoke-desktop-latest.png
+            .tmp/manual-smoke-mobile-latest.png

@@ -67,9 +67,15 @@ function mockMessage(overrides: Record<string, unknown> = {}) {
     messageType: 'user' as const,
     isEdited: false,
     isDeleted: false,
+    isSealed: false,
+    isEncrypted: false,
+    encryptedPayload: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     parentMessageId: null,
+    forwardedFromMessageId: null,
+    topic: null,
+    expiresAt: null,
     ...overrides,
   };
 }

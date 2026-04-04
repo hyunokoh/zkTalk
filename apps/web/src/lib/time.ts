@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+
 export function relativeTime(date: string): string {
   const now = Date.now();
   const then = new Date(date).getTime();
@@ -7,15 +9,11 @@ export function relativeTime(date: string): string {
   const diffHr = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHr / 24);
 
-  if (diffSec < 60) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDay === 1) return 'yesterday';
+  if (diffSec < 60) return t('time.justNow');
+  if (diffMin < 60) return t('time.minutesAgo', { count: diffMin });
+  if (diffHr < 24) return t('time.hoursAgo', { count: diffHr });
+  if (diffDay === 1) return t('time.yesterday');
 
   const d = new Date(date);
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-  return `${months[d.getMonth()]} ${d.getDate()}`;
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }

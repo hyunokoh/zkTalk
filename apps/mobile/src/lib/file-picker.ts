@@ -237,8 +237,6 @@ export async function uploadFile(
     ? presign.uploadUrl
     : `${API_ORIGIN}${presign.uploadUrl}`;
 
-  const token = await getToken();
-
   // Use XMLHttpRequest with FormData for React Native file upload compatibility.
   // Plain object { uri, type, name } only works as a FormData part in RN.
   await new Promise<void>((resolve, reject) => {
@@ -271,9 +269,6 @@ export async function uploadFile(
 
     xhr.open('PUT', uploadUrl);
     xhr.setRequestHeader('Content-Type', RAW_UPLOAD_CONTENT_TYPE);
-    if (token) {
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    }
 
     // React Native XHR supports sending a { uri, type, name } blob-like object
     // directly without FormData for PUT requests.
@@ -317,8 +312,6 @@ export async function uploadImageAsset(
     ? presign.uploadUrl
     : `${API_ORIGIN}${presign.uploadUrl}`;
 
-  const token = await getToken();
-
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
 
@@ -341,9 +334,6 @@ export async function uploadImageAsset(
 
     xhr.open('PUT', uploadUrl);
     xhr.setRequestHeader('Content-Type', file.mimeType);
-    if (token) {
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    }
 
     xhr.send({ uri: file.uri, type: file.mimeType, name: file.name } as unknown as BodyInit);
   });

@@ -1,0 +1,20 @@
+<svg width="1240" height="320" viewBox="0 0 1240 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1240" height="320" rx="40" fill="#F7F8FC"/>
+  <g transform="translate(48 32)">
+    <circle cx="128" cy="128" r="128" fill="url(#paint0_linear_1_3)"/>
+    <path d="M53 93C53 76.4315 66.4315 63 83 63H173C189.569 63 203 76.4315 203 93V167C203 183.569 189.569 197 173 197H133L96 230C89.4315 235.855 78.75 231.289 78.75 222.438V197H83C66.4315 197 53 183.569 53 167V93Z" fill="#EEF2FF"/>
+    <circle cx="106" cy="128" r="21" fill="#4F46E5"/>
+    <circle cx="150" cy="128" r="21" fill="#4F46E5"/>
+    <path d="M87 168C87 156.402 96.402 147 108 147H148C159.598 147 169 156.402 169 168V173H87V168Z" fill="#4F46E5"/>
+  </g>
+  <text x="342" y="138" fill="#12142B" font-family="Avenir Next, Pretendard, SUIT, system-ui, sans-serif" font-size="88" font-weight="800" letter-spacing="-1.2">zkTalk</text>
+  <text x="344" y="194" fill="#525B7A" font-family="Avenir Next, Pretendard, SUIT, system-ui, sans-serif" font-size="28" font-weight="600" letter-spacing="2.4">PRIVATE COMMUNITY MESSENGER</text>
+  <rect x="342" y="220" width="262" height="18" rx="9" fill="#D8DBEB"/>
+  <rect x="624" y="220" width="166" height="18" rx="9" fill="#E4E7F4"/>
+  <defs>
+    <linearGradient id="paint0_linear_1_3" x1="28" y1="20" x2="228" y2="236" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#818CF8"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,10 +1,27 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { t } from '@/lib/i18n';
 import type { ModerationAction } from '@zktalk/shared';
 
+interface AuditLogRow {
+  action: ModerationAction;
+  actor: {
+    id: string;
+    displayName: string;
+    username: string;
+  };
+  message: {
+    id: string;
+    channelId: string;
+    bodyPlaintext: string;
+    isDeleted: boolean;
+    isEncrypted: boolean;
+  } | null;
+}
+
 interface AuditLogTableProps {
-  actions: ModerationAction[];
+  actions: AuditLogRow[];
 }
 
 const PAGE_SIZE = 20;
@@ -32,9 +49,9 @@ export function AuditLogTable({ actions }: AuditLogTableProps) {
     copy.sort((a, b) => {
       let cmp = 0;
       if (sortField === 'createdAt') {
-        cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        cmp = new Date(a.action.createdAt).getTime() - new Date(b.action.createdAt).getTime();
       } else if (sortField === 'actionType') {
-        cmp = a.actionType.localeCompare(b.actionType);
+        cmp = a.action.actionType.localeCompare(b.action.actionType);
       }
       return sortDir === 'asc' ? cmp : -cmp;
     });
@@ -61,59 +78,68 @@ export function AuditLogTable({ actions }: AuditLogTableProps) {
 
   if (actions.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-700 bg-gray-800/30 p-8 text-center">
-        <p className="text-sm text-gray-500">No moderation actions recorded.</p>
+      <div
+        className="rounded-lg border border-gray-700 bg-gray-800/30 p-8 text-center"
+        data-testid="audit-log-empty-state"
+      >
+        <p className="text-sm text-gray-500">{t('mod.noAuditEntries')}</p>
       </div>
     );
   }
 
   return (
-    <div>
+    <div data-testid="audit-log-table-wrapper">
       <div className="overflow-x-auto rounded-lg border border-gray-700">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" data-testid="audit-log-table">
           <thead>
             <tr className="border-b border-gray-700 bg-gray-800/50 text-left text-xs text-gray-400">
               <th
                 className="cursor-pointer px-4 py-3 font-medium"
                 onClick={() => toggleSort('createdAt')}
               >
-                Date <SortIcon field="createdAt" />
+                {t('mod.date')} <SortIcon field="createdAt" />
               </th>
-              <th className="px-4 py-3 font-medium">Actor</th>
+              <th className="px-4 py-3 font-medium">{t('mod.actor')}</th>
               <th
                 className="cursor-pointer px-4 py-3 font-medium"
                 onClick={() => toggleSort('actionType')}
               >
-                Action <SortIcon field="actionType" />
+                {t('mod.action')} <SortIcon field="actionType" />
               </th>
-              <th className="px-4 py-3 font-medium">Target</th>
-              <th className="px-4 py-3 font-medium">Reason</th>
+              <th className="px-4 py-3 font-medium">{t('mod.target')}</th>
+              <th className="px-4 py-3 font-medium">{t('mod.reason')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
             {paginated.map((action) => (
-              <tr key={action.id} className="hover:bg-gray-800/30">
+              <tr
+                key={action.action.id}
+                className="hover:bg-gray-800/30"
+                data-testid="audit-log-row"
+                data-action-id={action.action.id}
+                data-action-type={action.action.actionType}
+              >
                 <td className="whitespace-nowrap px-4 py-3 text-gray-400">
-                  {new Date(action.createdAt).toLocaleString()}
+                  {new Date(action.action.createdAt).toLocaleString()}
                 </td>
                 <td className="px-4 py-3 text-gray-300">
-                  {action.actorUserId}
+                  {action.actor.displayName}
                 </td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      ACTION_TYPE_STYLES[action.actionType] ??
+                      ACTION_TYPE_STYLES[action.action.actionType] ??
                       'bg-gray-700 text-gray-300'
                     }`}
                   >
-                    {action.actionType}
+                    {action.action.actionType}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-400">
-                  {action.targetUserId ?? action.targetMessageId ?? '-'}
+                  {action.action.targetUserId ?? action.action.targetMessageId ?? '-'}
                 </td>
                 <td className="max-w-xs truncate px-4 py-3 text-gray-500">
-                  {action.reason ?? '-'}
+                  {action.action.reason ?? action.message?.bodyPlaintext ?? '-'}
                 </td>
               </tr>
             ))}

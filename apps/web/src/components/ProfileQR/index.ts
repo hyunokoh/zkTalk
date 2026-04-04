@@ -1,0 +1,1 @@
+export { ProfileQR } from './ProfileQR';

@@ -12,6 +12,7 @@ out/
 .env
 .env.local
 .env.*.local
+apps/desktop/signing.env
 
 # IDE
 .vscode/
@@ -34,3 +35,12 @@ docker/data/
 # Misc
 *.log
 *.tsbuildinfo
+
+# Local artifacts
+.claude/
+.tmp/
+uploads/
+apps/api/dev.db
+apps/api/uploads/
+apps/mobile/tmp-*.png
+apps/mobile/package-lock.json

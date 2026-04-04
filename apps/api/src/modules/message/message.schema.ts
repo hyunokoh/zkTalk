@@ -12,6 +12,10 @@ export const MessageIdParamsSchema = z.object({
   messageId: z.string().min(1),
 });
 
+export const ForwardMessageSchema = z.object({
+  targetChannelId: z.string().min(1),
+});
+
 // ---------------------------------------------------------------------------
 // Body / query schemas (re-export from shared for convenience)
 // ---------------------------------------------------------------------------
@@ -20,4 +24,5 @@ export {
   CreateMessageSchema,
   UpdateMessageSchema,
   CursorPaginationSchema,
+  CreateSealedMessageSchema,
 } from '@zktalk/shared';

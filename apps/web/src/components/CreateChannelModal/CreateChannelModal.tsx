@@ -14,7 +14,7 @@ interface CreateChannelModalProps {
 export function CreateChannelModal({ communityId, categoryId, onClose }: CreateChannelModalProps) {
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
-  const [type, setType] = useState<'chat' | 'announcement' | 'forum'>('chat');
+  const [type, setType] = useState<'chat' | 'announcement' | 'forum' | 'voice'>('chat');
   const [description, setDescription] = useState('');
 
   const createChannel = useMutation({
@@ -60,6 +60,7 @@ export function CreateChannelModal({ communityId, categoryId, onClose }: CreateC
                 { value: 'chat', label: '# Chat' },
                 { value: 'announcement', label: 'Announcement' },
                 { value: 'forum', label: 'Forum' },
+                { value: 'voice', label: 'Voice' },
               ] as const).map((opt) => (
                 <button
                   key={opt.value}

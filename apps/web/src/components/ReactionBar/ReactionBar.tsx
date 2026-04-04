@@ -24,18 +24,26 @@ export function ReactionBar({ messageId, reactions, channelId }: ReactionBarProp
   const queryClient = useQueryClient();
 
   const toggleReaction = useMutation({
-    mutationFn: (emoji: string) =>
-      api(`/api/messages/${messageId}/reactions`, {
-        method: 'POST',
-        body: { emoji },
-      }),
+    mutationFn: ({ emoji, remove }: { emoji: string; remove: boolean }) =>
+      remove
+        ? api(`/api/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`, {
+            method: 'DELETE',
+          })
+        : api(`/api/messages/${messageId}/reactions`, {
+            method: 'POST',
+            body: { emoji },
+          }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reactions', messageId] });
       queryClient.invalidateQueries({ queryKey: ['messages', channelId] });
     },
   });
 
   const handleToggle = (emoji: string) => {
-    toggleReaction.mutate(emoji);
+    const hasReacted = !!user && reactions.some(
+      (reaction) => reaction.emoji === emoji && reaction.userIds.includes(user.id),
+    );
+    toggleReaction.mutate({ emoji, remove: hasReacted });
   };
 
   const handlePickerSelect = (emoji: string) => {

@@ -36,9 +36,10 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
   );
 
   return (
-    <div className="border-b border-gray-800 bg-gray-850 px-4 py-4">
-      <form onSubmit={handleSubmit} className="space-y-3">
+    <div data-testid="forum-create-panel" className="border-b border-gray-800 bg-gray-850 px-4 py-4">
+      <form data-testid="forum-create-form" onSubmit={handleSubmit} className="space-y-3">
         <input
+          data-testid="forum-create-title-input"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -47,6 +48,7 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
           autoFocus
         />
         <textarea
+          data-testid="forum-create-body-input"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder="Write your post content... (Markdown supported)"
@@ -63,6 +65,7 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
         <div className="flex justify-end gap-3">
           <button
             type="button"
+            data-testid="forum-create-cancel-button"
             onClick={onClose}
             className="rounded-md px-4 py-2 text-sm font-medium text-gray-300 hover:text-gray-100"
           >
@@ -70,6 +73,7 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
           </button>
           <button
             type="submit"
+            data-testid="forum-create-submit-button"
             disabled={!title.trim() || !body.trim() || createPost.isPending}
             className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
           >

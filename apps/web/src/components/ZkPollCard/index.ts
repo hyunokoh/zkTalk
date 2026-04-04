@@ -1,0 +1,1 @@
+export { ZkPollCard } from './ZkPollCard';

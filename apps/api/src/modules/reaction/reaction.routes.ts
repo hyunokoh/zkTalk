@@ -5,10 +5,30 @@ import {
   MessageIdParamsSchema,
   ReactionParamsSchema,
   AddReactionSchema,
+  BatchReactionsQuerySchema,
 } from './reaction.schema.js';
 
 export default async function reactionRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate);
+
+  app.get(
+    '/api/reactions',
+    async (
+      request: FastifyRequest<{
+        Querystring: { messageIds: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { messageIds } = BatchReactionsQuerySchema.parse(request.query);
+      const reactionsByMessageId = await reactionService.getReactionsForMessages(
+        messageIds
+          .split(',')
+          .map((messageId) => messageId.trim())
+          .filter(Boolean),
+      );
+      return reply.send({ reactionsByMessageId });
+    },
+  );
 
   /**
    * POST /api/messages/:messageId/reactions

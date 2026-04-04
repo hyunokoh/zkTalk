@@ -1,0 +1,91 @@
+{
+  "desktop": {
+    "generatedAt": "2026-04-03T13:12:54.991Z",
+    "readiness": {
+      "macos": "NOT_READY",
+      "windows": "NOT_READY"
+    },
+    "signingEnv": {
+      "exists": true,
+      "loaded": true
+    },
+    "primaryCommand": "npm run release:check:signed",
+    "blockers": [
+      {
+        "platform": "macOS",
+        "label": "Developer ID identity",
+        "value": "MISSING"
+      },
+      {
+        "platform": "macOS",
+        "label": "APPLE_ID",
+        "value": "EXAMPLE"
+      },
+      {
+        "platform": "macOS",
+        "label": "APPLE_APP_SPECIFIC_PASSWORD",
+        "value": "EXAMPLE"
+      },
+      {
+        "platform": "macOS",
+        "label": "APPLE_TEAM_ID",
+        "value": "EXAMPLE"
+      },
+      {
+        "platform": "Windows",
+        "label": "WIN_CSC_LINK / CSC_LINK",
+        "value": "EXAMPLE"
+      },
+      {
+        "platform": "Windows",
+        "label": "WIN_CSC_KEY_PASSWORD / CSC_KEY_PASSWORD",
+        "value": "EXAMPLE"
+      }
+    ],
+    "nextSteps": [
+      "Install a valid Developer ID Application certificate in Keychain.",
+      "Set real APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID values.",
+      "Set real Windows signing certificate and password values."
+    ],
+    "reports": {
+      "markdown": "/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/signing-blockers.md",
+      "blockersJson": "/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/signing-blockers.json",
+      "releaseStatus": "/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/release-status.json"
+    },
+    "commands": {
+      "next": "npm run release:next",
+      "nextJson": "npm run release:next -- --json",
+      "primary": "npm run release:check:signed",
+      "signed": "npm run release:signed",
+      "envOverrideExample": "ZKTALK_SIGNING_ENV_PATH=/absolute/path/to/signing.env npm run release:check:signed"
+    },
+    "snapshots": {
+      "json": "/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/release-next.json",
+      "blockersMarkdown": "/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/signing-blockers.md",
+      "blockersJson": "/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/signing-blockers.json",
+      "releaseStatus": "/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/release-status.json",
+      "signingEnv": "/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/signing.env",
+      "signingEnvExample": "/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/SIGNING.example.env"
+    }
+  },
+  "mobile": {
+    "imeChecklist": "/Users/hyunokoh/Documents/Projects/zkTalk/docs/mobile-korean-ime-checklist-2026-03-26.md"
+  },
+  "commands": {
+    "repoNext": "npm run release:next",
+    "repoNextJson": "npm run release:next -- --json",
+    "imeReportInit": "npm run ime:report:init",
+    "desktopNext": "cd apps/desktop && npm run release:next",
+    "desktopNextJson": "cd apps/desktop && npm run release:next -- --json"
+  },
+  "snapshots": {
+    "markdown": "/Users/hyunokoh/Documents/Projects/zkTalk/docs/current-release-next.md",
+    "json": "/Users/hyunokoh/Documents/Projects/zkTalk/docs/current-release-next.json",
+    "desktopJson": "/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/release-next.json"
+  },
+  "topRemainingBlockers": [
+    "mac signing / notarization credentials",
+    "Windows code-signing credentials",
+    "Real iPhone Korean IME confirmation"
+  ]
+}

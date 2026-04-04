@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useTranslation } from '@/lib/i18n';
 import { MessageList } from '@/components/MessageList';
 import { MessageComposer } from '@/components/MessageComposer';
 import { useThreadStore } from '@/stores/thread';
@@ -12,45 +12,89 @@ interface ThreadPanelProps {
   channelId: string;
 }
 
+interface ThreadDetailsResponse {
+  thread: Thread;
+  isFollowing: boolean;
+  permissions: {
+    canPostReply: boolean;
+    canModerateThread: boolean;
+  };
+}
+
 export function ThreadPanel({ channelId }: ThreadPanelProps) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const activeThreadId = useThreadStore((s) => s.activeThreadId);
   const closeThread = useThreadStore((s) => s.closeThread);
-  const [isFollowing, setIsFollowing] = useState(true);
 
-  const { data: thread } = useQuery({
+  const { data: threadData } = useQuery({
     queryKey: ['thread', activeThreadId],
-    queryFn: () => api<Thread>(`/api/channels/${channelId}/threads/${activeThreadId}`),
+    queryFn: async () => {
+      return api<ThreadDetailsResponse>(`/api/channels/${channelId}/threads/${activeThreadId}`);
+    },
     enabled: !!activeThreadId,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: async (shouldFollow: boolean) => {
+      if (!activeThreadId) {
+        throw new Error('No active thread');
+      }
+
+      if (shouldFollow) {
+        await api(`/api/threads/${activeThreadId}/follow`, { method: 'POST' });
+      } else {
+        await api(`/api/threads/${activeThreadId}/follow`, { method: 'DELETE' });
+      }
+
+      return shouldFollow;
+    },
+    onSuccess: (isFollowing) => {
+      queryClient.setQueryData<ThreadDetailsResponse | undefined>(
+        ['thread', activeThreadId],
+        (current) => (current ? { ...current, isFollowing } : current),
+      );
+    },
   });
 
   if (!activeThreadId) return null;
 
+  const isFollowing = threadData?.isFollowing ?? false;
+  const canPostReply = threadData?.permissions.canPostReply ?? true;
+  const thread = threadData?.thread;
+
   return (
-    <aside className="flex w-96 flex-col border-l border-gray-800 bg-gray-900">
+    <aside data-testid="thread-panel" className="flex w-96 flex-col border-l border-gray-800 bg-gray-900">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold text-gray-100">
-            {thread?.title ?? 'Thread'}
+            {thread?.title ?? t('thread.title')}
           </h3>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Follow toggle */}
           <button
-            onClick={() => setIsFollowing(!isFollowing)}
+            onClick={() => followMutation.mutate(!isFollowing)}
+            disabled={followMutation.isPending}
             className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
               isFollowing
                 ? 'bg-indigo-600/20 text-indigo-400'
                 : 'text-gray-400 hover:text-gray-200'
             }`}
-            title={isFollowing ? 'Unfollow thread' : 'Follow thread'}
+            title={isFollowing ? t('thread.unfollowThread') : t('thread.followThread')}
           >
-            {isFollowing ? 'Following' : 'Follow'}
+            {followMutation.isPending
+              ? t('common.loading')
+              : isFollowing
+                ? t('thread.following')
+                : t('thread.follow')}
           </button>
 
           {/* Close button */}
           <button
+            data-testid="thread-panel-close"
             onClick={closeThread}
             className="rounded p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-200"
           >
@@ -65,11 +109,17 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
       <MessageList channelId={channelId} threadId={activeThreadId} />
 
       {/* Thread composer */}
-      <MessageComposer
-        channelId={channelId}
-        threadId={activeThreadId}
-        placeholder="Reply in thread..."
-      />
+      {canPostReply ? (
+        <MessageComposer
+          channelId={channelId}
+          threadId={activeThreadId}
+          placeholder={t('thread.replyToThread')}
+        />
+      ) : (
+        <div className="border-t border-gray-800 px-4 py-3 text-sm text-gray-400">
+          {t('thread.readOnlyMessage')}
+        </div>
+      )}
     </aside>
   );
 }

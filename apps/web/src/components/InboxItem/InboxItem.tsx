@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useTranslation, t } from '@/lib/i18n';
 
 export interface InboxItemData {
   id: string;
@@ -18,7 +19,7 @@ export interface InboxItemData {
 
 interface InboxItemProps {
   item: InboxItemData;
-  onMarkRead: (id: string) => void;
+  onMarkRead: (messageId: string) => Promise<void>;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -29,23 +30,31 @@ function formatRelativeTime(dateStr: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m`;
-  if (diffHours < 24) return `${diffHours}h`;
-  if (diffDays < 7) return `${diffDays}d`;
+  if (diffMins < 1) return t('time.justNow');
+  if (diffMins < 60) return t('time.minutesAgo', { count: diffMins });
+  if (diffHours < 24) return t('time.hoursAgo', { count: diffHours });
+  if (diffDays < 7) return t('time.daysAgo', { count: diffDays });
   return date.toLocaleDateString();
 }
 
 export function InboxItem({ item, onMarkRead }: InboxItemProps) {
+  const router = useRouter();
+  const { t: translate } = useTranslation();
   const href = item.threadId
-    ? `/communities/${item.communitySlug}/${item.channelId}?thread=${item.threadId}#${item.messageId}`
-    : `/communities/${item.communitySlug}/${item.channelId}#${item.messageId}`;
+    ? `/communities/${item.communitySlug}/channels/${item.channelId}/threads/${item.threadId}#${item.messageId}`
+    : `/communities/${item.communitySlug}/channels/${item.channelId}#${item.messageId}`;
 
   return (
-    <Link
-      href={href}
-      onClick={() => {
-        if (!item.isRead) onMarkRead(item.id);
+    <button
+      type="button"
+      data-testid="inbox-item"
+      data-inbox-type={item.type}
+      data-message-id={item.messageId}
+      onClick={async () => {
+        if (!item.isRead) {
+          await onMarkRead(item.messageId);
+        }
+        router.push(href);
       }}
       className={`flex items-start gap-3 rounded-lg px-4 py-3 transition-colors hover:bg-gray-800/50 ${
         !item.isRead ? 'bg-gray-800/30' : ''
@@ -73,7 +82,7 @@ export function InboxItem({ item, onMarkRead }: InboxItemProps) {
             {item.authorDisplayName}
           </span>
           <span className="text-xs text-gray-600">
-            {item.type === 'mention' ? 'mentioned you in' : 'replied in'}
+            {item.type === 'mention' ? translate('inbox.mentionedYou') : translate('inbox.repliedIn')}
           </span>
           <span className="text-xs text-gray-500"># {item.channelName}</span>
         </div>
@@ -95,6 +104,6 @@ export function InboxItem({ item, onMarkRead }: InboxItemProps) {
           <div className="h-2 w-2 rounded-full bg-indigo-500" />
         )}
       </div>
-    </Link>
+    </button>
   );
 }

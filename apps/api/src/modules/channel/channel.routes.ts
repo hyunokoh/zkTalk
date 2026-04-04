@@ -26,6 +26,28 @@ export default async function channelRoutes(app: FastifyInstance) {
   // -------------------------------------------------------------------------
 
   /**
+   * GET /api/communities/:communityId/categories
+   * List categories in a community for channel managers.
+   */
+  app.get(
+    '/api/communities/:communityId/categories',
+    async (
+      request: FastifyRequest<{
+        Params: { communityId: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { communityId } = CommunityIdParamsSchema.parse(request.params);
+      const categories = await channelService.listCategories(
+        communityId,
+        request.user.id,
+      );
+
+      return reply.send({ categories });
+    },
+  );
+
+  /**
    * POST /api/communities/:communityId/categories
    * Create a new category in a community.
    */
@@ -113,10 +135,13 @@ export default async function channelRoutes(app: FastifyInstance) {
         Body: {
           name: string;
           description?: string;
-          type?: 'chat' | 'announcement' | 'forum';
+          type?: 'chat' | 'announcement' | 'forum' | 'voice';
           categoryId?: string;
           visibility?: 'public' | 'role_restricted';
           slowModeSeconds?: number;
+          requireTopic?: boolean;
+          allowedViewRoleIds?: string[];
+          allowedPostRoleIds?: string[];
         };
       }>,
       reply: FastifyReply,
@@ -131,6 +156,51 @@ export default async function channelRoutes(app: FastifyInstance) {
       );
 
       return reply.status(201).send(channel);
+    },
+  );
+
+  /**
+   * GET /api/channels/:channelId
+   * Get a single channel.
+   */
+  app.get(
+    '/api/channels/:channelId',
+    async (
+      request: FastifyRequest<{ Params: { channelId: string } }>,
+      reply,
+    ) => {
+      const channel = await channelService.getChannel(request.params.channelId, request.user.id);
+      return reply.send({ channel });
+    },
+  );
+
+  app.get(
+    '/api/channels/:channelId/permissions',
+    async (
+      request: FastifyRequest<{ Params: { channelId: string } }>,
+      reply,
+    ) => {
+      const permissions = await channelService.getChannelPermissions(
+        request.params.channelId,
+        request.user.id,
+      );
+
+      return reply.send({ permissions });
+    },
+  );
+
+  app.get(
+    '/api/channels/:channelId/me-permissions',
+    async (
+      request: FastifyRequest<{ Params: { channelId: string } }>,
+      reply,
+    ) => {
+      const permissions = await channelService.getMyChannelPermissions(
+        request.params.channelId,
+        request.user.id,
+      );
+
+      return reply.send({ permissions });
     },
   );
 
@@ -150,6 +220,10 @@ export default async function channelRoutes(app: FastifyInstance) {
           slowModeSeconds?: number;
           categoryId?: string | null;
           position?: number;
+          disappearingDuration?: number | null;
+          requireTopic?: boolean;
+          allowedViewRoleIds?: string[];
+          allowedPostRoleIds?: string[];
         };
       }>,
       reply: FastifyReply,
@@ -187,6 +261,29 @@ export default async function channelRoutes(app: FastifyInstance) {
       );
 
       return reply.send(channel);
+    },
+  );
+
+  /**
+   * DELETE /api/channels/:channelId
+   * Delete a channel.
+   */
+  app.delete(
+    '/api/channels/:channelId',
+    async (
+      request: FastifyRequest<{
+        Params: { channelId: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { channelId } = ChannelIdParamsSchema.parse(request.params);
+
+      await channelService.deleteChannel(
+        channelId,
+        request.user.id,
+      );
+
+      return reply.status(204).send();
     },
   );
 

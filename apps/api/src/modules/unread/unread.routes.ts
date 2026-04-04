@@ -19,12 +19,12 @@ export default async function unreadRoutes(app: FastifyInstance) {
     async (
       request: FastifyRequest<{
         Params: { channelId: string };
-        Body: { lastMessageId: string };
+        Body: { lastMessageId?: string };
       }>,
       reply: FastifyReply,
     ) => {
       const { channelId } = ChannelIdParamsSchema.parse(request.params);
-      const { lastMessageId } = MarkReadSchema.parse(request.body);
+      const { lastMessageId } = MarkReadSchema.parse(request.body ?? {});
       const result = await unreadService.markChannelRead(
         request.user.id,
         channelId,

@@ -12,3 +12,7 @@ export const ReactionParamsSchema = z.object({
 export const AddReactionSchema = z.object({
   emoji: z.string().min(1).max(32),
 });
+
+export const BatchReactionsQuerySchema = z.object({
+  messageIds: z.string().min(1),
+});

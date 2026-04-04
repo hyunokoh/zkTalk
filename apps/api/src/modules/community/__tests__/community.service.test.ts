@@ -15,11 +15,15 @@ vi.mock('../community.repository.js', () => ({
   createRole: vi.fn(),
   assignRole: vi.fn(),
   getUserRolesInCommunity: vi.fn(),
+  createDefaultChannel: vi.fn(),
 }));
 
 // Mock the db module for getCommunityRoles helper
 vi.mock('../../../lib/db/index.js', () => ({
   db: {
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockResolvedValue([]),
+    }),
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([]),
@@ -311,7 +315,7 @@ describe('community.service', () => {
       );
     });
 
-    it('should throw conflict if already a member', async () => {
+    it('should return alreadyMember if already active in the community', async () => {
       mockRepo.findInviteByCode.mockResolvedValue({
         id: 'invite-1',
         communityId: 'community-1',
@@ -331,9 +335,22 @@ describe('community.service', () => {
         lastReadInboxAt: null,
       });
 
-      await expect(communityService.joinViaInvite('abc123', 'user-1')).rejects.toThrow(
-        'You are already a member of this community',
-      );
+      mockRepo.findById.mockResolvedValue({
+        id: 'community-1',
+        slug: 'test-community',
+        name: 'Test Community',
+        description: null,
+        iconUrl: null,
+        bannerUrl: null,
+        visibility: 'public' as const,
+        ownerUserId: 'owner-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      const result = await communityService.joinViaInvite('abc123', 'user-1');
+      expect(result.alreadyMember).toBe(true);
+      expect(result.membership.id).toBe('membership-1');
     });
   });
 });

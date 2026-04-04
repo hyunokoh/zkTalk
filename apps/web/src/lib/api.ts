@@ -1,10 +1,11 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { getApiBaseUrl } from '@/lib/runtime-config';
+import { getSessionToken } from '@/lib/session-token';
 
 export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -20,13 +21,20 @@ export async function api<T = unknown>(
   options: RequestOptions = {},
 ): Promise<T> {
   const { body, headers: customHeaders, ...rest } = options;
+  const sessionToken = getSessionToken();
 
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...customHeaders,
-  };
+  const headers = new Headers(customHeaders);
+  if (body !== undefined && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
 
-  const res = await fetch(`${API_URL}${path}`, {
+  if (sessionToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${sessionToken}`);
+  }
+
+  const apiUrl = getApiBaseUrl();
+
+  const res = await fetch(`${apiUrl}${path}`, {
     credentials: 'include',
     headers,
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -35,13 +43,15 @@ export async function api<T = unknown>(
 
   if (!res.ok) {
     let message = res.statusText;
+    let code: string | undefined;
     try {
       const json = await res.json();
       message = json.error ?? json.message ?? message;
+      code = typeof json.error === 'string' ? json.error : undefined;
     } catch {
       // keep statusText
     }
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, message, code);
   }
 
   // 204 No Content

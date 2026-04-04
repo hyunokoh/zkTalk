@@ -17,6 +17,7 @@ export const ChannelType = {
   CHAT: 'chat',
   ANNOUNCEMENT: 'announcement',
   FORUM: 'forum',
+  VOICE: 'voice',
 } as const;
 export type ChannelType = (typeof ChannelType)[keyof typeof ChannelType];
 
@@ -82,10 +83,21 @@ export const WebSocketEvent = {
   THREAD_UPDATED: 'thread.updated',
   THREAD_LOCKED: 'thread.locked',
   PRESENCE_UPDATED: 'presence.updated',
+  PROFILE_UPDATED: 'profile.updated',
   TYPING_STARTED: 'typing.started',
   TYPING_STOPPED: 'typing.stopped',
   MEMBER_MUTED: 'member.muted',
   MEMBER_BANNED: 'member.banned',
   REPORT_CREATED: 'report.created',
+  VOICE_USER_JOINED: 'voice.user_joined',
+  VOICE_USER_LEFT: 'voice.user_left',
+  DM_MESSAGE_CREATED: 'dm.message_created',
+  DM_MESSAGE_UPDATED: 'dm.message_updated',
+  DM_MESSAGE_DELETED: 'dm.message_deleted',
+  DM_CONVERSATION_CREATED: 'dm.conversation_created',
+  DM_CONVERSATION_UPDATED: 'dm.conversation_updated',
+  P2P_SIGNAL: 'p2p.signal',
+  P2P_FILE_REQUEST: 'p2p.file_request',
+  P2P_FILE_AVAILABLE: 'p2p.file_available',
 } as const;
 export type WebSocketEvent = (typeof WebSocketEvent)[keyof typeof WebSocketEvent];

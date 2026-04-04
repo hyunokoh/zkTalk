@@ -1,0 +1,69 @@
+name: macOS UI Smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  macos-ui-smoke:
+    name: Desktop + Mobile Smoke
+    runs-on: macos-14
+    timeout-minutes: 75
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --dir e2e exec playwright install chromium
+
+      - name: Install Maestro CLI
+        run: pnpm mobile:maestro:install
+
+      - name: macOS UI Smoke
+        run: pnpm ui:smoke:macos
+
+      - name: UI Smoke Verify Freshness
+        run: pnpm ui:smoke:verify -- --max-age-minutes 180
+
+      - name: UI Smoke Summary
+        if: always()
+        run: |
+          pnpm ui:smoke:report
+          pnpm ui:smoke:brief
+          cat .tmp/manual-smoke-brief-latest.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload macOS UI Smoke Artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-ui-smoke-artifacts
+          if-no-files-found: ignore
+          path: |
+            e2e/test-results
+            e2e/playwright-report
+            .tmp/mobile-maestro
+            .tmp/logs
+            .tmp/ui-smoke-*-last-result.json
+            .tmp/manual-smoke-status-last-result.json
+            .tmp/manual-smoke-open-last-result.json
+            .tmp/manual-smoke-refresh-last-result.json
+            .tmp/manual-smoke-brief-last-result.json
+            .tmp/manual-smoke-brief-latest.md
+            .tmp/manual-smoke-brief-2026-03-27.md
+            .tmp/manual-smoke-capture-last-result.json
+            .tmp/manual-smoke-report-last-result.json
+            .tmp/manual-smoke-report-latest.md
+            .tmp/manual-smoke-report-latest.json
+            .tmp/manual-smoke-history.md
+            .tmp/manual-smoke-desktop-latest.png
+            .tmp/manual-smoke-mobile-latest.png
+            ${{ runner.temp }}/zktalk-metro.log

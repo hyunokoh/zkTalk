@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { User } from '@zktalk/shared';
-import { api } from '@/lib/api';
+import { ApiError, api } from '@/lib/api';
+import { clearSessionToken } from '@/lib/session-token';
 
 interface AuthState {
   user: User | null;
@@ -16,11 +17,21 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   fetchUser: async () => {
     set({ isLoading: true });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
     try {
-      const user = await api<User>('/api/me');
-      set({ user, isLoading: false });
-    } catch {
-      set({ user: null, isLoading: false });
+      const res = await api<{ user: User }>('/api/me', { signal: controller.signal });
+      set({ user: res.user, isLoading: false });
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        clearSessionToken();
+        set({ user: null, isLoading: false });
+        return;
+      }
+
+      set((state) => ({ user: state.user, isLoading: false }));
+    } finally {
+      clearTimeout(timeout);
     }
   },
 
@@ -28,6 +39,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await api('/api/auth/logout', { method: 'POST' });
     } finally {
+      clearSessionToken();
       set({ user: null });
     }
   },

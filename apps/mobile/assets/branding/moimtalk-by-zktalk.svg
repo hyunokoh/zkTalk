@@ -1,0 +1,20 @@
+<svg width="1400" height="360" viewBox="0 0 1400 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="360" rx="44" fill="#FAFBFF"/>
+  <g transform="translate(52 52)">
+    <circle cx="128" cy="128" r="128" fill="url(#paint0_linear_1_4)"/>
+    <path d="M53 93C53 76.4315 66.4315 63 83 63H173C189.569 63 203 76.4315 203 93V167C203 183.569 189.569 197 173 197H133L96 230C89.4315 235.855 78.75 231.289 78.75 222.438V197H83C66.4315 197 53 183.569 53 167V93Z" fill="#EEF2FF"/>
+    <circle cx="106" cy="128" r="21" fill="#4F46E5"/>
+    <circle cx="150" cy="128" r="21" fill="#4F46E5"/>
+    <path d="M87 168C87 156.402 96.402 147 108 147H148C159.598 147 169 156.402 169 168V173H87V168Z" fill="#4F46E5"/>
+  </g>
+  <text x="354" y="154" fill="#14172D" font-family="Pretendard, SUIT, Apple SD Gothic Neo, system-ui, sans-serif" font-size="92" font-weight="800" letter-spacing="-2">모임톡</text>
+  <rect x="360" y="192" width="212" height="54" rx="27" fill="#E7EAFA"/>
+  <text x="398" y="228" fill="#4F46E5" font-family="Avenir Next, Pretendard, SUIT, system-ui, sans-serif" font-size="30" font-weight="800" letter-spacing="0.6">by zkTalk</text>
+  <text x="360" y="288" fill="#5D6482" font-family="Pretendard, SUIT, Apple SD Gothic Neo, system-ui, sans-serif" font-size="30" font-weight="600">우리 모임 대화, 더 쉽게</text>
+  <defs>
+    <linearGradient id="paint0_linear_1_4" x1="28" y1="20" x2="228" y2="236" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#818CF8"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+  </defs>
+</svg>

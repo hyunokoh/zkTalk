@@ -66,16 +66,13 @@ async function uploadWithRateLimitRetry(
   attempts = 3,
 ): Promise<Response> {
   let lastResponse: Response | null = null;
-  const sessionToken = getSessionToken();
+  const isAbsoluteStorageUrl = /^https?:\/\//i.test(uploadUrl);
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const response = await fetch(resolveUploadUrl(uploadUrl), {
       method: 'PUT',
       body,
-      headers: {
-        ...headers,
-        ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-      },
-      credentials: 'include',
+      headers,
+      credentials: isAbsoluteStorageUrl ? 'omit' : 'include',
     });
     lastResponse = response;
     if (response.status !== 429 || attempt === attempts - 1) {
@@ -1201,6 +1198,30 @@ export function MessageComposer({
                     />
                   </div>
                 ) : null}
+                {attachment.status === 'failed' ? (
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingAttachments((prev) => prev.map((item) =>
+                          item.id === attachment.id
+                            ? { ...item, status: 'queued', progress: 0, errorMessage: null }
+                            : item,
+                        ));
+                      }}
+                      className="rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-[11px] font-semibold text-amber-100 hover:bg-amber-300/20"
+                    >
+                      Retry
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removePendingAttachment(attachment.id)}
+                      className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold text-white/72 hover:bg-white/[0.08]"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : null}
               </div>
               <button
                 type="button"
@@ -1382,7 +1403,7 @@ export function MessageComposer({
         <button
           data-testid={`${composerTestIdPrefix}-send-button`}
           type="submit"
-          disabled={(!body.trim() && !hasPendingAttachments) || sendMessage.isPending || disabled || (requireTopic && !topic.trim())}
+          disabled={(!body.trim() && !hasPendingAttachments) || sendMessage.isPending || disabled || (requireTopic && !topic.trim()) || pendingAttachments.some((attachment) => attachment.status === 'failed')}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] border border-sky-300/30 bg-[linear-gradient(180deg,rgba(76,107,255,0.96),rgba(57,84,206,0.96))] text-white shadow-[0_18px_38px_rgba(41,56,161,0.32)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <svg className="h-[1.15rem] w-[1.15rem]" viewBox="0 0 20 20" fill="currentColor">

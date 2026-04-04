@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.fontWeight = exports.fontSize = exports.borderRadius = exports.spacing = exports.getAvatarColor = exports.colors = void 0;
+var colors_1 = require("./colors");
+Object.defineProperty(exports, "colors", { enumerable: true, get: function () { return colors_1.colors; } });
+Object.defineProperty(exports, "getAvatarColor", { enumerable: true, get: function () { return colors_1.getAvatarColor; } });
+var spacing_1 = require("./spacing");
+Object.defineProperty(exports, "spacing", { enumerable: true, get: function () { return spacing_1.spacing; } });
+Object.defineProperty(exports, "borderRadius", { enumerable: true, get: function () { return spacing_1.borderRadius; } });
+Object.defineProperty(exports, "fontSize", { enumerable: true, get: function () { return spacing_1.fontSize; } });
+Object.defineProperty(exports, "fontWeight", { enumerable: true, get: function () { return spacing_1.fontWeight; } });
