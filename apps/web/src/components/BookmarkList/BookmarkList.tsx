@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { EmptyState } from '@/components/EmptyState';
+import { LoadingState } from '@/components/LoadingState';
 import { useTranslation } from '@/lib/i18n';
 import { UserAvatar } from '@/components/UserAvatar';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
@@ -89,85 +91,85 @@ export function BookmarkList() {
 
   return (
     <div data-testid="bookmarks-page" className="flex flex-1 flex-col">
-      <div className="border-b border-gray-800 px-4 py-3">
-        <h2 className="text-base font-semibold text-gray-100">{t('bookmark.title')}</h2>
+      <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_100%)] px-5 py-5 md:px-8">
+        <div className="mx-auto w-full max-w-5xl">
+          <h2 className="text-xl font-bold text-white">{t('bookmark.title')}</h2>
+          <p className="mt-1 text-sm text-white/56">{t('bookmark.empty')}</p>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {isLoading ? (
-          <div className="py-8 text-center text-sm text-gray-400">{t('common.loading')}</div>
-        ) : !bookmarks || bookmarks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-            <svg className="mb-3 h-12 w-12 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-            </svg>
-            <p className="text-sm">{t('bookmark.empty')}</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-800">
-            {bookmarks.map((bm) => (
-              <div
-                key={bm.id ?? bm.messageId}
-                role="button"
-                tabIndex={0}
-                data-testid="bookmark-item"
-                data-message-id={bm.messageId}
-                onClick={() => {
-                  const href = bm.threadId
-                    ? `/communities/${bm.communitySlug}/channels/${bm.channelId}/threads/${bm.threadId}#${bm.messageId}`
-                    : `/communities/${bm.communitySlug}/channels/${bm.channelId}#${bm.messageId}`;
-                  router.push(href);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
+      <div className="flex-1 overflow-y-auto px-5 py-5 md:px-8">
+        <div className="mx-auto w-full max-w-5xl">
+          {isLoading ? (
+            <LoadingState message={t('common.loading')} compact />
+          ) : !bookmarks || bookmarks.length === 0 ? (
+            <EmptyState title={t('bookmark.empty')} />
+          ) : (
+            <div className="space-y-3">
+              {bookmarks.map((bm) => (
+                <div
+                  key={bm.id ?? bm.messageId}
+                  role="button"
+                  tabIndex={0}
+                  data-testid="bookmark-item"
+                  data-message-id={bm.messageId}
+                  onClick={() => {
                     const href = bm.threadId
                       ? `/communities/${bm.communitySlug}/channels/${bm.channelId}/threads/${bm.threadId}#${bm.messageId}`
                       : `/communities/${bm.communitySlug}/channels/${bm.channelId}#${bm.messageId}`;
                     router.push(href);
-                  }
-                }}
-                className="w-full px-4 py-3 text-left hover:bg-gray-800/50"
-              >
-                <div className="flex items-start gap-3">
-                  <UserAvatar
-                    displayName={bm.author?.displayName ?? t('misc.unknownUser')}
-                    avatarUrl={bm.author?.avatarUrl ?? null}
-                    size="sm"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm font-semibold text-gray-200">
-                        {bm.author?.displayName ?? t('misc.unknownUser')}
-                      </span>
-                      {bm.channelName && (
-                        <span className="text-xs text-gray-500">#{bm.channelName}</span>
-                      )}
-                      <span className="text-xs text-gray-500">
-                        {relativeTime(bm.message.createdAt)}
-                      </span>
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      const href = bm.threadId
+                        ? `/communities/${bm.communitySlug}/channels/${bm.channelId}/threads/${bm.threadId}#${bm.messageId}`
+                        : `/communities/${bm.communitySlug}/channels/${bm.channelId}#${bm.messageId}`;
+                      router.push(href);
+                    }
+                  }}
+                  className="rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(19,28,42,0.98),rgba(11,18,29,0.98))] px-4 py-4 text-left shadow-[0_18px_42px_rgba(2,8,23,0.18)] transition hover:border-white/12 hover:bg-white/[0.04]"
+                >
+                  <div className="flex items-start gap-3">
+                    <UserAvatar
+                      displayName={bm.author?.displayName ?? t('misc.unknownUser')}
+                      avatarUrl={bm.author?.avatarUrl ?? null}
+                      size="sm"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <span className="text-sm font-semibold text-gray-200">
+                          {bm.author?.displayName ?? t('misc.unknownUser')}
+                        </span>
+                        {bm.channelName && (
+                          <span className="text-xs text-gray-500">#{bm.channelName}</span>
+                        )}
+                        <span className="text-xs text-gray-500">
+                          {relativeTime(bm.message.createdAt)}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-sm text-gray-300">
+                        <MarkdownRenderer content={bm.message.bodyMarkdown} />
+                      </div>
                     </div>
-                    <div className="mt-0.5 text-sm text-gray-300">
-                      <MarkdownRenderer content={bm.message.bodyMarkdown} />
-                    </div>
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        removeMutation.mutate(bm.message.id ?? bm.messageId);
+                      }}
+                      className="shrink-0 rounded-xl p-2 text-gray-500 transition hover:bg-white/10 hover:text-red-400"
+                      title={t('bookmark.remove')}
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
                   </div>
-                  <button
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      removeMutation.mutate(bm.message.id ?? bm.messageId);
-                    }}
-                    className="shrink-0 rounded p-1.5 text-gray-500 hover:bg-gray-800 hover:text-red-400"
-                    title={t('bookmark.remove')}
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </button>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
