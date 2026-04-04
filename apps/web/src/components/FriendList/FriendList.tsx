@@ -11,6 +11,8 @@ import {
   parseSharedProfileText,
   type SharedProfileData,
 } from '@/lib/shared-profile';
+import { EmptyState } from '@/components/EmptyState';
+import { LoadingState } from '@/components/LoadingState';
 import { UserAvatar } from '@/components/UserAvatar';
 
 interface FriendItem {
@@ -487,48 +489,45 @@ export function FriendList() {
 
         {deferredSearchQuery && (
           <div className="space-y-2">
-            {isSearching && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t('friend.searchingUsers')}
-              </p>
-            )}
-
-            {!isSearching && searchResults.length === 0 && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t('friend.noSearchResults')}
-              </p>
-            )}
-
-            {searchResults.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
-                data-testid="friend-search-result"
-                data-user-id={user.id}
-              >
-                <UserAvatar
-                  displayName={user.displayName}
-                  avatarUrl={user.avatarUrl}
-                  size="sm"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-gray-900 dark:text-gray-100">
-                    {user.displayName}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    @{user.username}
-                  </p>
-                </div>
-                <button
-                  onClick={() => addMutation.mutate(user.id)}
-                  disabled={addMutation.isPending}
-                  data-testid="friend-search-add-button"
-                  className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            {isSearching ? (
+              <LoadingState message={t('friend.searchingUsers')} compact />
+            ) : searchResults.length === 0 ? (
+              <EmptyState
+                title={t('friend.noSearchResults')}
+                className="border-gray-200 bg-gray-50 px-6 py-10 text-gray-500 shadow-none dark:border-gray-700 dark:bg-gray-800/40"
+              />
+            ) : (
+              searchResults.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                  data-testid="friend-search-result"
+                  data-user-id={user.id}
                 >
-                  {t('friend.add')}
-                </button>
-              </div>
-            ))}
+                  <UserAvatar
+                    displayName={user.displayName}
+                    avatarUrl={user.avatarUrl}
+                    size="sm"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-gray-900 dark:text-gray-100">
+                      {user.displayName}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      @{user.username}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => addMutation.mutate(user.id)}
+                    disabled={addMutation.isPending}
+                    data-testid="friend-search-add-button"
+                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {t('friend.add')}
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>
@@ -553,16 +552,25 @@ export function FriendList() {
 
       {/* Friend list */}
       <div className="mt-4 space-y-2" data-testid="friend-list-items">
-        {friends.length === 0 && (
-          <p
-            className="py-8 text-center text-sm text-gray-500 dark:text-gray-400"
-            data-testid="friend-empty-state"
-          >
-            {t('friend.noFriends')}
-          </p>
-        )}
-
-        {friends.map((friend) => (
+        {friends.length === 0 ? (
+          <EmptyState
+            title={
+              activeTab === 'pending'
+                ? t('friend.pending')
+                : activeTab === 'blocked'
+                  ? t('friend.block')
+                  : t('friend.noFriends')
+            }
+            description={
+              activeTab === 'pending'
+                ? t('friend.requestSent')
+                : activeTab === 'blocked'
+                  ? t('friend.sharedProfileBlocked')
+                  : t('friend.friendsPageHelp')
+            }
+            className="border-gray-200 bg-gray-50 px-6 py-12 text-gray-500 shadow-none dark:border-gray-700 dark:bg-gray-800/40"
+          />
+        ) : friends.map((friend) => (
           <div
             key={friend.id}
             className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
