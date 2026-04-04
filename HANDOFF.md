@@ -59,6 +59,13 @@ docker/         — Docker Compose (postgres, redis, minio, livekit)
 - ✅ 파일 첨부, 이미지 미리보기
 - ✅ 커스텀 이모지, GIF 검색
 - ✅ 실시간 WebSocket
+- ✅ 연결 상태 배너 / 전역 토스트 / 공용 confirm dialog
+- ✅ 오프라인 메시지 큐, optimistic queued row, 개별 retry/remove
+- ✅ 공통 loading / empty state 패턴
+- ✅ Discover 실제 목적지 복구
+- ✅ Friends / Bookmarks / Search / Moderation Reports 제품형 상태 polish
+- ✅ 웹 프로덕션 빌드 통과
+- ✅ 웹 테스트 스위트 통과
 
 ### Desktop (핵심 흐름 검증 완료)
 - ✅ Electron 앱 (웹앱 래핑)
