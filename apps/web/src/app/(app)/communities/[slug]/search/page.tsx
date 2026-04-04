@@ -92,27 +92,36 @@ export default function SearchPage() {
   }, []);
 
   return (
-    <div className="flex flex-1 flex-col p-6">
-      <h1 className="text-xl font-bold">{t('search.title')}</h1>
-
-      <div className="mt-4 max-w-2xl">
-        <SearchBar onSearch={handleSearch} placeholder={t('search.placeholder')} />
+    <div className="flex flex-1 flex-col overflow-y-auto">
+      <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_100%)] px-5 py-5 md:px-8">
+        <div className="mx-auto w-full max-w-5xl">
+          <h1 className="text-xl font-bold text-white">{t('search.title')}</h1>
+          <p className="mt-1 text-sm text-white/56">{t('search.placeholder')}</p>
+        </div>
       </div>
 
-      <div className="mt-4 max-w-2xl">
-        <SearchFilters
-          channels={channels.map((c) => ({ id: c.id, name: c.name }))}
-          filters={filters}
-          onChange={setFilters}
-        />
-      </div>
+      <div className="px-5 py-5 md:px-8">
+        <div className="mx-auto w-full max-w-5xl space-y-4">
+          <div className="max-w-2xl">
+            <SearchBar onSearch={handleSearch} placeholder={t('search.placeholder')} />
+          </div>
 
-      <div className="mt-6 max-w-2xl">
-        <SearchResults
-          results={results}
-          isLoading={isLoading}
-          query={query}
-        />
+          <div className="max-w-2xl">
+            <SearchFilters
+              channels={channels.map((c) => ({ id: c.id, name: c.name }))}
+              filters={filters}
+              onChange={setFilters}
+            />
+          </div>
+
+          <div className="max-w-3xl">
+            <SearchResults
+              results={results}
+              isLoading={isLoading}
+              query={query}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
