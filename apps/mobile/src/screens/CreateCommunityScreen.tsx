@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -49,12 +49,23 @@ export default function CreateCommunityScreen({ navigation }: Props) {
 
   const slugManuallyEditedRef = useRef(false);
   const devActionAttemptedRef = useRef(false);
+  const slugDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
     if (!isFocused) {
       devActionAttemptedRef.current = false;
     }
   }, [isFocused]);
+
+  // Clean up pending debounce timers on unmount
+  useEffect(() => {
+    return () => {
+      if (slugDebounceRef.current != null) {
+        clearTimeout(slugDebounceRef.current);
+        slugDebounceRef.current = null;
+      }
+    };
+  }, []);
 
   const applySlugState = useCallback((nextState: CommunitySlugState) => {
     setSlug(nextState.slug);
@@ -65,9 +76,15 @@ export default function CreateCommunityScreen({ navigation }: Props) {
   const handleNameChange = useCallback((nextName: string) => {
     setName(nextName);
 
-    if (!slugManuallyEditedRef.current) {
-      applySlugState(getAutoCommunitySlugState(nextName));
+    if (slugDebounceRef.current != null) {
+      clearTimeout(slugDebounceRef.current);
     }
+    slugDebounceRef.current = setTimeout(() => {
+      slugDebounceRef.current = null;
+      if (!slugManuallyEditedRef.current) {
+        applySlugState(getAutoCommunitySlugState(nextName));
+      }
+    }, 200);
   }, [applySlugState]);
 
   const handleNameEndEditing = useCallback(() => {
