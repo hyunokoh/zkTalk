@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { EmptyState } from '@/components/EmptyState';
+import { LoadingState } from '@/components/LoadingState';
 import { useTranslation } from '@/lib/i18n';
 import { ReportCard } from '@/components/ReportCard';
 import type { Community, Report } from '@zktalk/shared';
@@ -61,45 +63,48 @@ export default function ReportsPage() {
   ];
 
   return (
-    <div className="p-6" data-testid="moderation-reports-page">
-      <h1 className="text-xl font-bold">{t('mod.reports')}</h1>
-
-      {/* Filters */}
-      <div className="mt-4 flex gap-2" data-testid="moderation-reports-filters">
-        {filters.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setStatusFilter(f.value)}
-            data-testid={`moderation-reports-filter-${f.value}`}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              statusFilter === f.value
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+    <div className="flex-1 overflow-y-auto" data-testid="moderation-reports-page">
+      <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_100%)] px-5 py-5 md:px-8">
+        <div className="mx-auto w-full max-w-5xl">
+          <h1 className="text-xl font-bold text-white">{t('mod.reports')}</h1>
+          <p className="mt-1 text-sm text-white/56">{t('mod.loadingReports')}</p>
+        </div>
       </div>
 
-      {/* Reports list */}
-      <div className="mt-6 space-y-3" data-testid="moderation-reports-list">
-        {isLoading ? (
-          <p className="text-sm text-gray-500" data-testid="moderation-reports-loading">{t('mod.loadingReports')}</p>
-        ) : reports.length === 0 ? (
-          <div
-            className="rounded-lg border border-gray-700 bg-gray-800/30 p-8 text-center"
-            data-testid="moderation-reports-empty-state"
-          >
-            <p className="text-sm text-gray-500">
-              {t('mod.noReports', { status: statusFilter === 'all' ? '' : statusFilter })}
-            </p>
+      <div className="px-5 py-5 md:px-8">
+        <div className="mx-auto w-full max-w-5xl">
+          <div className="flex flex-wrap gap-2" data-testid="moderation-reports-filters">
+            {filters.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setStatusFilter(f.value)}
+                data-testid={`moderation-reports-filter-${f.value}`}
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                  statusFilter === f.value
+                    ? 'border-sky-300/30 bg-sky-300/14 text-sky-100'
+                    : 'border-white/8 bg-white/[0.04] text-white/56 hover:bg-white/[0.08] hover:text-white'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
-        ) : (
-          reports.map((report) => (
-            <ReportCard key={report.report.id} report={report} communityId={community!.id} />
-          ))
-        )}
+
+          <div className="mt-6 space-y-3" data-testid="moderation-reports-list">
+            {isLoading ? (
+              <LoadingState message={t('mod.loadingReports')} compact />
+            ) : reports.length === 0 ? (
+              <EmptyState
+                title={t('mod.noReports', { status: statusFilter === 'all' ? '' : statusFilter })}
+                className="border-white/8 bg-white/[0.03]"
+              />
+            ) : (
+              reports.map((report) => (
+                <ReportCard key={report.report.id} report={report} communityId={community!.id} />
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
