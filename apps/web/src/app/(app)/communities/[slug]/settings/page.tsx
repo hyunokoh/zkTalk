@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { useCommunityRole } from '@/hooks/useCommunityRole';
 import { useP2PSettingsStore } from '@/stores/p2p-settings';
+import { useToastStore } from '@/stores/toast';
 import { uploadImageAsset } from '@/lib/upload-assets';
 import { resolveImageRenderProps } from '@/lib/image-optimization';
 import { mergeUpdatedCommunity } from '@/lib/community-cache';
@@ -26,13 +27,13 @@ export default function CommunitySettingsPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const showToast = useToastStore((s) => s.showToast);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<string>('public');
   const [iconUrl, setIconUrl] = useState('');
   const [iconPreviewVersion, setIconPreviewVersion] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [maxUses, setMaxUses] = useState<string>('0');
@@ -89,10 +90,10 @@ export default function CommunitySettingsPage() {
       queryClient.setQueryData(['community', updatedCommunity.id], updatedCommunity);
       queryClient.invalidateQueries({ queryKey: ['communities'] });
       queryClient.invalidateQueries({ queryKey: ['community', slug] });
-      showToast('success', t('settings.saved'));
+      notify('success', t('settings.saved'));
     },
     onError: () => {
-      showToast('error', t('settings.saveError'));
+      notify('error', t('settings.saveError'));
     },
   });
 
@@ -111,10 +112,10 @@ export default function CommunitySettingsPage() {
     onSuccess: (data) => {
       const link = `${window.location.origin}/invite/${data.invite.code}`;
       setInviteLink(link);
-      showToast('success', t('settings.inviteCreated'));
+      notify('success', t('settings.inviteCreated'));
     },
     onError: () => {
-      showToast('error', t('settings.saveError'));
+      notify('error', t('settings.saveError'));
     },
   });
 
@@ -126,13 +127,12 @@ export default function CommunitySettingsPage() {
       router.push('/home');
     },
     onError: () => {
-      showToast('error', t('community.deleteError'));
+      notify('error', t('community.deleteError'));
     },
   });
 
-  function showToast(type: 'success' | 'error', message: string) {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 3000);
+  function notify(tone: 'success' | 'error', message: string) {
+    showToast({ tone, message });
   }
 
   function handleSave(e: React.FormEvent) {
@@ -155,6 +155,7 @@ export default function CommunitySettingsPage() {
     if (!inviteLink) return;
     await navigator.clipboard.writeText(inviteLink);
     setCopied(true);
+    notify('success', t('webhook.tokenCopied'));
     setTimeout(() => setCopied(false), 2000);
   }
 
@@ -170,7 +171,7 @@ export default function CommunitySettingsPage() {
       setIconPreviewVersion(String(Date.now()));
     } catch (error) {
       console.error('Community icon upload failed', error);
-      showToast('error', t('settings.saveError'));
+      notify('error', t('settings.saveError'));
     } finally {
       setIsUploadingIcon(false);
     }
@@ -220,19 +221,6 @@ export default function CommunitySettingsPage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-2xl px-6 py-6 pb-12">
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`fixed right-4 top-4 z-50 rounded-lg px-4 py-3 text-sm font-medium shadow-lg ${
-            toast.type === 'success'
-              ? 'bg-green-800 text-green-100'
-              : 'bg-red-800 text-red-100'
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
-
       <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-5">
         <h1 className="text-xl font-bold text-gray-100">{t('settings.communitySettings')}</h1>
         <p className="mt-2 text-sm text-gray-400">{t('settings.communitySettingsSubtitle')}</p>

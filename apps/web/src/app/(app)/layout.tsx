@@ -7,6 +7,8 @@ import { useAuthStore } from '@/stores/auth';
 import { useTranslation } from '@/lib/i18n';
 import { useMobileNavStore } from '@/stores/mobile-nav';
 import { CommunityRail } from '@/components/CommunityRail';
+import { ConnectionStatusBar } from '@/components/ConnectionStatusBar';
+import { ToastViewport } from '@/components/ToastViewport';
 import { api } from '@/lib/api';
 import { subscribe } from '@/hooks/useWebSocket';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -335,6 +337,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <main className="relative z-10 flex min-w-0 flex-1 flex-col">
+        <ConnectionStatusBar />
+        <ToastViewport />
         <div className="flex min-h-0 flex-1">{children}</div>
       </main>
     </div>

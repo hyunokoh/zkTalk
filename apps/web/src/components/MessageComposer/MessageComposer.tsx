@@ -13,6 +13,9 @@ import { PollCreator } from '@/components/PollCreator';
 import { pickDesktopFiles } from '@/lib/desktop-files';
 import { resolveFileMimeType } from '@/lib/file-mime';
 import { createFilePreviewUrl, revokeFilePreviewUrl } from '@/lib/file-preview';
+import { enqueueMessage } from '@/lib/offline-queue';
+import { ensureOfflineQueueAutoRetry, flushOfflineQueueForChannel, refreshOfflineChannelCounts } from '@/lib/offline-message-sync';
+import { useToastStore } from '@/stores/toast';
 import {
   hasOnlyImageAttachments,
   type Attachment,
@@ -201,6 +204,7 @@ export function MessageComposer({
 }: MessageComposerProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const showToast = useToastStore((s) => s.showToast);
   const [body, setBody] = useState('');
   const bodyRef = useRef('');
   const [topic, setTopic] = useState(currentTopic ?? '');
@@ -498,6 +502,7 @@ export function MessageComposer({
       return { message, attachmentsAttached: false };
     },
     onSuccess: ({ message }) => {
+      void flushOfflineQueueForChannel(channelId);
       queryClient.setQueriesData<{ pages?: MessagesPage[] }>(
         { queryKey: ['messages', channelId] },
         (old) => {
@@ -836,12 +841,41 @@ export function MessageComposer({
     const trimmed = bodyRef.current.trim();
     if (!(trimmed || hasPendingAttachments)) return;
     if (sendMessage.isPending || submitLockRef.current) return;
+
+    const bodyMarkdown = trimmed || getAttachmentFallbackBody(pendingAttachments);
+
+    if (typeof navigator !== 'undefined' && navigator.onLine === false && !hasPendingAttachments) {
+      const queuedMessageId = generateRequestId();
+      void enqueueMessage({
+        id: queuedMessageId,
+        channelId,
+        threadId: threadId ?? null,
+        bodyMarkdown,
+        parentMessageId: replyTo?.message.id,
+        topic: topic.trim() || null,
+        createdAt: Date.now(),
+      }).then(async () => {
+        await refreshOfflineChannelCounts(channelId);
+        showToast({ tone: 'info', message: t('offline.queued') });
+        bodyRef.current = '';
+        setBody('');
+        stopTyping();
+        onCancelReply?.();
+        if (textareaRef.current) {
+          textareaRef.current.value = '';
+          textareaRef.current.style.height = 'auto';
+        }
+      });
+      return;
+    }
+
+    ensureOfflineQueueAutoRetry();
     submitLockRef.current = true;
     sendMessage.mutate({
-      bodyMarkdown: trimmed || getAttachmentFallbackBody(pendingAttachments),
+      bodyMarkdown,
       attachments: pendingAttachments,
     });
-  }, [hasPendingAttachments, pendingAttachments, sendMessage]);
+  }, [channelId, hasPendingAttachments, onCancelReply, pendingAttachments, replyTo?.message.id, sendMessage, showToast, stopTyping, t, threadId, topic]);
 
   const handleToggleSecondaryActionsMenu = useCallback(() => {
     setShowSecondaryActionsMenu((prev) => !prev);

@@ -8,22 +8,34 @@ import type { PollCardData } from '@/components/PollCard';
 import { useChannel } from '@/hooks/useChannel';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useTranslation } from '@/lib/i18n';
+import {
+  ensureOfflineQueueAutoRetry,
+  flushOfflineQueueForChannel,
+  getRenderedOfflineMessageId,
+  refreshOfflineChannelCounts,
+  removeOfflineQueuedMessage,
+  retryOfflineQueuedMessage,
+} from '@/lib/offline-message-sync';
+import { useOfflineQueueStore } from '@/stores/offline-queue';
+import { useAuthStore } from '@/stores/auth';
 import type { Attachment, Message, User } from '@zktalk/shared';
 
 const REACTION_BATCH_SIZE = 100;
 const POLL_BATCH_SIZE = 100;
 
+type OfflineStatus = 'pending' | 'sending' | 'failed';
+
 interface MessageRow {
   message: Message;
   author: User;
   attachments?: Attachment[];
+  offlineStatus?: OfflineStatus;
 }
 
 interface MessagesPage {
   messages: MessageRow[];
   hasMore: boolean;
   nextCursor?: string | null;
-  /** KakaoTalk-style unread counts: messageId -> number of members who haven't read */
   unreadCounts?: Record<string, number>;
 }
 
@@ -60,38 +72,33 @@ interface MessageListProps {
   threadId?: string | null;
   communityId?: string;
   onReplyToMessage?: (message: Message, author?: User | null) => void;
-  /** Whether channel uses topic-based threading */
   requireTopic?: boolean;
-  /** Currently selected topic filter */
   topicFilter?: string;
-  /** Callback when user selects a topic */
   onTopicSelect?: (topic: string | null) => void;
 }
 
 export function MessageList({ channelId, threadId, communityId, onReplyToMessage, requireTopic, topicFilter, onTopicSelect }: MessageListProps) {
   const { t } = useTranslation();
+  const currentUser = useAuthStore((s) => s.user);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [hasNewMessages, setHasNewMessages] = useState(false);
+  const pendingOfflineCount = useOfflineQueueStore((s) => s.pendingByChannel[channelId] ?? 0);
+  const failedOfflineCount = useOfflineQueueStore((s) => s.failedByChannel[channelId] ?? 0);
+  const queuedOfflineMessages = useOfflineQueueStore((s) => s.queuedMessagesByChannel[channelId] ?? []);
 
-  // Subscribe to real-time WebSocket events for this channel
   useChannel(channelId);
-
-  // Typing indicator state
   const { typingUsers } = useTypingIndicator(channelId);
 
   const basePath = threadId
     ? `/api/channels/${channelId}/threads/${threadId}/messages`
     : `/api/channels/${channelId}/messages`;
 
-  // Fetch topics list for topic-based channels
   const { data: topicsData } = useQuery({
     queryKey: ['channel-topics', channelId],
     queryFn: async () => {
-      const res = await api<{ topics: TopicInfo[] }>(
-        `/api/channels/${channelId}/topics`,
-      );
+      const res = await api<{ topics: TopicInfo[] }>(`/api/channels/${channelId}/topics`);
       return res.topics ?? [];
     },
     enabled: !!requireTopic,
@@ -127,13 +134,44 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
       if (!lastPage.hasMore || lastPage.messages.length === 0) return undefined;
       return lastPage.messages[lastPage.messages.length - 1].message.id;
     },
-    refetchInterval: 30_000, // WS handles real-time; polling is fallback
+    refetchInterval: 30_000,
   });
 
-  // Flatten and deduplicate message rows across all pages.
+  const optimisticOfflineRows = useMemo<MessageRow[]>(() => {
+    if (!currentUser) {
+      return [];
+    }
+
+    return queuedOfflineMessages
+      .filter((queuedMessage) => (threadId ?? null) === (queuedMessage.threadId ?? null))
+      .map((queuedMessage) => ({
+        message: {
+          id: getRenderedOfflineMessageId(queuedMessage.id),
+          communityId: communityId ?? '',
+          channelId,
+          threadId: queuedMessage.threadId ?? null,
+          parentMessageId: queuedMessage.parentMessageId ?? null,
+          authorUserId: currentUser.id,
+          bodyMarkdown: queuedMessage.bodyMarkdown,
+          bodyPlaintext: queuedMessage.bodyMarkdown,
+          messageType: 'user',
+          isEdited: false,
+          isDeleted: false,
+          isEncrypted: false,
+          topic: queuedMessage.topic ?? null,
+          expiresAt: null,
+          createdAt: new Date(queuedMessage.createdAt).toISOString(),
+          updatedAt: new Date(queuedMessage.createdAt).toISOString(),
+        },
+        author: currentUser,
+        attachments: [],
+        offlineStatus: queuedMessage.status,
+      }));
+  }, [channelId, communityId, currentUser, queuedOfflineMessages, threadId]);
+
   const allRows = useMemo(() => {
     const seen = new Set<string>();
-    const rows = data?.pages.flatMap((p) => p.messages).reverse() ?? [];
+    const rows = [...(data?.pages.flatMap((p) => p.messages).reverse() ?? []), ...optimisticOfflineRows];
     return rows.filter((row) => {
       if (seen.has(row.message.id)) {
         return false;
@@ -141,16 +179,16 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
       seen.add(row.message.id);
       return true;
     });
-  }, [data?.pages]);
+  }, [data?.pages, optimisticOfflineRows]);
+
   const allMessages = allRows.map((row) => row.message);
-  const messageIds = useMemo(
-    () => allRows.map((row) => row.message.id),
+  const rowByMessageId = useMemo(
+    () => new Map(allRows.map((row) => [row.message.id, row] as const)),
     [allRows],
   );
-  const messageIdsKey = useMemo(
-    () => messageIds.join(','),
-    [messageIds],
-  );
+  const messageIds = useMemo(() => allRows.map((row) => row.message.id), [allRows]);
+  const messageIdsKey = useMemo(() => messageIds.join(','), [messageIds]);
+
   const attachmentsByMessageId = useMemo(() => {
     const map: Record<string, Attachment[]> = {};
     for (const row of allRows) {
@@ -207,7 +245,6 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
     staleTime: 30_000,
   });
 
-  // Merge unread counts from all pages
   const unreadCounts: Record<string, number> = {};
   for (const page of data?.pages ?? []) {
     if (page.unreadCounts) {
@@ -215,7 +252,6 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
     }
   }
 
-  // Collect user map from message authors
   const userMap: Record<string, User> = {};
   for (const row of allRows) {
     if (row.author) {
@@ -223,7 +259,6 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
     }
   }
 
-  // Build typing display text
   const typingText = (() => {
     if (typingUsers.length === 0) return null;
     const names = typingUsers.map((uid) => {
@@ -235,7 +270,34 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
     return `${names[0]} and ${names.length - 1} others are typing...`;
   })();
 
-  // Track scroll position
+  useEffect(() => {
+    ensureOfflineQueueAutoRetry();
+    void refreshOfflineChannelCounts(channelId);
+  }, [channelId]);
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined') {
+      return;
+    }
+
+    const handleOnline = () => {
+      void flushOfflineQueueForChannel(channelId);
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [channelId]);
+
+  const handleRetryOfflineMessage = useCallback((messageId: string) => {
+    void retryOfflineQueuedMessage(messageId, channelId);
+  }, [channelId]);
+
+  const handleRemoveOfflineMessage = useCallback((messageId: string) => {
+    void removeOfflineQueuedMessage(messageId, channelId);
+  }, [channelId]);
+
   const handleScroll = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -244,13 +306,11 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
     setIsAtBottom(atBottom);
     if (atBottom) setHasNewMessages(false);
 
-    // Load more when scrolled to top
     if (container.scrollTop < 100 && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Auto-scroll to bottom on initial load and new messages
   useEffect(() => {
     if (isAtBottom) {
       bottomRef.current?.scrollIntoView({ behavior: 'instant' });
@@ -259,7 +319,6 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
     }
   }, [allMessages.length, isAtBottom]);
 
-  // Scroll to bottom on initial load
   useEffect(() => {
     if (!isLoading) {
       bottomRef.current?.scrollIntoView({ behavior: 'instant' });
@@ -271,9 +330,8 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
     setHasNewMessages(false);
   }, []);
 
-  // Group messages by topic for display
   const groupedByTopic = useMemo(() => {
-    if (!requireTopic || topicFilter) return null; // Don't group when filtered to a single topic
+    if (!requireTopic || topicFilter) return null;
     const groups: { topic: string; messages: Message[] }[] = [];
     let currentTopic = '';
     for (const msg of allMessages) {
@@ -300,34 +358,33 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-transparent">
-      {/* Topic filter bar */}
       {requireTopic && topicsData && topicsData.length > 0 && (
         <div className="border-b border-white/8 bg-white/[0.02] px-5 py-3 md:px-8">
           <div className="mx-auto flex w-full max-w-5xl items-center gap-2 overflow-x-auto">
-          <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/42">{t('topic.filter')}</span>
-          <button
-            onClick={() => onTopicSelect?.(null)}
-            className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition ${
-              !topicFilter
-                ? 'border-sky-300/30 bg-sky-300/14 text-sky-100'
-                : 'border-white/8 bg-white/[0.04] text-white/56 hover:bg-white/[0.08] hover:text-white'
-            }`}
-          >
-            {t('topic.all')}
-          </button>
-          {topicsData.map((topicItem) => (
+            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/42">{t('topic.filter')}</span>
             <button
-              key={topicItem.topic}
-              onClick={() => onTopicSelect?.(topicItem.topic)}
+              onClick={() => onTopicSelect?.(null)}
               className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition ${
-                topicFilter === topicItem.topic
+                !topicFilter
                   ? 'border-sky-300/30 bg-sky-300/14 text-sky-100'
                   : 'border-white/8 bg-white/[0.04] text-white/56 hover:bg-white/[0.08] hover:text-white'
               }`}
             >
-              {topicItem.topic} ({topicItem.messageCount})
+              {t('topic.all')}
             </button>
-          ))}
+            {topicsData.map((topicItem) => (
+              <button
+                key={topicItem.topic}
+                onClick={() => onTopicSelect?.(topicItem.topic)}
+                className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  topicFilter === topicItem.topic
+                    ? 'border-sky-300/30 bg-sky-300/14 text-sky-100'
+                    : 'border-white/8 bg-white/[0.04] text-white/56 hover:bg-white/[0.08] hover:text-white'
+                }`}
+              >
+                {topicItem.topic} ({topicItem.messageCount})
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -338,52 +395,92 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
         className="flex-1 overflow-y-auto px-5 md:px-8"
       >
         <div className="mx-auto w-full max-w-5xl">
-        {/* Load more indicator */}
-        {isFetchingNextPage && (
-          <div className="py-4 text-center text-xs font-medium text-white/42">{t('message.loadingOlder')}</div>
-        )}
-        {hasNextPage && !isFetchingNextPage && (
-          <div className="py-4 text-center">
-            <button
-              onClick={() => fetchNextPage()}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-medium text-white/72 transition hover:bg-white/[0.08] hover:text-white"
-            >
-              {t('message.loadMore')}
-            </button>
-          </div>
-        )}
-
-        {/* Messages */}
-        <div className="py-5">
-          {allMessages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-[2rem] border border-white/8 bg-white/[0.03] px-8 py-16 text-white/44 shadow-[0_24px_60px_rgba(2,8,23,0.18)]">
-              <svg className="mb-4 h-12 w-12 text-white/24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25z" />
-              </svg>
-              <p className="text-sm font-medium text-white/70">{t('message.noMessages')}</p>
+          {isFetchingNextPage && (
+            <div className="py-4 text-center text-xs font-medium text-white/42">{t('message.loadingOlder')}</div>
+          )}
+          {hasNextPage && !isFetchingNextPage && (
+            <div className="py-4 text-center">
+              <button
+                onClick={() => fetchNextPage()}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-medium text-white/72 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                {t('message.loadMore')}
+              </button>
             </div>
-          ) : groupedByTopic ? (
-            // Render grouped by topic (Zulip-style)
-            groupedByTopic.map((group) => (
-              <div key={group.topic}>
-                <div className="sticky top-3 z-10 mx-auto mb-3 flex w-fit max-w-full items-center gap-2 rounded-full border border-white/8 bg-[#0f1a2b]/88 px-4 py-2 text-white/44 shadow-[0_16px_34px_rgba(2,8,23,0.28)] backdrop-blur-xl">
-                  <svg className="h-3.5 w-3.5 text-white/40" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M9.243 3.03a1 1 0 01.727 1.213L9.53 6h2.94l.56-2.243a1 1 0 111.94.486L14.53 6H17a1 1 0 110 2h-2.97l-1 4H15a1 1 0 110 2h-2.47l-.56 2.243a1 1 0 11-1.94-.486L10.47 14H7.53l-.56 2.243a1 1 0 11-1.94-.486L5.47 14H3a1 1 0 110-2h2.97l1-4H5a1 1 0 110-2h2.47l.56-2.243a1 1 0 011.213-.727zM9.03 8l-1 4h2.938l1-4H9.031z" clipRule="evenodd" />
-                  </svg>
-                  <button
-                    onClick={() => onTopicSelect?.(group.topic === '(no topic)' ? null : group.topic)}
-                    className="truncate text-xs font-medium text-white/78 hover:text-white"
-                  >
-                    {group.topic}
-                  </button>
-                  <span className="text-[10px] text-white/36">
-                    ({group.messages.length})
-                  </span>
+          )}
+
+          <div className="py-5">
+            {(pendingOfflineCount > 0 || failedOfflineCount > 0) && (
+              <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-xs font-medium text-amber-100">
+                {pendingOfflineCount > 0 ? (
+                  <span>{t('offline.queued')} ({pendingOfflineCount})</span>
+                ) : null}
+                {failedOfflineCount > 0 ? (
+                  <span>{t('offline.failed')} ({failedOfflineCount})</span>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void flushOfflineQueueForChannel(channelId)}
+                  className="rounded-full border border-amber-200/25 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-white/15"
+                >
+                  {t('offline.retry')}
+                </button>
+              </div>
+            )}
+
+            {allMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-[2rem] border border-white/8 bg-white/[0.03] px-8 py-16 text-white/44 shadow-[0_24px_60px_rgba(2,8,23,0.18)]">
+                <svg className="mb-4 h-12 w-12 text-white/24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25z" />
+                </svg>
+                <p className="text-sm font-medium text-white/70">{t('message.noMessages')}</p>
+              </div>
+            ) : groupedByTopic ? (
+              groupedByTopic.map((group) => (
+                <div key={group.topic}>
+                  <div className="sticky top-3 z-10 mx-auto mb-3 flex w-fit max-w-full items-center gap-2 rounded-full border border-white/8 bg-[#0f1a2b]/88 px-4 py-2 text-white/44 shadow-[0_16px_34px_rgba(2,8,23,0.28)] backdrop-blur-xl">
+                    <svg className="h-3.5 w-3.5 text-white/40" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M9.243 3.03a1 1 0 01.727 1.213L9.53 6h2.94l.56-2.243a1 1 0 111.94.486L14.53 6H17a1 1 0 110 2h-2.97l-1 4H15a1 1 0 110 2h-2.47l-.56 2.243a1 1 0 11-1.94-.486L10.47 14H7.53l-.56 2.243a1 1 0 11-1.94-.486L5.47 14H3a1 1 0 110-2h2.97l1-4H5a1 1 0 110-2h2.47l.56-2.243a1 1 0 011.213-.727zM9.03 8l-1 4h2.938l1-4H9.031z" clipRule="evenodd" />
+                    </svg>
+                    <button
+                      onClick={() => onTopicSelect?.(group.topic === '(no topic)' ? null : group.topic)}
+                      className="truncate text-xs font-medium text-white/78 hover:text-white"
+                    >
+                      {group.topic}
+                    </button>
+                    <span className="text-[10px] text-white/36">({group.messages.length})</span>
+                  </div>
+                  {group.messages.map((msg, groupIndex) => {
+                    const previousMessage = groupIndex > 0 ? group.messages[groupIndex - 1] : undefined;
+                    const row = rowByMessageId.get(msg.id);
+                    return (
+                      <MessageItem
+                        key={msg.id}
+                        message={msg}
+                        author={userMap[msg.authorUserId] ?? null}
+                        channelId={channelId}
+                        communityId={communityId}
+                        onReply={onReplyToMessage}
+                        allMessages={allMessages}
+                        userMap={userMap}
+                        unreadCount={unreadCounts[msg.id]}
+                        attachments={attachmentsByMessageId[msg.id] ?? []}
+                        reactions={reactionsByMessageId[msg.id] ?? []}
+                        poll={pollsByMessageId[msg.id] ?? null}
+                        offlineStatus={row?.offlineStatus}
+                        onRetryOfflineMessage={row?.offlineStatus === 'failed' ? () => handleRetryOfflineMessage(msg.id) : undefined}
+                        onRemoveOfflineMessage={row?.offlineStatus ? () => handleRemoveOfflineMessage(msg.id) : undefined}
+                        startsGroup={previousMessage?.authorUserId !== msg.authorUserId}
+                      />
+                    );
+                  })}
                 </div>
-                {group.messages.map((msg, groupIndex) => {
-                  const previousMessage = groupIndex > 0 ? group.messages[groupIndex - 1] : undefined;
-                  return (
+              ))
+            ) : (
+              allMessages.map((msg, index) => {
+                const row = rowByMessageId.get(msg.id);
+                return (
                   <MessageItem
                     key={msg.id}
                     message={msg}
@@ -397,38 +494,20 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
                     attachments={attachmentsByMessageId[msg.id] ?? []}
                     reactions={reactionsByMessageId[msg.id] ?? []}
                     poll={pollsByMessageId[msg.id] ?? null}
-                    startsGroup={previousMessage?.authorUserId !== msg.authorUserId}
+                    offlineStatus={row?.offlineStatus}
+                    onRetryOfflineMessage={row?.offlineStatus === 'failed' ? () => handleRetryOfflineMessage(msg.id) : undefined}
+                    onRemoveOfflineMessage={row?.offlineStatus ? () => handleRemoveOfflineMessage(msg.id) : undefined}
+                    startsGroup={index === 0 || allMessages[index - 1].authorUserId !== msg.authorUserId}
                   />
-                  );
-                })}
-              </div>
-            ))
-          ) : (
-            allMessages.map((msg, index) => (
-              <MessageItem
-                key={msg.id}
-                message={msg}
-                author={userMap[msg.authorUserId] ?? null}
-                channelId={channelId}
-                communityId={communityId}
-                onReply={onReplyToMessage}
-                allMessages={allMessages}
-                userMap={userMap}
-                unreadCount={unreadCounts[msg.id]}
-                attachments={attachmentsByMessageId[msg.id] ?? []}
-                reactions={reactionsByMessageId[msg.id] ?? []}
-                poll={pollsByMessageId[msg.id] ?? null}
-                startsGroup={index === 0 || allMessages[index - 1].authorUserId !== msg.authorUserId}
-              />
-            ))
-          )}
-        </div>
+                );
+              })
+            )}
+          </div>
 
-        <div ref={bottomRef} />
+          <div ref={bottomRef} />
         </div>
       </div>
 
-      {/* Typing indicator */}
       {typingText && (
         <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 -translate-x-1/2">
           <div className="rounded-full border border-white/10 bg-[#0f1a2b]/86 px-4 py-2 text-xs font-medium text-white/72 shadow-[0_16px_36px_rgba(2,8,23,0.32)] backdrop-blur-xl">
@@ -437,7 +516,6 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
         </div>
       )}
 
-      {/* New messages indicator */}
       {hasNewMessages && (
         <button
           onClick={scrollToBottom}

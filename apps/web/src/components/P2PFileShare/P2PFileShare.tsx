@@ -7,6 +7,7 @@ import { resolveFileMimeType } from '@/lib/file-mime';
 import { computeFileHash, getP2PManager, formatFileSize } from '@/lib/p2p';
 import { useTranslation } from '@/lib/i18n';
 import { useP2PSettingsStore } from '@/stores/p2p-settings';
+import { useToastStore } from '@/stores/toast';
 
 const CHUNK_SIZE = 64 * 1024; // 64KB
 
@@ -42,6 +43,7 @@ export function P2PFileShare({
 }: P2PFileShareProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const showToast = useToastStore((s) => s.showToast);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -142,15 +144,14 @@ export function P2PFileShare({
 
   const handleClick = useCallback(() => {
     if (!canSeed()) {
-      // Warn user about WiFi restriction
-      alert(t('p2p.wifiOnly'));
+      showToast({ tone: 'info', message: t('p2p.wifiOnly') });
       return;
     }
     if (requireTopic && !topic?.trim()) {
       return;
     }
     fileInputRef.current?.click();
-  }, [canSeed, requireTopic, t, topic]);
+  }, [canSeed, requireTopic, showToast, t, topic]);
 
   return (
     <>

@@ -11,6 +11,7 @@ const {
   mockUploadImageAsset,
   mockSetUser,
   mockFetchUser,
+  mockShowToast,
   baseUser,
 } = vi.hoisted(() => {
   const user: User = {
@@ -40,6 +41,7 @@ const {
     mockUploadImageAsset: vi.fn(),
     mockSetUser: vi.fn(),
     mockFetchUser: vi.fn().mockResolvedValue(undefined),
+    mockShowToast: vi.fn(),
     baseUser: user,
   };
 });
@@ -71,6 +73,11 @@ vi.mock('@/stores/auth', () => ({
     setUser: mockSetUser,
     fetchUser: mockFetchUser,
   }),
+}));
+
+vi.mock('@/stores/toast', () => ({
+  useToastStore: (selector: (state: { showToast: typeof mockShowToast }) => unknown) =>
+    selector({ showToast: mockShowToast }),
 }));
 
 vi.mock('@/components/UserAvatar', () => ({
@@ -110,6 +117,7 @@ describe('ProfileEditor', () => {
     mockUploadImageAsset.mockReset();
     mockSetUser.mockReset();
     mockFetchUser.mockClear();
+    mockShowToast.mockReset();
     Object.defineProperty(window, 'localStorage', {
       configurable: true,
       value: {
@@ -179,6 +187,43 @@ describe('ProfileEditor', () => {
     await waitFor(() => {
       expect(mockSetUser).toHaveBeenCalledWith(updatedUser);
       expect(mockFetchUser).toHaveBeenCalled();
+      expect(mockShowToast).toHaveBeenCalledWith({
+        tone: 'success',
+        message: 'profile.saved',
+      });
+    });
+  });
+
+  it('shows an error toast for oversized avatar files', async () => {
+    const { container } = renderProfileEditor();
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const oversizedBytes = new Uint8Array((10 * 1024 * 1024) + 1);
+    const file = new File([oversizedBytes], 'avatar.png', { type: 'image/png' });
+
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith({
+        tone: 'error',
+        message: 'profile.avatarUploadTooLarge',
+      });
+    });
+  });
+
+  it('shows an error toast when saving fails', async () => {
+    mockApi.mockRejectedValue(new MockApiError(500, 'server exploded'));
+    renderProfileEditor();
+
+    fireEvent.change(screen.getByTestId('profile-display-name-input'), {
+      target: { value: 'Alice Updated' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'common.save' }));
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith({
+        tone: 'error',
+        message: 'profile.connectionError',
+      });
     });
   });
 

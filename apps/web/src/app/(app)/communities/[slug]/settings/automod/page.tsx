@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useCommunityRole } from '@/hooks/useCommunityRole';
 import type { Community } from '@zktalk/shared';
 
@@ -27,6 +28,7 @@ export default function AutoModPage() {
   const slug = params.slug as string;
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [pendingDeleteRuleId, setPendingDeleteRuleId] = useState<string | null>(null);
 
   // Form state for new rule
   const [showForm, setShowForm] = useState(false);
@@ -335,11 +337,7 @@ export default function AutoModPage() {
 
                 {/* Delete button */}
                 <button
-                  onClick={() => {
-                    if (window.confirm('Delete this rule?')) {
-                      deleteMutation.mutate(rule.id);
-                    }
-                  }}
+                  onClick={() => setPendingDeleteRuleId(rule.id)}
                   className="rounded p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
                   <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -355,6 +353,29 @@ export default function AutoModPage() {
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={pendingDeleteRuleId !== null}
+        title={t('common.delete')}
+        description="Delete this rule?"
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        tone="danger"
+        isPending={deleteMutation.isPending}
+        onCancel={() => setPendingDeleteRuleId(null)}
+        onConfirm={() => {
+          if (!pendingDeleteRuleId) {
+            return;
+          }
+          deleteMutation.mutate(pendingDeleteRuleId, {
+            onSuccess: () => {
+              setPendingDeleteRuleId(null);
+            },
+            onError: () => {
+              setPendingDeleteRuleId(null);
+            },
+          });
+        }}
+      />
     </div>
   );
 }

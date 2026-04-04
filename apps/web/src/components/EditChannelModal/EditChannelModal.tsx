@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { Channel } from '@zktalk/shared';
 
 interface EditChannelModalProps {
@@ -27,6 +28,7 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
     channel.disappearingDuration ?? null,
   );
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const updateChannel = useMutation({
     mutationFn: () =>
@@ -70,10 +72,8 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
   });
 
   const handleDelete = useCallback(() => {
-    if (window.confirm(t('channel.deleteConfirm'))) {
-      deleteChannel.mutate();
-    }
-  }, [deleteChannel, t]);
+    setShowDeleteConfirm(true);
+  }, []);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -279,6 +279,26 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
           </div>
         </form>
       </div>
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title={t('channel.delete')}
+        description={t('channel.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        tone="danger"
+        isPending={deleteChannel.isPending}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={() => {
+          deleteChannel.mutate(undefined, {
+            onSuccess: () => {
+              setShowDeleteConfirm(false);
+            },
+            onError: () => {
+              setShowDeleteConfirm(false);
+            },
+          });
+        }}
+      />
     </div>
   );
 }

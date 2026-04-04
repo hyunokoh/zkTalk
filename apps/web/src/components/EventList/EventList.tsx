@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { CreateEventModal } from '@/components/CreateEventModal';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface EventItem {
   id: string;
@@ -46,6 +47,7 @@ export function EventList({
   const queryClient = useQueryClient();
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   const [attendeesEvent, setAttendeesEvent] = useState<EventItem | null>(null);
+  const [pendingDeleteEvent, setPendingDeleteEvent] = useState<EventItem | null>(null);
 
   const rsvpMutation = useMutation({
     mutationFn: ({ eventId, status }: { eventId: string; status: 'interested' | 'going' }) =>
@@ -136,12 +138,7 @@ export function EventList({
                 {t('common.edit')}
               </button>
               <button
-                onClick={() => {
-                  const confirmed = window.confirm(t('event.deleteConfirm'));
-                  if (confirmed) {
-                    deleteMutation.mutate(event.id);
-                  }
-                }}
+                onClick={() => setPendingDeleteEvent(event)}
                 data-testid="event-delete-button"
                 className="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
               >
@@ -226,6 +223,30 @@ export function EventList({
           onClose={() => setEditingEvent(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={pendingDeleteEvent !== null}
+        title={t('common.delete')}
+        description={t('event.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        tone="danger"
+        isPending={deleteMutation.isPending}
+        onCancel={() => setPendingDeleteEvent(null)}
+        onConfirm={() => {
+          if (!pendingDeleteEvent) {
+            return;
+          }
+          deleteMutation.mutate(pendingDeleteEvent.id, {
+            onSuccess: () => {
+              setPendingDeleteEvent(null);
+            },
+            onError: () => {
+              setPendingDeleteEvent(null);
+            },
+          });
+        }}
+      />
 
       {attendeesEvent && (
         <div

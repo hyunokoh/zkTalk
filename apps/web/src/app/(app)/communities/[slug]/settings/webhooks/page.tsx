@@ -6,6 +6,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { getApiBaseUrl } from '@/lib/runtime-config';
 import { useTranslation } from '@/lib/i18n';
+import { useToastStore } from '@/stores/toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useCommunityRole } from '@/hooks/useCommunityRole';
 import type { Community, Channel, Webhook, BotUser } from '@zktalk/shared';
 
@@ -21,21 +23,21 @@ export default function WebhooksSettingsPage() {
   const slug = params.slug as string;
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const showToast = useToastStore((s) => s.showToast);
 
-  // Toast state
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  function showToast(type: 'success' | 'error', message: string) {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 3000);
+  function notify(tone: 'success' | 'error', message: string) {
+    showToast({ tone, message });
   }
 
   // Webhook form state
   const [webhookName, setWebhookName] = useState('');
   const [webhookChannelId, setWebhookChannelId] = useState('');
   const [copiedTokenId, setCopiedTokenId] = useState<string | null>(null);
+  const [pendingDeleteWebhookId, setPendingDeleteWebhookId] = useState<string | null>(null);
 
   // Bot form state
   const [botName, setBotName] = useState('');
+  const [pendingDeleteBotId, setPendingDeleteBotId] = useState<string | null>(null);
 
   // Fetch community
   const { data: community, isLoading: communityLoading } = useQuery({
@@ -89,10 +91,10 @@ export default function WebhooksSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['webhooks', community?.id] });
       setWebhookName('');
       setWebhookChannelId('');
-      showToast('success', t('webhook.created'));
+      notify('success', t('webhook.created'));
     },
     onError: () => {
-      showToast('error', t('webhook.createError'));
+      notify('error', t('webhook.createError'));
     },
   });
 
@@ -103,7 +105,7 @@ export default function WebhooksSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks', community?.id] });
-      showToast('success', t('webhook.deleted'));
+      notify('success', t('webhook.deleted'));
     },
   });
 
@@ -118,10 +120,10 @@ export default function WebhooksSettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bots', community?.id] });
       setBotName('');
-      showToast('success', t('bot.created'));
+      notify('success', t('bot.created'));
     },
     onError: () => {
-      showToast('error', t('bot.createError'));
+      notify('error', t('bot.createError'));
     },
   });
 
@@ -132,13 +134,14 @@ export default function WebhooksSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bots', community?.id] });
-      showToast('success', t('bot.deleted'));
+      notify('success', t('bot.deleted'));
     },
   });
 
   async function handleCopyToken(token: string, id: string) {
     await navigator.clipboard.writeText(token);
     setCopiedTokenId(id);
+    notify('success', t('webhook.tokenCopied'));
     setTimeout(() => setCopiedTokenId(null), 2000);
   }
 
@@ -186,19 +189,6 @@ export default function WebhooksSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`fixed right-4 top-4 z-50 rounded-lg px-4 py-3 text-sm font-medium shadow-lg ${
-            toast.type === 'success'
-              ? 'bg-green-800 text-green-100'
-              : 'bg-red-800 text-red-100'
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
-
       <h1 className="text-xl font-bold text-gray-100">{t('webhook.title')}</h1>
 
       {/* ── Webhooks Section ────────────────────────────────────── */}
@@ -276,11 +266,7 @@ export default function WebhooksSettingsPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm(t('webhook.deleteConfirm'))) {
-                      deleteWebhookMutation.mutate(wh.id);
-                    }
-                  }}
+                  onClick={() => setPendingDeleteWebhookId(wh.id)}
                   className="text-xs text-red-400 hover:text-red-300"
                 >
                   {t('common.delete')}
@@ -375,11 +361,7 @@ export default function WebhooksSettingsPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm(t('bot.deleteConfirm'))) {
-                      deleteBotMutation.mutate(bot.id);
-                    }
-                  }}
+                  onClick={() => setPendingDeleteBotId(bot.id)}
                   className="text-xs text-red-400 hover:text-red-300"
                 >
                   {t('common.delete')}
@@ -409,6 +391,52 @@ export default function WebhooksSettingsPage() {
           ))}
         </div>
       </section>
+      <ConfirmDialog
+        open={pendingDeleteWebhookId !== null}
+        title={t('webhook.delete')}
+        description={t('webhook.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        tone="danger"
+        isPending={deleteWebhookMutation.isPending}
+        onCancel={() => setPendingDeleteWebhookId(null)}
+        onConfirm={() => {
+          if (!pendingDeleteWebhookId) {
+            return;
+          }
+          deleteWebhookMutation.mutate(pendingDeleteWebhookId, {
+            onSuccess: () => {
+              setPendingDeleteWebhookId(null);
+            },
+            onError: () => {
+              setPendingDeleteWebhookId(null);
+            },
+          });
+        }}
+      />
+      <ConfirmDialog
+        open={pendingDeleteBotId !== null}
+        title={t('bot.delete')}
+        description={t('bot.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        tone="danger"
+        isPending={deleteBotMutation.isPending}
+        onCancel={() => setPendingDeleteBotId(null)}
+        onConfirm={() => {
+          if (!pendingDeleteBotId) {
+            return;
+          }
+          deleteBotMutation.mutate(pendingDeleteBotId, {
+            onSuccess: () => {
+              setPendingDeleteBotId(null);
+            },
+            onError: () => {
+              setPendingDeleteBotId(null);
+            },
+          });
+        }}
+      />
     </div>
   );
 }

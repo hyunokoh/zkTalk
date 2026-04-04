@@ -770,6 +770,12 @@ const en = {
   'offline.queued': 'Message queued',
   'offline.failed': 'Failed to send',
 
+  // Connection Status
+  'connection.offlineTitle': 'You are offline',
+  'connection.offlineBody': 'Messages and updates will resume automatically when your internet connection returns.',
+  'connection.reconnectingTitle': 'Reconnecting…',
+  'connection.reconnectingBody': 'zkTalk is restoring the live connection. New updates should appear again in a moment.',
+
   // P2P File Transfer
   'p2p.shareFile': 'Share File (P2P)',
   'p2p.downloading': 'Downloading...',

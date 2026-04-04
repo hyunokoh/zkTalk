@@ -125,6 +125,9 @@ interface MessageItemProps {
   channelId: string;
   communityId?: string;
   isAuthorOnline?: boolean;
+  offlineStatus?: 'pending' | 'sending' | 'failed';
+  onRetryOfflineMessage?: () => void;
+  onRemoveOfflineMessage?: () => void;
   onReply?: (message: Message, author?: User | null) => void;
   /** Map of all messages in the list for resolving parent message previews */
   allMessages?: Message[];
@@ -155,6 +158,9 @@ export function MessageItem({
   channelId,
   communityId,
   isAuthorOnline,
+  offlineStatus,
+  onRetryOfflineMessage,
+  onRemoveOfflineMessage,
   onReply,
   allMessages,
   userMap,
@@ -659,6 +665,15 @@ export function MessageItem({
 
         <div className={`mt-2 flex items-center gap-1.5 text-[11px] text-white/34 ${isAuthor ? 'justify-end pr-1' : 'pl-1'}`}>
           {!startsGroup || isAuthor ? <span>{relativeTime(message.createdAt)}</span> : null}
+          {offlineStatus ? (
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+              offlineStatus === 'failed'
+                ? 'bg-red-500/20 text-red-200'
+                : 'bg-amber-400/20 text-amber-100'
+            }`}>
+              {offlineStatus === 'failed' ? t('offline.failed') : t('offline.queued')}
+            </span>
+          ) : null}
           {message.isEdited ? <span>{t('message.edited')}</span> : null}
           {isAuthor && unreadCount != null && unreadCount > 0 && (
             <span className="rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-[#111827]">
@@ -813,8 +828,34 @@ export function MessageItem({
             </button>
           )}
 
+          {offlineStatus && onRetryOfflineMessage ? (
+            <button
+              type="button"
+              onClick={onRetryOfflineMessage}
+              className="rounded-xl p-1.5 text-amber-200 hover:bg-amber-400/18 hover:text-amber-100"
+              title={t('offline.retry')}
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 10-9.65 2.179 1 1 0 11-1.624 1.168A7.5 7.5 0 1117.5 10h-2.5a1 1 0 110-2H19a1 1 0 011 1v4a1 1 0 11-2 0v-1.576h-2.688z" clipRule="evenodd" />
+              </svg>
+            </button>
+          ) : null}
+
+          {offlineStatus && onRemoveOfflineMessage ? (
+            <button
+              type="button"
+              onClick={onRemoveOfflineMessage}
+              className="rounded-xl p-1.5 text-red-300 hover:bg-red-500/18 hover:text-red-200"
+              title={t('attachment.remove')}
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </button>
+          ) : null}
+
           {/* Delete (author only) */}
-          {isAuthor && (
+          {isAuthor && !offlineStatus && (
             <button
               data-testid="message-delete-button"
               onClick={() => deleteMutation.mutate()}

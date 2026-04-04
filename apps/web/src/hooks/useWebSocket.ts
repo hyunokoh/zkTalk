@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import type { WSIncoming, WSOutgoing } from '@zktalk/shared';
 import { getWebSocketUrl } from '@/lib/runtime-config';
@@ -16,16 +16,45 @@ const RECONNECT_MAX_MS = 30_000;
 
 type EventHandler = (message: WSOutgoing) => void;
 
+export type WebSocketStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'offline';
+
 let ws: WebSocket | null = null;
 let reconnectAttempt = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let intentionallyClosed = false;
 const listeners = new Map<string, Set<EventHandler>>();
+const statusListeners = new Set<() => void>();
+let connectionStatus: WebSocketStatus = 'idle';
 let refCount = 0;
 const subscribedChannels = new Set<string>();
 const subscribedCommunities = new Set<string>();
 const subscribedDms = new Set<string>();
+
+function emitStatusChange(): void {
+  for (const listener of statusListeners) {
+    listener();
+  }
+}
+
+function setConnectionStatus(status: WebSocketStatus): void {
+  if (connectionStatus === status) {
+    return;
+  }
+  connectionStatus = status;
+  emitStatusChange();
+}
+
+function getConnectionSnapshot(): WebSocketStatus {
+  return connectionStatus;
+}
+
+function subscribeToConnectionStatus(listener: () => void): () => void {
+  statusListeners.add(listener);
+  return () => {
+    statusListeners.delete(listener);
+  };
+}
 
 function clearSubscriptions(): void {
   subscribedChannels.clear();
@@ -98,6 +127,7 @@ function connect(): void {
   }
 
   intentionallyClosed = false;
+  setConnectionStatus(reconnectAttempt > 0 ? 'reconnecting' : 'connecting');
 
   // Build URL. Desktop/web can authenticate via query token even when
   // there is no cookie-based session available.
@@ -112,6 +142,7 @@ function connect(): void {
   ws.onopen = () => {
     console.log('[WS] Connected');
     reconnectAttempt = 0;
+    setConnectionStatus('connected');
     startHeartbeat();
     replaySubscriptions();
   };
@@ -131,16 +162,55 @@ function connect(): void {
     stopHeartbeat();
 
     if (!intentionallyClosed && refCount > 0) {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        setConnectionStatus('offline');
+      } else {
+        setConnectionStatus('reconnecting');
+      }
       const delay = getReconnectDelay();
       reconnectAttempt++;
       console.log(`[WS] Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttempt})`);
       reconnectTimer = setTimeout(connect, delay);
+      return;
     }
+
+    setConnectionStatus('idle');
   };
 
   ws.onerror = (event) => {
     console.error('[WS] Error:', event);
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setConnectionStatus('offline');
+    }
   };
+}
+
+function handleBrowserOnline(): void {
+  if (refCount <= 0) {
+    return;
+  }
+
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  if (ws) {
+    ws.close();
+    ws = null;
+  }
+
+  reconnectAttempt = 0;
+  connect();
+}
+
+function handleBrowserOffline(): void {
+  setConnectionStatus('offline');
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', handleBrowserOnline);
+  window.addEventListener('offline', handleBrowserOffline);
 }
 
 function disconnect(): void {
@@ -155,6 +225,7 @@ function disconnect(): void {
     ws.close(1000, 'Client disconnect');
     ws = null;
   }
+  setConnectionStatus('idle');
 }
 
 function sendRaw(message: WSIncoming): void {
@@ -211,6 +282,14 @@ export function isConnected(): boolean {
   return ws !== null && ws.readyState === WebSocket.OPEN;
 }
 
+export function useWebSocketStatus(): WebSocketStatus {
+  return useSyncExternalStore(
+    subscribeToConnectionStatus,
+    getConnectionSnapshot,
+    getConnectionSnapshot,
+  );
+}
+
 // ── Hook ────────────────────────────────────────────────────────────
 
 /**
@@ -230,6 +309,10 @@ export function useWebSocket(): {
     if (!userId) {
       disconnect();
       return;
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setConnectionStatus('offline');
     }
 
     refCount++;

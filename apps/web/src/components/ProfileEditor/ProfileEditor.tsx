@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { ApiError, api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
+import { useToastStore } from '@/stores/toast';
 import { useTranslation } from '@/lib/i18n';
 import { isImageFileLike } from '@/lib/file-mime';
 import { UserAvatar } from '@/components/UserAvatar';
@@ -51,6 +52,7 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const fetchUser = useAuthStore((s) => s.fetchUser);
+  const showToast = useToastStore((s) => s.showToast);
 
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [username, setUsername] = useState(user?.username ?? '');
@@ -101,11 +103,20 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
       setSuccess(true);
       setAvatarErrorMessage(null);
       setSaveErrorMessage(null);
+      showToast({
+        tone: 'success',
+        message: t('profile.saved'),
+      });
       setTimeout(() => setSuccess(false), 2000);
     },
     onError: (error) => {
       avatarChangedRef.current = false;
-      setSaveErrorMessage(getProfileErrorMessage(t, error, 'save'));
+      const message = getProfileErrorMessage(t, error, 'save');
+      setSaveErrorMessage(message);
+      showToast({
+        tone: 'error',
+        message,
+      });
     },
   });
 
@@ -115,12 +126,16 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
     if (!file) return;
 
     if (!isImageFileLike(file)) {
-      setAvatarErrorMessage(t('profile.avatarUploadInvalidType'));
+      const message = t('profile.avatarUploadInvalidType');
+      setAvatarErrorMessage(message);
+      showToast({ tone: 'error', message });
       return;
     }
 
     if (file.size > MAX_AVATAR_FILE_SIZE) {
-      setAvatarErrorMessage(t('profile.avatarUploadTooLarge'));
+      const message = t('profile.avatarUploadTooLarge');
+      setAvatarErrorMessage(message);
+      showToast({ tone: 'error', message });
       return;
     }
 
@@ -134,7 +149,9 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
       avatarChangedRef.current = true;
     } catch (error) {
       console.error('Avatar upload failed', error);
-      setAvatarErrorMessage(getProfileErrorMessage(t, error, 'upload'));
+      const message = getProfileErrorMessage(t, error, 'upload');
+      setAvatarErrorMessage(message);
+      showToast({ tone: 'error', message });
       avatarChangedRef.current = false;
     } finally {
       setIsUploadingAvatar(false);

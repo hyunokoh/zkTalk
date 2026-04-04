@@ -11,6 +11,7 @@ export interface QueuedMessage {
   threadId?: string | null;
   bodyMarkdown: string;
   parentMessageId?: string;
+  topic?: string | null;
   isSealed?: boolean;
   encryptedPayload?: string;
   createdAt: number;

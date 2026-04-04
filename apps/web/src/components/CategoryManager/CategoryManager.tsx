@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface Category {
   id: string;
@@ -23,6 +24,7 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [pendingDeleteCategoryId, setPendingDeleteCategoryId] = useState<string | null>(null);
 
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ['categories', communityId],
@@ -89,8 +91,7 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
   };
 
   const handleDelete = (categoryId: string) => {
-    if (!confirm(t('category.deleteConfirm'))) return;
-    deleteCategory.mutate(categoryId);
+    setPendingDeleteCategoryId(categoryId);
   };
 
   return (
@@ -205,6 +206,29 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
           </button>
         </div>
       </div>
+      <ConfirmDialog
+        open={pendingDeleteCategoryId !== null}
+        title={t('category.delete')}
+        description={t('category.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        tone="danger"
+        isPending={deleteCategory.isPending}
+        onCancel={() => setPendingDeleteCategoryId(null)}
+        onConfirm={() => {
+          if (!pendingDeleteCategoryId) {
+            return;
+          }
+          deleteCategory.mutate(pendingDeleteCategoryId, {
+            onSuccess: () => {
+              setPendingDeleteCategoryId(null);
+            },
+            onError: () => {
+              setPendingDeleteCategoryId(null);
+            },
+          });
+        }}
+      />
     </div>
   );
 }

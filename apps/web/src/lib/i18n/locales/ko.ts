@@ -770,6 +770,12 @@ const ko: Record<string, string> = {
   'offline.queued': '메시지 대기 중',
   'offline.failed': '전송 실패',
 
+  // Connection Status
+  'connection.offlineTitle': '오프라인 상태입니다',
+  'connection.offlineBody': '인터넷 연결이 복구되면 메시지와 실시간 업데이트가 자동으로 다시 동작합니다.',
+  'connection.reconnectingTitle': '다시 연결하는 중…',
+  'connection.reconnectingBody': 'zkTalk가 실시간 연결을 복구하고 있습니다. 잠시 후 새 업데이트가 다시 표시됩니다.',
+
   // P2P File Transfer
   'p2p.shareFile': '파일 공유 (P2P)',
   'p2p.downloading': '다운로드 중...',
