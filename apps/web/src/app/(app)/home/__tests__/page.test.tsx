@@ -72,13 +72,13 @@ vi.mock('@/lib/i18n', () => ({
 }));
 
 describe('HomePage', () => {
-  it('shows desktop quick-start actions for paste profile and share profile', () => {
+  it('shows desktop quick-start actions for invite paste and community creation', () => {
     mockCommunities.splice(0, mockCommunities.length);
 
     render(<HomePage />);
 
-    expect(screen.getAllByText('app.desktopPasteProfile').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('app.desktopShareProfile').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('app.desktopPasteInvite').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('community.createCommunity').length).toBeGreaterThan(0);
   });
 
   it('renders first-party community icons through the same-origin proxy', () => {

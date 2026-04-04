@@ -78,7 +78,7 @@ describe('DiscoverPage', () => {
     render(<DiscoverPage />);
 
     const image = screen.getByAltText('Alpha Team');
-    expect(image.getAttribute('src')).toBe('/api/public-assets/communities/community-1/icon.png');
+    expect(image.getAttribute('src')).toBe('/api/public-assets/communities/community-1/icon.png?v=2026-03-27T00%3A00%3A00.000Z');
   });
 
   it('keeps external community icons unchanged in discover cards', () => {
@@ -100,6 +100,6 @@ describe('DiscoverPage', () => {
     render(<DiscoverPage />);
 
     const image = screen.getByAltText('Beta Team');
-    expect(image.getAttribute('src')).toBe('https://example.com/community-icon.png');
+    expect(image.getAttribute('src')).toBe('https://example.com/community-icon.png?v=2026-03-27T00%3A00%3A00.000Z');
   });
 });

@@ -22,6 +22,33 @@ vi.mock('@/hooks/useTypingIndicator', () => ({
   useTypingIndicator: () => ({ typingUsers: [] }),
 }));
 
+vi.mock('@/lib/offline-message-sync', () => ({
+  ensureOfflineQueueAutoRetry: vi.fn(),
+  flushOfflineQueueForChannel: vi.fn(),
+  getRenderedOfflineMessageId: (id: string) => `offline-queued-${id}`,
+  refreshOfflineChannelCounts: vi.fn(),
+  removeOfflineQueuedMessage: vi.fn(),
+  retryOfflineQueuedMessage: vi.fn(),
+}));
+
+vi.mock('@/stores/offline-queue', () => ({
+  useOfflineQueueStore: (selector: (state: {
+    pendingByChannel: Record<string, number>;
+    failedByChannel: Record<string, number>;
+    queuedMessagesByChannel: Record<string, unknown[]>;
+  }) => unknown) =>
+    selector({
+      pendingByChannel: {},
+      failedByChannel: {},
+      queuedMessagesByChannel: {},
+    }),
+}));
+
+vi.mock('@/stores/auth', () => ({
+  useAuthStore: (selector: (state: { user: null }) => unknown) =>
+    selector({ user: null }),
+}));
+
 vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string) => key,

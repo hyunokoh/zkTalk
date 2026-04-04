@@ -133,6 +133,7 @@ vi.mock('@/hooks/useWebSocket', () => ({
     return () => undefined;
   },
   useWebSocket: () => undefined,
+  useWebSocketStatus: () => 'connected',
 }));
 
 vi.mock('@/hooks/useNotifications', () => ({

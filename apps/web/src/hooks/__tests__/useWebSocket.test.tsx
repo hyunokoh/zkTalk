@@ -62,7 +62,7 @@ describe('useWebSocket', () => {
   });
 
   it('exposes offline and reconnecting status changes', async () => {
-    let currentUser: {
+    const currentUser: {
       id: string;
       email: string;
       displayName: string;

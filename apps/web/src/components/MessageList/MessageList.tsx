@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { MessageItem, type MessageReactionGroup } from '@/components/MessageItem';
