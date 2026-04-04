@@ -478,6 +478,8 @@ const en = {
   'community.deleteCommunity': 'Delete Community',
   'community.deleteError': 'Failed to delete community',
   'community.joinInviteCta': 'Join',
+  'community.open': 'Open',
+  'community.openCommunity': 'Open Community',
 
   // Notifications
   'notification.enable': 'Enable notifications',

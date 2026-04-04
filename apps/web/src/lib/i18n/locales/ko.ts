@@ -478,6 +478,8 @@ const ko: Record<string, string> = {
   'community.deleteCommunity': '커뮤니티 삭제',
   'community.deleteError': '커뮤니티 삭제에 실패했습니다',
   'community.joinInviteCta': '참여',
+  'community.open': '열기',
+  'community.openCommunity': '커뮤니티 열기',
 
   // Notifications
   'notification.enable': '알림 활성화',
