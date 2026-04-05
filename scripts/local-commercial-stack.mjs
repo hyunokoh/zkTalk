@@ -41,6 +41,34 @@ function ensureBucket() {
   }
 }
 
+function ensureUploadAuthCompatibilityTables() {
+  const sql = `
+DO $$ BEGIN
+  CREATE TYPE auth_method_type_enum AS ENUM ('email', 'phone', 'qr', 'google', 'apple');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+CREATE TABLE IF NOT EXISTS user_auth_methods (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id),
+  type auth_method_type_enum NOT NULL,
+  identifier text NOT NULL,
+  verified_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS user_auth_methods_user_id_idx ON user_auth_methods(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS user_auth_methods_type_identifier_idx ON user_auth_methods(type, identifier);
+`;
+  const result = spawnSync('docker', ['exec', '-i', 'docker-postgres-1', 'psql', '-U', 'zktalk', '-d', 'zktalk'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    input: sql,
+  });
+  if (result.status !== 0) {
+    throw new Error(result.stderr || result.stdout || 'Failed to ensure auth compatibility tables');
+  }
+}
+
 function waitForMinio() {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const result = spawnSync('curl', ['-s', 'http://127.0.0.1:9000/minio/health/live'], {
@@ -80,6 +108,9 @@ function main() {
 
   process.stdout.write('Running DB migrations...\n');
   process.stdout.write(run('pnpm', ['--filter', '@zktalk/api', 'run', 'db:migrate']));
+
+  process.stdout.write('Ensuring auth compatibility tables...\n');
+  ensureUploadAuthCompatibilityTables();
 
   process.stdout.write('\nDeterministic local commercialization stack is ready.\n');
   process.stdout.write('Baseline:\n');

@@ -25,7 +25,7 @@ async function main() {
   const args = ['--dir', 'e2e', 'exec', 'playwright', 'test', '--config', 'playwright.config.ts'];
 
   if (suite === 'desktop') {
-    args.push('tests/desktop-shell.smoke.spec.ts');
+    args.push('tests/desktop-ai-config.smoke.spec.ts');
   }
 
   if (!passthrough.includes('--project')) {

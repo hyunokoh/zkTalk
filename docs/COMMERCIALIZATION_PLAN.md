@@ -204,7 +204,7 @@ These are the current best next moves.
 ### Immediate next batch candidates
 - [ ] make desktop packaged AI runtime deterministic without shell-dependent assumptions
 - [x] make AI settings toggles actually control UI visibility and behavior
-- [ ] add scripted smoke coverage for AI surfaces
+- [x] add scripted smoke coverage for AI surfaces — standardized desktop AI/config smoke now runs through `pnpm e2e:smoke:desktop` and validates desktop bridge config, AI settings visibility, and AI prompt interaction.
 - [ ] validate community create/join flow again from a clean local infra state
 - [x] reduce local infra drift by standardizing the expected dev database/redis state — standardized via `scripts/local-commercial-stack.mjs` and root commands `pnpm local:commercial:stack` / `pnpm local:commercial:verify`.
 
@@ -228,7 +228,8 @@ These are the current best next moves.
 - latest validation after the AI toggle wiring batch: `@zktalk/web` typecheck passed, `@zktalk/api` typecheck passed, desktop DMG artifact exists at `apps/desktop/dist/zkTalk-mac-arm64-0.0.1.dmg` with SHA-256 `93e833ebb1445f5e1ab4f116a31b7fe51985b8168635d0865e87e8ef031e689a`
 - local commercialization stack is now reproducible through `pnpm local:commercial:stack` and `pnpm local:commercial:verify`, which successfully boot postgres/redis/minio, ensure the `zktalk-uploads` bucket, run migrations, and pass api/web typecheck
 - packaged desktop smoke now covers config + AI settings successfully; AI prompt interaction also passes as a targeted packaged test
-- current next priority after this batch: expand the packaged smoke suite beyond targeted desktop AI/config checks and fold the passing targeted desktop coverage into the standard commercialization validation command path.
+- `pnpm e2e:smoke:desktop` now standardizes the deterministic backend stack first, then runs the packaged desktop AI/config smoke suite end to end
+- current next priority after this batch: expand the standardized smoke path beyond desktop AI/config into community create/join and additional packaged desktop flows.
 
 ---
 
