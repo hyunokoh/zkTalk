@@ -225,7 +225,8 @@ These are the current best next moves.
 - desktop packaged runtime and AI/runtime env behavior still need deterministic verification
 - local infra drift (postgres/redis/container collisions) remains one of the highest-friction commercialization blockers
 - current local deterministic validation baseline: `zk-talk-postgres` + `zk-talk-redis`, API explicitly bound to `postgresql://zktalk:zktalk@localhost:5432/zktalk` and `redis://127.0.0.1:6379`
-- current next priority after this batch: re-run desktop packaged validation against that clean deterministic backend state and document the exact result / remaining blocker.
+- latest validation after the AI toggle wiring batch: `@zktalk/web` typecheck passed, `@zktalk/api` typecheck passed, desktop DMG artifact exists at `apps/desktop/dist/zkTalk-mac-arm64-0.0.1.dmg` with SHA-256 `93e833ebb1445f5e1ab4f116a31b7fe51985b8168635d0865e87e8ef031e689a`
+- current next priority after this batch: add scripted desktop packaged validation coverage for login/community/AI paths so commercialization progress is not relying on artifact existence alone.
 
 ---
 
