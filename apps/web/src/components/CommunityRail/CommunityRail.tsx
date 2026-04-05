@@ -46,6 +46,7 @@ interface CommunityRailProps {
     displayName: string;
     avatarUrl?: string | null;
   } | null;
+  onOpenAI?: () => void;
 }
 
 type TopLevelRoute = 'home' | 'inbox' | 'dm' | 'friends' | 'bookmarks' | 'settings';
@@ -126,6 +127,7 @@ export function CommunityRail({
   dmCount = 0,
   friendCount = 0,
   currentUser = null,
+  onOpenAI,
 }: CommunityRailProps) {
   const { t } = useTranslation();
   const communities = useMemo(
@@ -264,6 +266,21 @@ export function CommunityRail({
         </span>
         <span className="sr-only">{t('profile.edit')}</span>
       </Link>
+
+      {onOpenAI && (
+        <button
+          onClick={onOpenAI}
+          title="AI Assistant"
+          aria-label="AI Assistant"
+          data-testid="community-rail-ai-button"
+          className="group relative flex h-12 w-12 items-center justify-center rounded-[1.15rem] border border-white/10 bg-white/[0.04] text-indigo-400 shadow-[0_16px_35px_rgba(2,8,23,0.28)] transition duration-150 hover:-translate-y-0.5 hover:bg-white/[0.09] hover:text-indigo-300"
+        >
+          <span className="absolute left-[-0.75rem] h-6 w-[3px] rounded-r-full bg-indigo-400 opacity-0 transition group-hover:opacity-100" />
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+          </svg>
+        </button>
+      )}
 
       <div className="flex w-full flex-col items-center gap-2">
         {topLevelNavItems.map((item) => (

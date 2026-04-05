@@ -9,6 +9,7 @@ import { useMobileNavStore } from '@/stores/mobile-nav';
 import { CommunityRail } from '@/components/CommunityRail';
 import { ConnectionStatusBar } from '@/components/ConnectionStatusBar';
 import { ToastViewport } from '@/components/ToastViewport';
+import { AIAssistant } from '@/components/AIAssistant/AIAssistant';
 import { api } from '@/lib/api';
 import { subscribe } from '@/hooks/useWebSocket';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -49,6 +50,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const toggleSidebar = useMobileNavStore((s) => s.toggleSidebar);
   const closeSidebar = useMobileNavStore((s) => s.closeSidebar);
   const [desktopRailWidth, setDesktopRailWidth] = useState(DEFAULT_DESKTOP_RAIL_WIDTH);
+  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
   const unreadRefreshTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const lastUserRefreshAtRef = useRef(0);
 
@@ -321,6 +323,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             displayName: user.displayName,
             avatarUrl: user.avatarUrl,
           }}
+          onOpenAI={() => setAiAssistantOpen(true)}
         />
         <button
           type="button"
@@ -341,6 +344,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <ToastViewport />
         <div className="flex min-h-0 flex-1">{children}</div>
       </main>
+
+      <AIAssistant open={aiAssistantOpen} onClose={() => setAiAssistantOpen(false)} />
     </div>
   );
 }

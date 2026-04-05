@@ -7,6 +7,15 @@ const SummarizeBodySchema = z.object({
   messageCount: z.number().int().min(3).max(200).optional(),
 });
 
+const ChatMessageSchema = z.object({
+  role: z.enum(['user', 'assistant', 'system']),
+  content: z.string().min(1),
+});
+
+const ChatBodySchema = z.object({
+  messages: z.array(ChatMessageSchema).min(1).max(20),
+});
+
 export default async function aiRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate);
 
@@ -27,6 +36,20 @@ export default async function aiRoutes(app: FastifyInstance) {
         body.messageCount,
       );
 
+      return reply.send(result);
+    },
+  );
+
+  // ── AI Chat ──────────────────────────────────────────────────────
+
+  app.post(
+    '/api/ai/chat',
+    async (
+      request: FastifyRequest<{ Body: { messages: Array<{ role: string; content: string }> } }>,
+      reply: FastifyReply,
+    ) => {
+      const body = ChatBodySchema.parse(request.body);
+      const result = await aiService.chatWithAI(body.messages);
       return reply.send(result);
     },
   );
