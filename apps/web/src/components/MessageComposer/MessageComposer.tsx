@@ -222,6 +222,7 @@ export function MessageComposer({
   const [errorDialogTitle, setErrorDialogTitle] = useState<string | null>(null);
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const [isAiWorking, setIsAiWorking] = useState(false);
+  const [channelSummary, setChannelSummary] = useState<string | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const attachmentDragDepthRef = useRef(0);
 
@@ -314,6 +315,31 @@ export function MessageComposer({
   const handleAiRewrite = useCallback(() => {
     void runAiAction('Rewrite this text to be clearer and more polished in the same language. Keep it concise.');
   }, [runAiAction]);
+
+  const handleAiSummarizeChannel = useCallback(async () => {
+    if (threadId) return;
+    setIsAiWorking(true);
+    try {
+      const res = await api<{ summary: string }>(`/api/channels/${channelId}/ai/summarize`, {
+        method: 'POST',
+        body: { messageCount: 40 },
+      });
+      setChannelSummary(res.summary);
+      setShowSecondaryActionsMenu(false);
+      showToast({ tone: 'success', message: '채널 요약을 불러왔습니다.' });
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        message: error instanceof Error ? error.message : '채널 요약에 실패했습니다.',
+      });
+    } finally {
+      setIsAiWorking(false);
+    }
+  }, [channelId, showToast, threadId]);
+
+  const dismissChannelSummary = useCallback(() => {
+    setChannelSummary(null);
+  }, []);
 
   // Fetch community members for @mention autocomplete
   const { data: membersData } = useQuery({
@@ -1342,6 +1368,27 @@ export function MessageComposer({
         </div>
       ) : null}
 
+      {channelSummary ? (
+        <div className="mb-3 rounded-[1.5rem] border border-indigo-300/20 bg-indigo-500/10 p-4 text-sm text-white/85 shadow-[0_20px_45px_rgba(41,56,161,0.18)]">
+          <div className="mb-2 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-200/80">AI Channel Summary</p>
+            </div>
+            <button
+              type="button"
+              onClick={dismissChannelSummary}
+              className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
+              aria-label="Dismiss summary"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          <div className="whitespace-pre-wrap leading-6">{channelSummary}</div>
+        </div>
+      ) : null}
+
       <form data-testid={`${composerTestIdPrefix}-form`} onSubmit={handleSubmit} className="flex items-end gap-2 rounded-[2rem] border border-white/8 bg-[#0d1827]/92 p-3 shadow-[0_24px_60px_rgba(2,8,23,0.34)] backdrop-blur-xl">
         <input
           ref={attachmentInputRef}
@@ -1401,6 +1448,21 @@ export function MessageComposer({
                     <path d="M3 4.75A1.75 1.75 0 014.75 3h10.5A1.75 1.75 0 0117 4.75v1.5A1.75 1.75 0 0115.25 8H4.75A1.75 1.75 0 013 6.25v-1.5zm0 4.5A1.75 1.75 0 014.75 7.5h6.5A1.75 1.75 0 0113 9.25v6A1.75 1.75 0 0111.25 17h-6.5A1.75 1.75 0 013 15.25v-6zm11 0a1 1 0 112 0v6a1 1 0 11-2 0v-6zm2-3a1 1 0 100-2 1 1 0 000 2z" />
                   </svg>
                   <span>{t('poll.create')}</span>
+                </button>
+              ) : null}
+
+              {!threadId ? (
+                <button
+                  data-testid={`${composerTestIdPrefix}-ai-summary-button`}
+                  type="button"
+                  onClick={handleAiSummarizeChannel}
+                  disabled={isAiWorking}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.75 6.75h14.5M4.75 12h10.5M4.75 17.25h7.5" />
+                  </svg>
+                  <span>{isAiWorking ? 'AI 작업 중…' : 'AI 채널 요약'}</span>
                 </button>
               ) : null}
 
