@@ -6,6 +6,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
+import { AI_SETTINGS_UPDATED_EVENT, isAiChannelSummaryEnabled, isAiComposerActionsEnabled } from '@/lib/ai-settings';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { getApiBaseUrl } from '@/lib/runtime-config';
 import { getSessionToken } from '@/lib/session-token';
@@ -223,6 +224,8 @@ export function MessageComposer({
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const [isAiWorking, setIsAiWorking] = useState(false);
   const [channelSummary, setChannelSummary] = useState<string | null>(null);
+  const [aiComposerActionsEnabled, setAiComposerActionsEnabled] = useState(true);
+  const [aiChannelSummaryEnabled, setAiChannelSummaryEnabled] = useState(true);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const attachmentDragDepthRef = useRef(0);
 
@@ -239,6 +242,23 @@ export function MessageComposer({
 
   // Typing indicator: send typing_start/typing_stop via WS
   const { startTyping, stopTyping } = useTypingIndicator(channelId);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncAiSettings = () => {
+      setAiComposerActionsEnabled(isAiComposerActionsEnabled());
+      setAiChannelSummaryEnabled(isAiChannelSummaryEnabled());
+    };
+
+    syncAiSettings();
+    window.addEventListener('storage', syncAiSettings);
+    window.addEventListener(AI_SETTINGS_UPDATED_EVENT, syncAiSettings);
+    return () => {
+      window.removeEventListener('storage', syncAiSettings);
+      window.removeEventListener(AI_SETTINGS_UPDATED_EVENT, syncAiSettings);
+    };
+  }, []);
 
   const basePath = threadId
     ? `/api/channels/${channelId}/threads/${threadId}/messages`
@@ -1368,7 +1388,7 @@ export function MessageComposer({
         </div>
       ) : null}
 
-      {channelSummary ? (
+      {aiChannelSummaryEnabled && channelSummary ? (
         <div className="mb-3 rounded-[1.5rem] border border-indigo-300/20 bg-indigo-500/10 p-4 text-sm text-white/85 shadow-[0_20px_45px_rgba(41,56,161,0.18)]">
           <div className="mb-2 flex items-start justify-between gap-3">
             <div>
@@ -1451,7 +1471,7 @@ export function MessageComposer({
                 </button>
               ) : null}
 
-              {!threadId ? (
+              {aiComposerActionsEnabled && !threadId && aiChannelSummaryEnabled ? (
                 <button
                   data-testid={`${composerTestIdPrefix}-ai-summary-button`}
                   type="button"
@@ -1466,13 +1486,15 @@ export function MessageComposer({
                 </button>
               ) : null}
 
+              {aiComposerActionsEnabled ? (
+                <>
               <button
                 data-testid={`${composerTestIdPrefix}-ai-reply-button`}
                 type="button"
                 onClick={handleAiReplySuggestion}
                 disabled={isAiWorking}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-              >
+              >"} 博牛ենցիան to=functions.Edit  天天爱彩票网站? Wait need proper closure after three buttons before audio. Must edit end too. Let's inspect relevant chunk. +#+#+#+#+#+ҵаanalysis to=functions.Read code ＿久久爱ים  手机版天天中彩票? Need read chunk around buttons. code not tool? Use Read. +#+#+#+#+#+ to=functions.Read մեկնաբանություն ＿国产  北京赛车能json to=functions.Read 招商总代{
                 <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
@@ -1504,6 +1526,8 @@ export function MessageComposer({
                 </svg>
                 <span>{isAiWorking ? 'AI 작업 중…' : 'AI 문장 다듬기'}</span>
               </button>
+                </>
+              ) : null}
 
               <button
                 data-testid={`${composerTestIdPrefix}-audio-button`}

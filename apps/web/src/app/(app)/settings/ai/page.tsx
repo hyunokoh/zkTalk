@@ -2,12 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-
-const STORAGE_KEYS = {
-  assistantEnabled: 'zktalk_ai_assistant_enabled',
-  composerActionsEnabled: 'zktalk_ai_composer_actions_enabled',
-  channelSummaryEnabled: 'zktalk_ai_channel_summary_enabled',
-};
+import { STORAGE_KEYS, writeAiSetting } from '@/lib/ai-settings';
 
 function useStoredBoolean(key: string, defaultValue: boolean) {
   const [value, setValue] = useState(defaultValue);
@@ -19,12 +14,15 @@ function useStoredBoolean(key: string, defaultValue: boolean) {
     if (raw === 'false') setValue(false);
   }, [key]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(key, String(value));
-  }, [key, value]);
+  const setStoredValue = (next: boolean | ((prev: boolean) => boolean)) => {
+    setValue((prev) => {
+      const resolved = typeof next === 'function' ? next(prev) : next;
+      writeAiSetting(key, resolved);
+      return resolved;
+    });
+  };
 
-  return [value, setValue] as const;
+  return [value, setStoredValue] as const;
 }
 
 function ToggleCard({

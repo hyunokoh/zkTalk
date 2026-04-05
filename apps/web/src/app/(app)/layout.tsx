@@ -10,6 +10,7 @@ import { CommunityRail } from '@/components/CommunityRail';
 import { ConnectionStatusBar } from '@/components/ConnectionStatusBar';
 import { ToastViewport } from '@/components/ToastViewport';
 import { AIAssistant } from '@/components/AIAssistant/AIAssistant';
+import { AI_SETTINGS_UPDATED_EVENT, isAiAssistantEnabled } from '@/lib/ai-settings';
 import { api } from '@/lib/api';
 import { subscribe } from '@/hooks/useWebSocket';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -51,6 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const closeSidebar = useMobileNavStore((s) => s.closeSidebar);
   const [desktopRailWidth, setDesktopRailWidth] = useState(DEFAULT_DESKTOP_RAIL_WIDTH);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+  const [aiAssistantEnabled, setAiAssistantEnabled] = useState(true);
   const unreadRefreshTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const lastUserRefreshAtRef = useRef(0);
 
@@ -72,6 +74,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         Math.min(MAX_DESKTOP_RAIL_WIDTH, Math.max(MIN_DESKTOP_RAIL_WIDTH, savedWidth)),
       );
     }
+
+    const syncAiSettings = () => {
+      setAiAssistantEnabled(isAiAssistantEnabled());
+    };
+
+    syncAiSettings();
+    window.addEventListener('storage', syncAiSettings);
+    window.addEventListener(AI_SETTINGS_UPDATED_EVENT, syncAiSettings);
+
+    return () => {
+      window.removeEventListener('storage', syncAiSettings);
+      window.removeEventListener(AI_SETTINGS_UPDATED_EVENT, syncAiSettings);
+    };
   }, []);
 
   useEffect(() => {
@@ -323,7 +338,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             displayName: user.displayName,
             avatarUrl: user.avatarUrl,
           }}
-          onOpenAI={() => setAiAssistantOpen(true)}
+          onOpenAI={aiAssistantEnabled ? () => setAiAssistantOpen(true) : undefined}
         />
         <button
           type="button"
@@ -345,7 +360,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex min-h-0 flex-1">{children}</div>
       </main>
 
-      <AIAssistant open={aiAssistantOpen} onClose={() => setAiAssistantOpen(false)} />
+      <AIAssistant open={aiAssistantEnabled && aiAssistantOpen} onClose={() => setAiAssistantOpen(false)} />
     </div>
   );
 }
