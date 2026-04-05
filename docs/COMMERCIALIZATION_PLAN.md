@@ -89,7 +89,7 @@ For every iteration:
 Goal: eliminate issues that block basic sellable usage.
 
 ### Priority items
-- [ ] stabilize local infrastructure assumptions (postgres / redis / minio / livekit startup expectations)
+- [ ] stabilize local infrastructure assumptions (postgres / redis / minio / livekit startup expectations) — in progress; current standard local baseline is `zk-talk-postgres` on 5432 and `zk-talk-redis` on 6379, with API launched explicitly against those endpoints for deterministic validation.
 - [ ] remove hidden runtime dependency pitfalls in desktop/web/api
 - [ ] finish AI runtime wiring so desktop AI works predictably in packaged builds
 - [ ] ensure community create / join / discover / home flows are script-validated
@@ -224,7 +224,8 @@ These are the current best next moves.
 - AI settings toggles now drive actual UI visibility for assistant, composer actions, and channel summaries
 - desktop packaged runtime and AI/runtime env behavior still need deterministic verification
 - local infra drift (postgres/redis/container collisions) remains one of the highest-friction commercialization blockers
-- current next priority after this batch: stabilize local infra and re-run desktop packaged validation against a clean deterministic backend state
+- current local deterministic validation baseline: `zk-talk-postgres` + `zk-talk-redis`, API explicitly bound to `postgresql://zktalk:zktalk@localhost:5432/zktalk` and `redis://127.0.0.1:6379`
+- current next priority after this batch: re-run desktop packaged validation against that clean deterministic backend state and document the exact result / remaining blocker.
 
 ---
 
