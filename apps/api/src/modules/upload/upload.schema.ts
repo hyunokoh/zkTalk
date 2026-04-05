@@ -29,7 +29,7 @@ export const CompleteUploadSessionSchema = z.object({
   parts: z.array(z.object({
     partNumber: z.number().int().positive(),
     etag: z.string().min(1),
-  })).min(1).max(1000),
+  })).max(1000),
 });
 
 export const SessionIdParamsSchema = z.object({

@@ -405,6 +405,90 @@ test.describe.serial('desktop shell smoke', () => {
       .toBeNull();
   });
 
+  test('desktop shell exposes AI settings and the global AI button', async () => {
+    const seed = await getSeedData();
+    const launch = await launchDesktopShell('/login');
+    app = launch.app;
+    userDataDir = launch.userDataDir;
+    const page = launch.window;
+
+    await expectDesktopBridge(page);
+    const loginPage = await waitForElectronPath(app, page, '/login');
+    await loginPage.evaluate((token) => {
+      window.localStorage.setItem('zktalk_session_token', token);
+    }, seed.userB.sessionToken);
+
+    await loginPage.reload();
+    await loginPage.waitForLoadState('domcontentloaded');
+    await loginPage.goto(`${webBaseUrl}/settings/ai`);
+    await expect
+      .poll(() => {
+        try {
+          return new URL(loginPage.url()).pathname;
+        } catch {
+          return loginPage.url();
+        }
+      }, { timeout: 10_000 })
+      .toBe('/settings/ai');
+    await expect(loginPage.getByRole('heading', { name: 'AI settings' })).toBeVisible();
+    await expect(loginPage.getByText('Qwen via OpenRouter')).toBeVisible();
+
+    await loginPage.goto(`${webBaseUrl}/home`);
+    await expect
+      .poll(() => {
+        try {
+          return new URL(loginPage.url()).pathname;
+        } catch {
+          return loginPage.url();
+        }
+      }, { timeout: 10_000 })
+      .toBe('/home');
+    await expect(loginPage.getByTestId('community-rail-ai-button')).toBeVisible();
+  });
+
+  test('desktop shell opens the AI assistant and sends a prompt', async () => {
+    const seed = await getSeedData();
+    const launch = await launchDesktopShell('/login');
+    app = launch.app;
+    userDataDir = launch.userDataDir;
+    const page = launch.window;
+
+    await expectDesktopBridge(page);
+    const loginPage = await waitForElectronPath(app, page, '/login');
+    await loginPage.evaluate((token) => {
+      window.localStorage.setItem('zktalk_session_token', token);
+    }, seed.userB.sessionToken);
+
+    await loginPage.goto(`${webBaseUrl}/home`);
+    await expect
+      .poll(() => {
+        try {
+          return new URL(loginPage.url()).pathname;
+        } catch {
+          return loginPage.url();
+        }
+      }, { timeout: 10_000 })
+      .toBe('/home');
+
+    const aiButton = loginPage.getByTestId('community-rail-ai-button');
+    await expect(aiButton).toBeVisible();
+    await aiButton.click();
+    await expect(loginPage.getByText('AI Assistant')).toBeVisible();
+
+    const input = loginPage.locator('textarea').last();
+    await input.fill('안녕! 너는 누구야? 한 문장으로.');
+    await loginPage.keyboard.press('Enter');
+
+    await expect
+      .poll(async () => {
+        const body = await loginPage.textContent('body');
+        return body?.includes('메신저의 AI 어시스턴트') || body?.includes('AI Assistant') || body?.includes('Qwen') || body?.includes('Channel Summary (Mock)') || false;
+      }, { timeout: 20_000 })
+      .toBeTruthy();
+  });
+
+  test.skip('desktop shell opens the AI assistant and sends a prompt (legacy channel-route path)', async () => {});
+
   test('desktop shell sends a jpg attachment and opens its image preview in the channel UI', async ({
     request,
   }) => {

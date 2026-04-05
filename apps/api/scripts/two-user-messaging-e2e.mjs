@@ -57,10 +57,12 @@ async function requestExpectFailure(
 }
 
 async function uploadBinary(path, { token, contentType, body }) {
-  const response = await fetch(`${baseUrl}${path}`, {
+  const targetUrl = /^https?:\/\//i.test(path) ? path : `${baseUrl}${path}`;
+  const isAbsoluteStorageUrl = /^https?:\/\//i.test(path);
+  const response = await fetch(targetUrl, {
     method: 'PUT',
     headers: {
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(!isAbsoluteStorageUrl && token ? { authorization: `Bearer ${token}` } : {}),
       ...(contentType ? { 'content-type': contentType } : {}),
     },
     body,
@@ -584,12 +586,20 @@ async function main() {
     body: Buffer.from('dm attachment content'),
   });
 
+  if (dmAttachmentPresign.uploadSessionId) {
+    await request(`/api/upload/sessions/${dmAttachmentPresign.uploadSessionId}/complete`, {
+      method: 'POST',
+      token: userA.token,
+      body: { parts: [] },
+    });
+  }
+
   const dmAttachment = await request('/api/upload/attachments', {
     method: 'POST',
     token: userA.token,
     body: {
       dmMessageId: dmAttachmentMessageId,
-      storageKey: dmAttachmentPresign.storageKey,
+      uploadSessionId: dmAttachmentPresign.uploadSessionId,
       fileName: 'dm-attachment.txt',
       mimeType: 'text/plain',
       fileSize: 20,
