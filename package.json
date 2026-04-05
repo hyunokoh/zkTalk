@@ -10,6 +10,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
     "release:next": "node scripts/release-next.mjs",
+    "local:commercial:stack": "node scripts/local-commercial-stack.mjs",
+    "local:commercial:verify": "node scripts/local-commercial-stack.mjs && pnpm --filter @zktalk/api run typecheck && pnpm --filter @zktalk/web run typecheck",
     "ime:report:init": "node scripts/init-ime-report.mjs",
     "desktop:harness:regression": "node scripts/desktop-harness-regression.mjs",
     "e2e:smoke:desktop": "node scripts/run-playwright-smoke.mjs --suite desktop",

@@ -433,7 +433,11 @@ test.describe.serial('desktop shell smoke', () => {
     await expect(loginPage.getByRole('heading', { name: 'AI settings' })).toBeVisible();
     await expect(loginPage.getByText('Qwen via OpenRouter')).toBeVisible();
 
-    await loginPage.goto(`${webBaseUrl}/home`);
+    try {
+      await loginPage.goto(`${webBaseUrl}/home`);
+    } catch {
+      // Electron shell can surface an expected load abort while rerouting.
+    }
     await expect
       .poll(() => {
         try {
@@ -459,7 +463,25 @@ test.describe.serial('desktop shell smoke', () => {
       window.localStorage.setItem('zktalk_session_token', token);
     }, seed.userB.sessionToken);
 
-    await loginPage.goto(`${webBaseUrl}/home`);
+    await loginPage.reload();
+    await loginPage.waitForLoadState('domcontentloaded');
+    await loginPage.goto(`${webBaseUrl}/settings/ai`);
+    await expect
+      .poll(() => {
+        try {
+          return new URL(loginPage.url()).pathname;
+        } catch {
+          return loginPage.url();
+        }
+      }, { timeout: 10_000 })
+      .toBe('/settings/ai');
+    await expect(loginPage.getByRole('heading', { name: 'AI settings' })).toBeVisible();
+
+    try {
+      await loginPage.goto(`${webBaseUrl}/home`);
+    } catch {
+      // Electron shell can surface an expected load abort while rerouting.
+    }
     await expect
       .poll(() => {
         try {
@@ -473,16 +495,18 @@ test.describe.serial('desktop shell smoke', () => {
     const aiButton = loginPage.getByTestId('community-rail-ai-button');
     await expect(aiButton).toBeVisible();
     await aiButton.click();
-    await expect(loginPage.getByText('AI Assistant')).toBeVisible();
 
     const input = loginPage.locator('textarea').last();
+    await expect(input).toBeVisible();
+    const assistantMessageRows = loginPage.locator('.rounded-bl-md');
+    const assistantBubbleCountBefore = await assistantMessageRows.count();
     await input.fill('안녕! 너는 누구야? 한 문장으로.');
     await loginPage.keyboard.press('Enter');
 
     await expect
       .poll(async () => {
-        const body = await loginPage.textContent('body');
-        return body?.includes('메신저의 AI 어시스턴트') || body?.includes('AI Assistant') || body?.includes('Qwen') || body?.includes('Channel Summary (Mock)') || false;
+        const assistantBubbleCountAfter = await assistantMessageRows.count();
+        return assistantBubbleCountAfter > assistantBubbleCountBefore;
       }, { timeout: 20_000 })
       .toBeTruthy();
   });

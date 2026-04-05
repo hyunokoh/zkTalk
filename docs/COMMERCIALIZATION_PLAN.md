@@ -206,7 +206,7 @@ These are the current best next moves.
 - [x] make AI settings toggles actually control UI visibility and behavior
 - [ ] add scripted smoke coverage for AI surfaces
 - [ ] validate community create/join flow again from a clean local infra state
-- [ ] reduce local infra drift by standardizing the expected dev database/redis state
+- [x] reduce local infra drift by standardizing the expected dev database/redis state — standardized via `scripts/local-commercial-stack.mjs` and root commands `pnpm local:commercial:stack` / `pnpm local:commercial:verify`.
 
 ### Things to avoid
 - do not do broad refactors unless they directly remove a commercialization blocker
@@ -226,7 +226,9 @@ These are the current best next moves.
 - local infra drift (postgres/redis/container collisions) remains one of the highest-friction commercialization blockers
 - current local deterministic validation baseline: `zk-talk-postgres` + `zk-talk-redis`, API explicitly bound to `postgresql://zktalk:zktalk@localhost:5432/zktalk` and `redis://127.0.0.1:6379`
 - latest validation after the AI toggle wiring batch: `@zktalk/web` typecheck passed, `@zktalk/api` typecheck passed, desktop DMG artifact exists at `apps/desktop/dist/zkTalk-mac-arm64-0.0.1.dmg` with SHA-256 `93e833ebb1445f5e1ab4f116a31b7fe51985b8168635d0865e87e8ef031e689a`
-- current next priority after this batch: finish scripted packaged desktop validation for the AI prompt path. Current state: packaged desktop config smoke passes, packaged desktop AI settings smoke passes, but the AI prompt interaction path still hits Electron navigation abort behavior when transitioning from injected login state into `/home` during automation.
+- local commercialization stack is now reproducible through `pnpm local:commercial:stack` and `pnpm local:commercial:verify`, which successfully boot postgres/redis/minio, ensure the `zktalk-uploads` bucket, run migrations, and pass api/web typecheck
+- packaged desktop smoke now covers config + AI settings successfully; AI prompt interaction also passes as a targeted packaged test
+- current next priority after this batch: expand the packaged smoke suite beyond targeted desktop AI/config checks and fold the passing targeted desktop coverage into the standard commercialization validation command path.
 
 ---
 
