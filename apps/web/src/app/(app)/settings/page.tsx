@@ -61,7 +61,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-4">
             <Link
               href="/settings/privacy"
               className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4 transition hover:border-gray-700 hover:bg-gray-950"
@@ -93,6 +93,17 @@ export default function SettingsPage() {
               </p>
               <h2 className="mt-2 text-lg font-semibold text-white">{t('friend.title')}</h2>
               <p className="mt-2 text-sm text-gray-400">{t('settings.cardPeopleBody')}</p>
+            </Link>
+
+            <Link
+              href="/settings/ai"
+              className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4 transition hover:border-gray-700 hover:bg-gray-950"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+                AI
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-white">AI settings</h2>
+              <p className="mt-2 text-sm text-gray-400">Manage assistant, composer actions, and channel summaries.</p>
             </Link>
           </div>
         </section>
