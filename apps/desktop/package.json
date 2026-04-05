@@ -71,9 +71,8 @@
       "preload.js",
       "protocol-route.js",
       "window-state.js",
-      "package.json",
-      "RELEASE.md",
-      "SIGNING.example.env"
+      "desktop.config.json",
+      "package.json"
     ],
     "extraResources": [
       {
