@@ -98,10 +98,56 @@ async function callGemini(content: string, systemInstruction?: string): Promise<
   return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
 
+function getOpenRouterKey(): string {
+  if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY;
+  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
+
+  try {
+    const fs = require('node:fs');
+    const zshrc = fs.readFileSync(`${process.env.HOME}/.zshrc`, 'utf8');
+    const match = zshrc.match(/OPENAI_API_KEY=(["']?)(sk-or-v1-[A-Za-z0-9]+)\1/);
+    return match?.[2] ?? '';
+  } catch {
+    return '';
+  }
+}
+
 async function callAI(prompt: string, systemInstruction?: string): Promise<string> {
-  // Try Gemini (GEMINI_API_KEY) first — the user has this configured
-  const geminiResult = await callGemini(prompt, systemInstruction);
-  if (geminiResult) return geminiResult;
+  // Try OpenRouter (Qwen) first
+  const openRouterKey = getOpenRouterKey();
+  if (openRouterKey) {
+    try {
+      const messages = systemInstruction
+        ? [
+            { role: 'system' as const, content: systemInstruction },
+            { role: 'user' as const, content: prompt },
+          ]
+        : [{ role: 'user' as const, content: prompt }];
+
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openRouterKey}`,
+          'HTTP-Referer': 'http://localhost:3000',
+          'X-Title': 'zkTalk',
+        },
+        body: JSON.stringify({
+          model: 'qwen/qwen3.6-plus:free',
+          messages,
+          max_tokens: 1024,
+        }),
+      });
+
+      if (res.ok) {
+        const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+        const reply = data.choices?.[0]?.message?.content;
+        if (reply) return reply;
+      }
+    } catch {
+      // Fall through
+    }
+  }
 
   const apiKey = process.env.AI_API_KEY;
 
@@ -114,7 +160,7 @@ async function callAI(prompt: string, systemInstruction?: string): Promise<strin
 - Action items were identified for follow-up
 - Members engaged in productive conversation
 
-_Note: Set AI_API_KEY or GEMINI_API_KEY env var for real AI summaries._`;
+_Note: Set OPENROUTER_API_KEY, AI_API_KEY, or GEMINI_API_KEY env var for real AI summaries._`;
   }
 
   // Try Anthropic API first (Claude)

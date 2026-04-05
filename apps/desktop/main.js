@@ -1531,6 +1531,9 @@ function loadDesktopConfig() {
         || normalizeOptionalUrl(config.livekitUrl);
       const webUrl = normalizeOptionalUrl(process.env.ZKTALK_WEB_URL)
         || normalizeOptionalUrl(config.webUrl);
+      const openRouterApiKey = typeof process.env.OPENROUTER_API_KEY === 'string'
+        ? process.env.OPENROUTER_API_KEY.trim()
+        : '';
 
       setOptionalEnv('ZKTALK_API_URL', apiUrl);
       setOptionalEnv('NEXT_PUBLIC_API_URL', apiUrl);
@@ -1539,6 +1542,7 @@ function loadDesktopConfig() {
       setOptionalEnv('ZKTALK_LIVEKIT_URL', livekitUrl);
       setOptionalEnv('NEXT_PUBLIC_LIVEKIT_URL', livekitUrl);
       setOptionalEnv('ZKTALK_WEB_URL', webUrl);
+      setOptionalEnv('OPENROUTER_API_KEY', openRouterApiKey);
       appendDesktopLog(`Loaded desktop config from ${candidatePath}`);
 
       return;
@@ -1555,6 +1559,9 @@ function loadDesktopConfig() {
   setOptionalEnv('NEXT_PUBLIC_WS_URL', defaults.wsUrl);
   setOptionalEnv('ZKTALK_LIVEKIT_URL', defaults.livekitUrl);
   setOptionalEnv('NEXT_PUBLIC_LIVEKIT_URL', defaults.livekitUrl);
+  if (typeof process.env.OPENROUTER_API_KEY === 'string') {
+    setOptionalEnv('OPENROUTER_API_KEY', process.env.OPENROUTER_API_KEY.trim());
+  }
   delete process.env.ZKTALK_WEB_URL;
 }
 
@@ -4375,6 +4382,7 @@ async function startBundledServer() {
       NEXT_PUBLIC_API_URL: process.env.ZKTALK_API_URL || 'http://127.0.0.1:4000',
       NEXT_PUBLIC_WS_URL: process.env.ZKTALK_WS_URL || 'ws://127.0.0.1:4000/api/ws',
       NEXT_PUBLIC_LIVEKIT_URL: process.env.ZKTALK_LIVEKIT_URL || 'ws://127.0.0.1:7880',
+      OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || '',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
