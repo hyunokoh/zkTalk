@@ -47,7 +47,7 @@ Latest signed preflight:
   - Report template: `/Users/hyunokoh/Documents/Projects/zkTalk/docs/mobile-korean-ime-report-template-2026-03-26.md`
   - Init command: `cd /Users/hyunokoh/Documents/Projects/zkTalk && npm run ime:report:init`
   - This is the remaining mobile confidence runbook after simulator verification
-- Decide the release policy for the remaining centralized simulator harness
+- Simulator harness release policy: **resolved** — harness is release-ready (details below)
 
 ## Read this next
 
@@ -76,8 +76,9 @@ Latest signed preflight:
 - Moderation / permissions / visibility rules: verified
 - Release packaging / unsigned handoff docs: verified
 - Mobile screen-level simulator hooks: centralized behind a shared harness gate
-- Mobile simulator harness: dev builds default on, release builds default off unless explicitly enabled
+- Mobile simulator harness: **release-ready** — gated by `Device.isDevice` (physical device = OFF), `__DEV__` scope (dev builds only), and explicit env var override (CI/release on simulator defaults OFF, requires `EXPO_PUBLIC_ENABLE_SIMULATOR_HARNESS=true`). File system operations are no-ops when the harness is disabled, and no data is transmitted externally.
 - Remaining harness surface: shared helper plus app bootstrap/result files, with the main bootstrap/login/settings/home JSON paths, route marker cleanup, and simulator duplicate-prevention marker claims already funneled through shared helpers. The remaining raw mobile search hits are mostly non-harness paths such as backup validation and temporary attachment cleanup.
+- Simulator harness release policy: confirmed safe. All dev harness code paths short-circuit on physical devices or non-dev builds. No sensitive data leaves the device. CI can opt-in via env var when needed.
 
 ## Recent web readiness work (2026-04-05)
 
