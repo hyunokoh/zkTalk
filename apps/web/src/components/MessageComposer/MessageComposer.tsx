@@ -221,6 +221,7 @@ export function MessageComposer({
   const [isDraggingAttachments, setIsDraggingAttachments] = useState(false);
   const [errorDialogTitle, setErrorDialogTitle] = useState<string | null>(null);
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
+  const [isAiWorking, setIsAiWorking] = useState(false);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const attachmentDragDepthRef = useRef(0);
 
@@ -255,6 +256,64 @@ export function MessageComposer({
     }),
     [replyTo, topic],
   );
+
+  const runAiAction = useCallback(async (instruction: string) => {
+    const source = body.trim();
+    if (!source) {
+      showToast({
+        tone: 'info',
+        message: '먼저 메시지 내용을 입력하세요.',
+      });
+      return;
+    }
+
+    setIsAiWorking(true);
+    try {
+      const res = await api<{ reply: string }>('/api/ai/chat', {
+        method: 'POST',
+        body: {
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a writing assistant inside zkTalk. Follow the user instruction exactly. Return only the requested output text with no extra framing.',
+            },
+            {
+              role: 'user',
+              content: `${instruction}\n\nText:\n${source}`,
+            },
+          ],
+        },
+      });
+      setBody(res.reply);
+      bodyRef.current = res.reply;
+      if (textareaRef.current) {
+        textareaRef.current.value = res.reply;
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      }
+      setShowSecondaryActionsMenu(false);
+      showToast({ tone: 'success', message: 'AI 결과를 입력창에 적용했습니다.' });
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'AI 요청에 실패했습니다.',
+      });
+    } finally {
+      setIsAiWorking(false);
+    }
+  }, [body, showToast]);
+
+  const handleAiReplySuggestion = useCallback(() => {
+    void runAiAction('Write a concise helpful reply suggestion in the same language as the text.');
+  }, [runAiAction]);
+
+  const handleAiTranslate = useCallback(() => {
+    void runAiAction('Translate this text into natural English. Preserve meaning and tone.');
+  }, [runAiAction]);
+
+  const handleAiRewrite = useCallback(() => {
+    void runAiAction('Rewrite this text to be clearer and more polished in the same language. Keep it concise.');
+  }, [runAiAction]);
 
   // Fetch community members for @mention autocomplete
   const { data: membersData } = useQuery({
@@ -1344,6 +1403,45 @@ export function MessageComposer({
                   <span>{t('poll.create')}</span>
                 </button>
               ) : null}
+
+              <button
+                data-testid={`${composerTestIdPrefix}-ai-reply-button`}
+                type="button"
+                onClick={handleAiReplySuggestion}
+                disabled={isAiWorking}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                </svg>
+                <span>{isAiWorking ? 'AI 작업 중…' : 'AI 답장 추천'}</span>
+              </button>
+
+              <button
+                data-testid={`${composerTestIdPrefix}-ai-translate-button`}
+                type="button"
+                onClick={handleAiTranslate}
+                disabled={isAiWorking}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5.25h12M9 3v2.25m-2.25 0c0 4.107 1.684 7.82 4.4 10.5m0 0A17.925 17.925 0 0015.75 9m-4.6 6.75L21 21" />
+                </svg>
+                <span>{isAiWorking ? 'AI 작업 중…' : 'AI 번역(영문)'}</span>
+              </button>
+
+              <button
+                data-testid={`${composerTestIdPrefix}-ai-rewrite-button`}
+                type="button"
+                onClick={handleAiRewrite}
+                disabled={isAiWorking}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                </svg>
+                <span>{isAiWorking ? 'AI 작업 중…' : 'AI 문장 다듬기'}</span>
+              </button>
 
               <button
                 data-testid={`${composerTestIdPrefix}-audio-button`}
