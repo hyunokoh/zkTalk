@@ -1,5 +1,6 @@
 import { send, subscribe } from '@/hooks/useWebSocket';
 import type { WSOutgoing } from '@zktalk/shared';
+import { devLogError } from '@/lib/client-log';
 
 // ── Constants ───────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ export class P2PFileManager {
         signal: RTCSessionDescriptionInit | RTCIceCandidateInit;
       };
       this.handleSignal(data.fromUserId, data.fileId, data.signal).catch(
-        console.error,
+        (error) => devLogError('[P2P] Failed to handle signal', error),
       );
     });
 
@@ -101,7 +102,7 @@ export class P2PFileManager {
     const unsub2 = subscribe('p2p.file_request', (msg: WSOutgoing) => {
       const data = msg.data as { fileId: string; requesterId: string };
       this.handleFileRequest(data.fileId, data.requesterId).catch(
-        console.error,
+        (error) => devLogError('[P2P] Failed to handle file request', error),
       );
     });
 
@@ -109,7 +110,7 @@ export class P2PFileManager {
     const unsub3 = subscribe('p2p.file_available', (msg: WSOutgoing) => {
       const data = msg.data as { fileId: string; seederId: string };
       this.handleFileAvailable(data.fileId, data.seederId).catch(
-        console.error,
+        (error) => devLogError('[P2P] Failed to handle file availability', error),
       );
     });
 

@@ -83,6 +83,7 @@ export interface CreateChannelInput {
   description?: string | null;
   type?: 'chat' | 'announcement' | 'forum' | 'voice';
   visibility?: 'public' | 'role_restricted';
+  accessPolicy?: 'public' | 'members_only' | 'invite_only' | 'private';
   slowModeSeconds?: number;
   position?: number;
   requireTopic?: boolean;
@@ -103,6 +104,7 @@ export async function createChannel(data: CreateChannelInput) {
       description: data.description ?? null,
       type: data.type ?? 'chat',
       visibility: data.visibility ?? 'public',
+      accessPolicy: data.accessPolicy ?? 'members_only',
       slowModeSeconds: data.slowModeSeconds ?? 0,
       position: data.position ?? 0,
       requireTopic: data.requireTopic ?? false,
@@ -117,6 +119,7 @@ export async function updateChannel(
     name?: string;
     description?: string | null;
     visibility?: 'public' | 'role_restricted';
+    accessPolicy?: 'public' | 'members_only' | 'invite_only' | 'private';
     slowModeSeconds?: number;
     categoryId?: string | null;
     sourceDmConversationId?: string | null;

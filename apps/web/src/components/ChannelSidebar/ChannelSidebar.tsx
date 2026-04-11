@@ -2,9 +2,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { ApiError } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import {
   VOICE_PREFERENCES_UPDATED_EVENT,
@@ -18,6 +19,10 @@ import {
 import { VoiceRoomButton } from '@/components/VoiceRoom';
 import { usePresence } from '@/hooks/usePresence';
 import { useUnreadStore } from '@/stores/unread';
+import {
+  getChannelBrowsePresentation,
+  shouldRenderBrowseChannel,
+} from '@zktalk/shared';
 import type { Channel, Category, Community } from '@zktalk/shared';
 
 function ChannelIcon({ type }: { type: string }) {
@@ -58,6 +63,14 @@ function SourceDmBadge({ label, title }: { label: string; title?: string }) {
   );
 }
 
+function getLockedChannelCopy(
+  t: (key: string) => string,
+  channel: Pick<Channel, 'lockedReason'>,
+) {
+  const { lockedCopyKey } = getChannelBrowsePresentation(channel);
+  return lockedCopyKey ? t(lockedCopyKey) : null;
+}
+
 interface CategoryGroupProps {
   category: Category | null;
   channels: Channel[];
@@ -80,6 +93,9 @@ interface CategoryGroupProps {
   sourceDmMatchLabel: (name: string) => string;
   recentVoiceChannelId: string | null;
   voiceParticipantCounts: Record<string, number>;
+  onLockedChannelClick?: (
+    channel: Pick<Channel, 'id' | 'name' | 'lockedReason'>,
+  ) => void;
 }
 
 function CategoryGroup({
@@ -104,6 +120,7 @@ function CategoryGroup({
   sourceDmMatchLabel,
   recentVoiceChannelId,
   voiceParticipantCounts,
+  onLockedChannelClick,
 }: CategoryGroupProps) {
   const { t } = useTranslation();
   const categoryKey = category?.id ?? 'uncategorized';
@@ -182,30 +199,38 @@ function CategoryGroup({
           }}
         >
           {channels.map((channel) => {
-            const isActive = channel.id === activeChannelId;
+            const canViewChannel = channel.canView !== false;
+            const browsePresentation = getChannelBrowsePresentation(channel);
+            const isLockedChannel = browsePresentation.isLocked;
+            const isActive = canViewChannel && channel.id === activeChannelId;
             const unread = unreadMap[channel.id];
-            const hasUnread = !isActive && unread && unread.unread > 0;
-            const hasMentions = !isActive && unread && unread.mentions > 0;
+            const hasUnread = canViewChannel && !isActive && unread && unread.unread > 0;
+            const hasMentions = canViewChannel && !isActive && unread && unread.mentions > 0;
             const itemTargetKey = `${categoryKey}:${channel.id}`;
             const sourceDmName = channel.sourceDmConversation?.name?.trim() ?? '';
             const showSourceDmMatch =
+              canViewChannel &&
               normalizedSearchQuery.length > 0 &&
               sourceDmName.length > 0 &&
               sourceDmName.toLowerCase().includes(normalizedSearchQuery) &&
               !channel.name.toLowerCase().includes(normalizedSearchQuery);
-            const voiceParticipantCount = voiceParticipantCounts[channel.id] ?? 0;
+            const voiceParticipantCount = canViewChannel ? voiceParticipantCounts[channel.id] ?? 0 : 0;
             const isRecentVoiceChannel =
-              channel.type === 'voice' && channel.id === recentVoiceChannelId;
+              canViewChannel && channel.type === 'voice' && channel.id === recentVoiceChannelId;
             const isLiveVoiceChannel =
-              channel.type === 'voice' && voiceParticipantCount > 0;
+              canViewChannel && channel.type === 'voice' && voiceParticipantCount > 0;
             const isHighlightedVoiceChannel =
-              channel.type === 'voice' && (isRecentVoiceChannel || isLiveVoiceChannel);
+              canViewChannel && channel.type === 'voice' && (isRecentVoiceChannel || isLiveVoiceChannel);
             const voiceStatusLabel = isLiveVoiceChannel
               ? t('voice.participantCount', { count: String(voiceParticipantCount) })
               : isRecentVoiceChannel
                 ? t('voice.recentChannel')
                 : null;
             const linkLabelParts = [channel.name];
+            const lockedCopy = isLockedChannel ? getLockedChannelCopy(t, channel) : null;
+            if (lockedCopy) {
+              linkLabelParts.push(lockedCopy);
+            }
             if (isLiveVoiceChannel) {
               linkLabelParts.push(t('voice.participantCount', { count: String(voiceParticipantCount) }));
             }
@@ -213,52 +238,24 @@ function CategoryGroup({
               linkLabelParts.push(t('voice.recentChannel'));
             }
 
-            return (
-              <Link
-                key={channel.id}
-                href={`/communities/${communitySlug}/channels/${channel.id}`}
-                onClick={onChannelClick}
-                data-testid={`channel-sidebar-link-${channel.id}`}
-                draggable={isAdmin}
-                onDragStart={(e) => {
-                  if (!isAdmin) return;
-                  e.dataTransfer.effectAllowed = 'move';
-                  onDragStart?.(channel.id, category?.id ?? null);
-                }}
-                onDragEnd={() => {
-                  if (!isAdmin) return;
-                  onDragEnd?.();
-                }}
-                onDragOver={(e) => {
-                  if (!isAdmin || !draggedChannelId) return;
-                  e.preventDefault();
-                  onDragTargetChange?.(itemTargetKey);
-                }}
-                onDragLeave={() => {
-                  if (!isAdmin) return;
-                  onDragTargetChange?.(null);
-                }}
-                onDrop={(e) => {
-                  if (!isAdmin || !draggedChannelId) return;
-                  e.preventDefault();
-                  onDropChannel?.(category?.id ?? null, channels.findIndex((entry) => entry.id === channel.id));
-                }}
-                className={`rounded px-2 py-1.5 text-sm transition-colors ${
-                  isActive
-                    ? 'border border-sky-300/30 bg-[linear-gradient(180deg,rgba(67,99,201,0.28),rgba(22,37,72,0.34))] text-white shadow-[0_14px_30px_rgba(7,14,28,0.28)]'
-                    : isHighlightedVoiceChannel
-                      ? 'border border-white/6 bg-white/[0.04] text-[#f2f3f5] hover:bg-white/[0.07]'
-                      : hasUnread
+            const className = `rounded px-2 py-1.5 text-sm transition-colors ${
+              isLockedChannel
+                ? 'border border-amber-400/20 bg-amber-400/5 text-amber-100/90'
+                : isActive
+                  ? 'border border-sky-300/30 bg-[linear-gradient(180deg,rgba(67,99,201,0.28),rgba(22,37,72,0.34))] text-white shadow-[0_14px_30px_rgba(7,14,28,0.28)]'
+                  : isHighlightedVoiceChannel
+                    ? 'border border-white/6 bg-white/[0.04] text-[#f2f3f5] hover:bg-white/[0.07]'
+                    : hasUnread
                       ? 'border border-white/6 font-semibold text-[#e5edf8] hover:bg-white/[0.06]'
                       : 'border border-transparent text-white/56 hover:bg-white/[0.05] hover:text-[#e5edf8]'
-                } ${draggedChannelId === channel.id ? 'opacity-50' : ''} ${
-                  dragTargetKey === itemTargetKey ? 'ring-1 ring-inset ring-sky-300/60' : ''
-                }`}
-                title={linkLabelParts.join(' · ')}
-                aria-label={linkLabelParts.join(', ')}
-              >
+            } ${draggedChannelId === channel.id ? 'opacity-50' : ''} ${
+              dragTargetKey === itemTargetKey ? 'ring-1 ring-inset ring-sky-300/60' : ''
+            }`;
+
+            const content = (
+              <>
                 <div className="flex items-center gap-1.5">
-                  {isAdmin && (
+                  {isAdmin && canViewChannel && (
                     <span className="shrink-0 cursor-grab text-xs tracking-tight text-gray-500">⋮⋮</span>
                   )}
                   {isLiveVoiceChannel ? (
@@ -266,7 +263,17 @@ function CategoryGroup({
                   ) : isRecentVoiceChannel ? (
                     <span className="h-2 w-2 shrink-0 rounded-full bg-indigo-300 shadow-[0_0_0_3px_rgba(165,180,252,0.12)]" />
                   ) : null}
-                  <ChannelIcon type={channel.type} />
+                  {isLockedChannel ? (
+                    <svg className="h-4 w-4 shrink-0 text-amber-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path
+                        fillRule="evenodd"
+                        d="M6 8V6a4 4 0 118 0v2a2 2 0 012 2v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5a2 2 0 012-2zm6-2a2 2 0 10-4 0v2h4V6z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  ) : (
+                    <ChannelIcon type={channel.type} />
+                  )}
                   <span className="truncate">{channel.name}</span>
                   {channel.sourceDmConversation ? (
                     <SourceDmBadge
@@ -286,6 +293,11 @@ function CategoryGroup({
                   ) : channel.sourceDmConversationId ? (
                     <SourceDmBadge label={sourceDmLabel} title={sourceDmLabel} />
                   ) : null}
+                  {isLockedChannel && (
+                    <span className="ml-auto rounded-full border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-100">
+                      {t('channel.lockedBadge')}
+                    </span>
+                  )}
                   {isRecentVoiceChannel && (
                     <span className="rounded-full bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-indigo-300">
                       {t('voice.recentChannel')}
@@ -324,6 +336,71 @@ function CategoryGroup({
                     {voiceStatusLabel}
                   </div>
                 )}
+                {isLockedChannel && lockedCopy && (
+                  <div className="pl-[2.1rem] pt-1 text-[11px] font-medium text-amber-100/80">
+                    {lockedCopy}
+                  </div>
+                )}
+              </>
+            );
+
+            if (isLockedChannel) {
+              return (
+                <button
+                  type="button"
+                  key={channel.id}
+                  data-testid={`channel-sidebar-locked-${channel.id}`}
+                  className={className}
+                  title={linkLabelParts.join(' · ')}
+                  aria-label={linkLabelParts.join(', ')}
+                  onClick={() =>
+                    onLockedChannelClick?.({
+                      id: channel.id,
+                      name: channel.name,
+                      lockedReason: channel.lockedReason,
+                    })
+                  }
+                >
+                  {content}
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={channel.id}
+                href={`/communities/${communitySlug}/channels/${channel.id}`}
+                onClick={onChannelClick}
+                data-testid={`channel-sidebar-link-${channel.id}`}
+                draggable={isAdmin}
+                onDragStart={(e) => {
+                  if (!isAdmin) return;
+                  e.dataTransfer.effectAllowed = 'move';
+                  onDragStart?.(channel.id, category?.id ?? null);
+                }}
+                onDragEnd={() => {
+                  if (!isAdmin) return;
+                  onDragEnd?.();
+                }}
+                onDragOver={(e) => {
+                  if (!isAdmin || !draggedChannelId) return;
+                  e.preventDefault();
+                  onDragTargetChange?.(itemTargetKey);
+                }}
+                onDragLeave={() => {
+                  if (!isAdmin) return;
+                  onDragTargetChange?.(null);
+                }}
+                onDrop={(e) => {
+                  if (!isAdmin || !draggedChannelId) return;
+                  e.preventDefault();
+                  onDropChannel?.(category?.id ?? null, channels.findIndex((entry) => entry.id === channel.id));
+                }}
+                className={className}
+                title={linkLabelParts.join(' · ')}
+                aria-label={linkLabelParts.join(', ')}
+              >
+                {content}
               </Link>
             );
           })}
@@ -345,10 +422,17 @@ interface CommunityMemberSummary {
   userId: string;
 }
 
+interface LockedChannelPromptState {
+  channelId: string;
+  channelName: string;
+  lockedReason: 'join_required' | 'invite_required';
+}
+
 export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onChannelClick }: ChannelSidebarProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const params = useParams();
+  const router = useRouter();
   const activeChannelId = params.channelId as string | undefined;
   const { onlineCount } = usePresence(community.id);
   const { unreadMap, fetchUnread } = useUnreadStore();
@@ -356,11 +440,24 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
   const [dragState, setDragState] = useState<{ channelId: string; sourceCategoryId: string | null } | null>(null);
   const [dragTargetKey, setDragTargetKey] = useState<string | null>(null);
   const [recentVoiceChannelId, setRecentVoiceChannelId] = useState<string | null>(null);
+  const [lockedChannelPrompt, setLockedChannelPrompt] = useState<LockedChannelPromptState | null>(null);
   const { data: membersData } = useQuery({
     queryKey: ['community-members-count', community.id],
-    queryFn: () => api<{ members: CommunityMemberSummary[] }>(`/api/communities/${community.id}/members`),
+    queryFn: async () => {
+      try {
+        return await api<{ members: CommunityMemberSummary[] }>(`/api/communities/${community.id}/members`);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 403) {
+          return { members: [] };
+        }
+        throw error;
+      }
+    },
   });
   const memberCount = membersData?.members.length ?? 0;
+  const lockedChannelPromptPresentation = lockedChannelPrompt
+    ? getChannelBrowsePresentation(lockedChannelPrompt)
+    : null;
 
   // Fetch unread counts for this community
   useEffect(() => {
@@ -458,15 +555,33 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
     },
   });
 
+  const joinCommunityMutation = useMutation({
+    mutationFn: async (_prompt: LockedChannelPromptState) =>
+      api(`/api/communities/${community.id}/join`, {
+        method: 'POST',
+      }),
+    onSuccess: async (_data, prompt) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['channels', community.id] }),
+        queryClient.invalidateQueries({ queryKey: ['community-members-count', community.id] }),
+        queryClient.invalidateQueries({ queryKey: ['communities'] }),
+      ]);
+      setLockedChannelPrompt(null);
+      onChannelClick?.();
+      router.push(`/communities/${community.slug}/channels/${prompt.channelId}`);
+    },
+  });
+
   const channels = useMemo(
-    () => [
-      ...(channelData?.uncategorized ?? []),
-      ...(channelData?.categories?.flatMap((c: { channels: Channel[] }) => c.channels) ?? []),
-    ],
+    () =>
+      [
+        ...(channelData?.uncategorized ?? []),
+        ...(channelData?.categories?.flatMap((c: { channels: Channel[] }) => c.channels) ?? []),
+      ].filter((channel) => shouldRenderBrowseChannel(channel)),
     [channelData?.uncategorized, channelData?.categories],
   );
   const voiceChannels = useMemo(
-    () => channels.filter((channel) => channel.type === 'voice' && !channel.isArchived),
+    () => channels.filter((channel) => channel.canView !== false && channel.type === 'voice' && !channel.isArchived),
     [channels],
   );
   const voiceParticipantQueries = useQueries({
@@ -670,6 +785,72 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
             />
           </div>
         </div>
+        {lockedChannelPrompt && (
+          <div
+            data-testid="channel-sidebar-locked-prompt"
+            className="mb-4 rounded-[1.5rem] border border-amber-300/20 bg-amber-400/10 px-4 py-4 text-amber-50 shadow-[0_18px_40px_rgba(2,8,23,0.18)]"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100/70">
+                  {t('channel.lockedPromptTitle')}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-amber-50">
+                  {lockedChannelPrompt.channelName}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-amber-100/85">
+                  {t(
+                    lockedChannelPromptPresentation?.lockedPromptBodyKey ??
+                      'channel.lockedPromptJoinBody',
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setLockedChannelPrompt(null);
+                  joinCommunityMutation.reset();
+                }}
+                className="rounded-full border border-amber-100/20 px-2 py-1 text-[11px] font-medium text-amber-100/75 transition hover:bg-white/10 hover:text-white"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {lockedChannelPrompt.lockedReason === 'invite_required' ? (
+                <button
+                  type="button"
+                  data-testid="channel-sidebar-locked-prompt-invite"
+                  onClick={() => {
+                    setLockedChannelPrompt(null);
+                    onChannelClick?.();
+                    router.push('/');
+                  }}
+                  className="rounded-xl bg-amber-200 px-3 py-2 text-sm font-semibold text-amber-950 transition hover:bg-white"
+                >
+                  {t('channel.lockedPromptInviteAction')}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  data-testid="channel-sidebar-locked-prompt-join"
+                  onClick={() => joinCommunityMutation.mutate(lockedChannelPrompt)}
+                  disabled={joinCommunityMutation.isPending}
+                  className="rounded-xl bg-amber-200 px-3 py-2 text-sm font-semibold text-amber-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {joinCommunityMutation.isPending
+                    ? t('channel.lockedPromptJoining')
+                    : t('channel.lockedPromptJoinAction')}
+                </button>
+              )}
+            </div>
+            {joinCommunityMutation.isError && lockedChannelPrompt.lockedReason === 'join_required' && (
+              <p className="mt-2 text-xs text-amber-100/90">
+                {t('channel.lockedPromptJoinFailed')}
+              </p>
+            )}
+          </div>
+        )}
         {sortedVoiceChannels.length > 0 && (
           <div className="mb-4 rounded-[1.5rem] border border-white/8 bg-white/[0.03] px-3 py-3 shadow-[0_18px_40px_rgba(2,8,23,0.18)]">
             <div className="px-1 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-white/42">
@@ -770,6 +951,15 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
             sourceDmMatchLabel={(name) => t('channel.sourceDmNameLabelWithName', { name })}
             recentVoiceChannelId={recentVoiceChannelId}
             voiceParticipantCounts={voiceParticipantCounts}
+            onLockedChannelClick={(channel) => {
+              joinCommunityMutation.reset();
+              setLockedChannelPrompt({
+                channelId: channel.id,
+                channelName: channel.name,
+                lockedReason:
+                  channel.lockedReason === 'invite_required' ? 'invite_required' : 'join_required',
+              });
+            }}
           />
         )}
 
@@ -814,6 +1004,15 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
               sourceDmMatchLabel={(name) => t('channel.sourceDmNameLabelWithName', { name })}
               recentVoiceChannelId={recentVoiceChannelId}
               voiceParticipantCounts={voiceParticipantCounts}
+              onLockedChannelClick={(channel) => {
+                joinCommunityMutation.reset();
+                setLockedChannelPrompt({
+                  channelId: channel.id,
+                  channelName: channel.name,
+                  lockedReason:
+                    channel.lockedReason === 'invite_required' ? 'invite_required' : 'join_required',
+                });
+              }}
             />
           );
         })}

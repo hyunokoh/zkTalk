@@ -63,6 +63,22 @@ export function cacheCollapsedSections(value: Record<string, boolean>): void {
   );
 }
 
+export function clearCachedUserSettings(): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(COMMUNITY_ORDER_STORAGE_KEY);
+  window.localStorage.removeItem(COLLAPSED_SECTIONS_STORAGE_KEY);
+  window.dispatchEvent(
+    new CustomEvent<{ ids: string[] }>(COMMUNITY_ORDER_UPDATED_EVENT, {
+      detail: { ids: [] },
+    }),
+  );
+  window.dispatchEvent(
+    new CustomEvent<{ collapsedSections: Record<string, boolean> }>(COLLAPSED_SECTIONS_UPDATED_EVENT, {
+      detail: { collapsedSections: {} },
+    }),
+  );
+}
+
 export function applyCommunityOrder<T extends { id: string }>(items: T[], order: string[]): T[] {
   if (!order.length) return items;
   const map = new Map(items.map((c) => [c.id, c]));
@@ -83,6 +99,12 @@ export async function saveLastVisited(lastVisited: LastVisitedLocation | null): 
 export async function saveCollapsedSections(collapsedSections: Record<string, boolean>): Promise<UserSettings> {
   cacheCollapsedSections(collapsedSections);
   return patchUserSettings({ collapsedSections });
+}
+
+export async function saveTranslationDisplay(
+  translationDisplay: UpdateUserSettingsInput['translationDisplay'],
+): Promise<UserSettings> {
+  return patchUserSettings({ translationDisplay });
 }
 
 export function getCollapsedSectionState(key: string): boolean {

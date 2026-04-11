@@ -24,6 +24,8 @@ export interface WSOutgoing {
   channelId?: string;
   communityId?: string;
   conversationId?: string;
+  machineId?: string;
+  commandId?: string;
   timestamp: string;
 }
 
@@ -35,5 +37,8 @@ export interface RedisPubSubMessage {
   channelId?: string;
   communityId?: string;
   conversationId?: string;
+  machineId?: string;
+  commandId?: string;
   excludeUserId?: string;
+  sourceInstanceId?: string;
 }

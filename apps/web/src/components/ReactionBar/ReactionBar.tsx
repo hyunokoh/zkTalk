@@ -71,7 +71,7 @@ export function ReactionBar({ messageId, reactions, channelId }: ReactionBarProp
             }`}
           >
             <span>{reaction.emoji}</span>
-            <span>{reaction.count}</span>
+            {reaction.count >= 2 ? <span>{reaction.count}</span> : null}
           </button>
         );
       })}

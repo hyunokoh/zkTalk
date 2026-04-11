@@ -293,7 +293,7 @@ Create a new community.
 | name | string | Yes | Community name |
 | slug | string | Yes | URL slug |
 | description | string | No | Description |
-| visibility | string | No | "public" or "private" |
+| visibility | string | No | "public", "invite_only", or "private" |
 
 **Response:** `201 Created`
 ```json
@@ -307,9 +307,24 @@ Get community by ID (UUID) or slug.
 
 **Auth:** Required
 
+Non-members may only open `public` communities. `invite_only` and `private` communities return `403 Forbidden` unless the caller already has an active membership.
+
 **Response:** `200 OK`
 ```json
-{ "community": { "id": "...", "name": "...", "slug": "...", "description": "...", ... } }
+{
+  "community": {
+    "id": "...",
+    "name": "...",
+    "slug": "...",
+    "description": "...",
+    "visibility": "public",
+    "discovery": {
+      "isDiscoverable": true,
+      "canSelfJoin": true
+    },
+    "isMember": false
+  }
+}
 ```
 
 ---
@@ -323,7 +338,10 @@ Update community settings.
 |-------|------|----------|-------------|
 | name | string | No | New name |
 | description | string | No | New description |
+| visibility | string | No | "public", "invite_only", or "private" |
 | iconUrl | string | No | New icon URL |
+
+Communities cannot move to `invite_only` or `private` while any channel still uses the `public` access policy.
 
 **Response:** `200 OK`
 ```json
@@ -386,6 +404,8 @@ Join a community via invite code.
 Join a public community directly.
 
 **Auth:** Required
+
+`communityId` accepts either the UUID or the community slug so web/mobile discover flows can join without first resolving a second identifier.
 
 **Response:** `200 OK`
 
@@ -498,7 +518,14 @@ Delete a category (must be empty).
 ### GET /api/communities/:communityId/channels
 List channels grouped by category.
 
-**Auth:** Required (member)
+**Auth:** Required
+
+Active members receive only channels they can view. Logged-in non-members can browse channels in a `public` community with this visibility policy:
+
+- `public`: returned as normal and can be opened immediately
+- `members_only`: returned as a locked row with `canView: false` and `lockedReason: "join_required"`
+- `invite_only`: returned as a locked row with `canView: false` and `lockedReason: "invite_required"`
+- `private`: hidden from non-members
 
 **Response:** `200 OK`
 ```json
@@ -519,7 +546,10 @@ Create a channel.
 | type | string | No | "chat", "announcement", or "forum" |
 | categoryId | string | No | Category to place in |
 | visibility | string | No | "public" or "role_restricted" |
+| accessPolicy | string | No | "public", "members_only", "invite_only", or "private" |
 | slowModeSeconds | number | No | Slow mode interval |
+
+`accessPolicy` is the commercial visibility policy. `public` is only valid inside a `public` community. `invite_only` and `private` channels must provide at least one allowed view role.
 
 **Response:** `201 Created`
 
@@ -547,10 +577,16 @@ Update a channel.
 | name | string | No | New name |
 | description | string | No | New description |
 | visibility | string | No | "public" or "role_restricted" |
+| accessPolicy | string | No | "public", "members_only", "invite_only", or "private" |
 | slowModeSeconds | number | No | Slow mode interval |
 | categoryId | string | No | Move to category |
 | position | number | No | Sort position |
 | disappearingDuration | number | No | Disappearing message duration (ms) |
+
+When `accessPolicy` moves to `public` or `members_only`, any channel-specific role gate is cleared. When it moves to `invite_only` or `private`, at least one allowed view role must be supplied when creating the restriction.
+Restricted role updates must include `allowedViewRoleIds` whenever `allowedPostRoleIds` is sent so an existing invite-only/private channel cannot accidentally lose its view allow-list.
+
+Community visibility and channel access policy must stay compatible. A community cannot be switched to `invite_only` or `private` while any channel still uses the `public` access policy.
 
 **Response:** `200 OK`
 
@@ -2059,14 +2095,113 @@ Get audit log (admin+).
 ## 34. Health
 
 ### GET /api/health
-Health check endpoint.
+Process liveness endpoint. This only proves the API process booted.
 
 **Auth:** None
 
 **Response:** `200 OK`
 ```json
-{ "status": "ok", "timestamp": "2026-03-22T..." }
+{
+  "status": "ok",
+  "service": "api",
+  "scope": "process",
+  "timestamp": "2026-04-07T...",
+  "runtime": {
+    "environment": "production",
+    "pid": 123,
+    "uptimeSeconds": 42,
+    "nodeVersion": "v22.12.0"
+  },
+  "operator": {
+    "healthEndpoints": {
+      "liveness": "/api/health",
+      "readiness": "/api/health/ready"
+    },
+    "trafficGate": {
+      "shouldReceiveTraffic": false,
+      "reason": "Traffic should stay blocked until readiness is confirmed.",
+      "nextCheck": "/api/health/ready"
+    },
+    "readinessScope": {
+      "requiredDependencies": ["database", "redis"],
+      "excludedDependencies": ["object_storage", "livekit"]
+    }
+  }
+}
 ```
+
+---
+
+### GET /api/health/ready
+Dependency readiness endpoint for required API runtime dependencies.
+
+**Auth:** None
+
+**Response:** `200 OK` or `503 Service Unavailable`
+```json
+{
+  "service": "api",
+  "status": "ready",
+  "scope": "required_runtime_dependencies",
+  "timestamp": "2026-04-07T...",
+  "runtime": {
+    "environment": "production",
+    "pid": 123,
+    "uptimeSeconds": 42,
+    "nodeVersion": "v22.12.0"
+  },
+  "summary": {
+    "total": 2,
+    "ok": 2,
+    "error": 0,
+    "failingDependencies": []
+  },
+  "dependencies": [
+    { "name": "database", "status": "ok" },
+    { "name": "redis", "status": "ok" }
+  ],
+  "boundary": {
+    "checkedDependencies": ["database", "redis"],
+    "excludedDependencies": [
+      {
+        "name": "object_storage",
+        "includedInReadiness": false,
+        "failureBoundary": "Attachment upload and public asset retrieval can fail while baseline API readiness stays green.",
+        "operatorAction": "Verify bucket existence, API-side credentials, region, optional endpoint, presign, and asset retrieval separately."
+      },
+      {
+        "name": "livekit",
+        "includedInReadiness": false,
+        "failureBoundary": "Voice and video token issuance or room join can fail while baseline API readiness stays green.",
+        "operatorAction": "Verify public LiveKit URL, API credentials, and an actual room join separately."
+      }
+    ]
+  },
+  "operator": {
+    "healthEndpoints": {
+      "liveness": "/api/health",
+      "readiness": "/api/health/ready"
+    },
+    "trafficGate": {
+      "shouldReceiveTraffic": true,
+      "reason": "Required runtime dependencies are ready for baseline API traffic.",
+      "nextCheck": "/api/health/ready"
+    },
+    "readinessScope": {
+      "requiredDependencies": ["database", "redis"],
+      "excludedDependencies": ["object_storage", "livekit"]
+    }
+  }
+}
+```
+
+Current readiness boundary:
+
+- required for readiness: PostgreSQL, Redis
+- not currently part of this endpoint: object storage, LiveKit
+- response `runtime`, `summary.failingDependencies`, `boundary`, `operator.readinessScope`, and `operator.trafficGate` now make the startup and failure boundary visible in one payload
+- green readiness does not guarantee attachment upload/download or voice join paths are healthy
+- operators should treat storage bucket validation and LiveKit join checks as separate pre-deploy or smoke requirements
 
 ---
 

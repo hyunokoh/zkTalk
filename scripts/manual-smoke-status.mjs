@@ -13,6 +13,7 @@ const manualSmokeCaptureResultPath = path.join(tmpDir, 'manual-smoke-capture-las
 const manualSmokeOpenResultPath = path.join(tmpDir, 'manual-smoke-open-last-result.json');
 const manualSmokeRefreshResultPath = path.join(tmpDir, 'manual-smoke-refresh-last-result.json');
 const mobileCachePath = path.join(tmpDir, 'mobile-harness-last-e2e.json');
+const e2eSeedCachePath = path.join(tmpDir, 'e2e', 'ui-seed-v2.json');
 const uiSmokePlaywrightWebResultPath = path.join(tmpDir, 'ui-smoke-playwright-web-last-result.json');
 const uiSmokePlaywrightDesktopResultPath = path.join(tmpDir, 'ui-smoke-playwright-desktop-last-result.json');
 const uiSmokeMobileResultPath = path.join(tmpDir, 'ui-smoke-mobile-last-result.json');
@@ -47,7 +48,9 @@ function readJsonIfExists(filePath) {
 }
 
 function getPrimaryCache() {
-  return readJsonIfExists(desktopCachePath) ?? readJsonIfExists(mobileCachePath);
+  return readJsonIfExists(desktopCachePath)
+    ?? readJsonIfExists(mobileCachePath)
+    ?? readJsonIfExists(e2eSeedCachePath);
 }
 
 function boolLabel(value) {
@@ -222,9 +225,9 @@ function main() {
   const durationMs = Date.now() - startedAtMs;
   const status = {
     manualSmokeReady: !!cache,
-    webLogin: 'http://127.0.0.1:3000/login',
-    webHome: 'http://127.0.0.1:3000/home',
-    apiHealth: 'http://127.0.0.1:4000/api/health',
+    webLogin: 'http://localhost:3000/login',
+    webHome: 'http://localhost:3000/home',
+    apiHealth: 'http://localhost:4000/api/health',
     desktopApp: '/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/mac-arm64/zkTalk.app',
     mobileDevice: 'iPhone 15 simulator (booted)',
     cachedQaData: !!cache,
@@ -389,13 +392,13 @@ function main() {
     status.userCEmail = cache.userC?.email ?? '';
     status.hasPromotedCommunityFlow = Boolean(cache.promotedCommunityId && cache.promotedChannelId);
     status.checks = Array.isArray(cache.checks) ? cache.checks : [];
-    status.webCommunity = communitySlug ? `http://127.0.0.1:3000/communities/${communitySlug}` : '';
+    status.webCommunity = communitySlug ? `http://localhost:3000/communities/${communitySlug}` : '';
     status.webChannel =
       communitySlug && channelId
-        ? `http://127.0.0.1:3000/communities/${communitySlug}/channels/${channelId}`
+        ? `http://localhost:3000/communities/${communitySlug}/channels/${channelId}`
         : '';
     status.webDm = harnessConversationId
-      ? `http://127.0.0.1:3000/dm/${harnessConversationId}`
+      ? `http://localhost:3000/dm/${harnessConversationId}`
       : '';
     status.desktopChannelDeepLink = buildDesktopChannelDeepLink(cache);
     status.desktopDmDeepLink = buildDesktopDmDeepLink(cache);

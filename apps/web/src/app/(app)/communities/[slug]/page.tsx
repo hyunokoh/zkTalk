@@ -1,11 +1,13 @@
 'use client';
 
+import React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { ApiError } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { OnboardingModal } from '@/components/OnboardingModal';
 import { VoiceRoomButton } from '@/components/VoiceRoom';
@@ -14,6 +16,7 @@ import {
   getLastVoiceChannelForCommunity,
 } from '@/lib/voice-preferences';
 import { resolveImageRenderProps } from '@/lib/image-optimization';
+import { getCommunityChannelAccessSummaryKeys } from '@zktalk/shared';
 import type { Community } from '@zktalk/shared';
 
 interface OnboardingData {
@@ -29,6 +32,22 @@ interface CommunityChannel {
   id: string;
   name: string;
   type?: string;
+  canView?: boolean;
+}
+
+function ChannelAccessLegend({ labels }: { labels: string[] }) {
+  return (
+    <div className="mt-4 flex flex-wrap justify-center gap-2">
+      {labels.map((label) => (
+        <span
+          key={label}
+          className="inline-flex items-center rounded-full border border-[#d8e5ed] bg-white px-3 py-1 text-[11px] font-semibold text-[#516678]"
+        >
+          {label}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 interface CommunityMember {
@@ -96,7 +115,16 @@ export default function CommunityOverviewPage() {
   const { data: membersData } = useQuery({
     queryKey: ['community-overview-members', community?.id],
     enabled: !!community?.id,
-    queryFn: () => api<{ members: CommunityMember[] }>(`/api/communities/${community!.id}/members`),
+    queryFn: async () => {
+      try {
+        return await api<{ members: CommunityMember[] }>(`/api/communities/${community!.id}/members`);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 403) {
+          return { members: [] };
+        }
+        throw error;
+      }
+    },
   });
 
   const voiceChannels = useMemo(() => {
@@ -104,7 +132,7 @@ export default function CommunityOverviewPage() {
       ...(channelData?.uncategorized ?? []),
       ...(channelData?.categories ?? []).flatMap((category) => category.channels ?? []),
     ];
-    return allChannels.filter((channel) => channel.type === 'voice');
+    return allChannels.filter((channel) => channel.canView !== false && channel.type === 'voice');
   }, [channelData?.categories, channelData?.uncategorized]);
 
   const voiceParticipantQueries = useQueries({
@@ -214,6 +242,8 @@ export default function CommunityOverviewPage() {
     community.iconUrl,
     community.updatedAt,
   );
+  const accessLegendLabels =
+    getCommunityChannelAccessSummaryKeys(community.visibility).map((key) => t(key));
 
   return (
     <>
@@ -246,6 +276,12 @@ export default function CommunityOverviewPage() {
             <p className="mt-4 text-sm text-gray-500">
               {t('community.selectChannel')}
             </p>
+            <p className="mt-2 text-xs text-gray-500">
+              {t('community.channelAccessHint')}
+            </p>
+            {accessLegendLabels.length > 0 ? (
+              <ChannelAccessLegend labels={accessLegendLabels} />
+            ) : null}
           </div>
           {sortedVoiceChannels.length > 0 && (
             <div className="mx-auto mt-8 max-w-2xl rounded-3xl border border-[#d8e5ed] bg-white/85 p-5 shadow-sm">

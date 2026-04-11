@@ -1,11 +1,14 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import Link from 'next/link';
+import React, { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { getActionErrorMessage, getUploadErrorMessage } from '@/lib/error-copy';
 import { useTranslation } from '@/lib/i18n';
+import { devLogError } from '@/lib/client-log';
 import { useCommunityRole } from '@/hooks/useCommunityRole';
 import { useP2PSettingsStore } from '@/stores/p2p-settings';
 import { useToastStore } from '@/stores/toast';
@@ -46,7 +49,12 @@ export default function CommunitySettingsPage() {
   const setP2PWifiOnly = useP2PSettingsStore((s) => s.setWifiOnly);
   const setP2PAutoSeed = useP2PSettingsStore((s) => s.setAutoSeed);
 
-  const { data: community, isLoading } = useQuery({
+  const {
+    data: community,
+    isLoading,
+    error: communityError,
+    refetch: refetchCommunity,
+  } = useQuery({
     queryKey: ['community', slug],
     queryFn: async () => {
       const res = await api<{ community: Community }>(`/api/communities/${slug}`);
@@ -92,8 +100,13 @@ export default function CommunitySettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['community', slug] });
       notify('success', t('settings.saved'));
     },
-    onError: () => {
-      notify('error', t('settings.saveError'));
+    onError: (error) => {
+      notify('error', getActionErrorMessage(t, error, {
+        genericKey: 'settings.saveError',
+        notFoundKey: 'community.notFound',
+        rateLimitedKey: 'settings.saveRateLimited',
+        networkKey: 'profile.connectionError',
+      }));
     },
   });
 
@@ -114,8 +127,13 @@ export default function CommunitySettingsPage() {
       setInviteLink(link);
       notify('success', t('settings.inviteCreated'));
     },
-    onError: () => {
-      notify('error', t('settings.saveError'));
+    onError: (error) => {
+      notify('error', getActionErrorMessage(t, error, {
+        genericKey: 'settings.inviteCreateError',
+        notFoundKey: 'community.notFound',
+        rateLimitedKey: 'settings.inviteRateLimited',
+        networkKey: 'profile.connectionError',
+      }));
     },
   });
 
@@ -126,8 +144,12 @@ export default function CommunitySettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['communities'] });
       router.push('/home');
     },
-    onError: () => {
-      notify('error', t('community.deleteError'));
+    onError: (error) => {
+      notify('error', getActionErrorMessage(t, error, {
+        genericKey: 'community.deleteError',
+        notFoundKey: 'community.notFound',
+        networkKey: 'profile.connectionError',
+      }));
     },
   });
 
@@ -170,8 +192,12 @@ export default function CommunitySettingsPage() {
       setIconUrl(uploadedUrl);
       setIconPreviewVersion(String(Date.now()));
     } catch (error) {
-      console.error('Community icon upload failed', error);
-      notify('error', t('settings.saveError'));
+      devLogError('Community icon upload failed', error);
+      notify('error', getUploadErrorMessage(t, error, {
+        genericKey: 'community.iconUploadError',
+        tooLargeKey: 'community.iconUploadTooLarge',
+        invalidTypeKey: 'community.iconUploadInvalidType',
+      }));
     } finally {
       setIsUploadingIcon(false);
     }
@@ -185,10 +211,53 @@ export default function CommunitySettingsPage() {
     );
   }
 
+  if (communityError) {
+    const message = getActionErrorMessage(t, communityError, {
+      genericKey: 'settings.communityLoadError',
+      notFoundKey: 'community.notFound',
+      networkKey: 'profile.connectionError',
+    });
+
+    return (
+      <div className="flex h-full items-center justify-center px-6">
+        <div className="w-full max-w-lg rounded-2xl border border-gray-800 bg-gray-900/80 p-6 text-center">
+          <h1 className="text-lg font-semibold text-white">{t('settings.communityUnavailableTitle')}</h1>
+          <p className="mt-2 text-sm leading-6 text-gray-400">{message}</p>
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => void refetchCommunity()}
+              className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+            >
+              {t('common.retry')}
+            </button>
+            <Link
+              href="/home"
+              className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-750"
+            >
+              {t('settings.goHome')}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!community) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-400">
-        {t('community.notFound')}
+      <div className="flex h-full items-center justify-center px-6">
+        <div className="w-full max-w-lg rounded-2xl border border-gray-800 bg-gray-900/80 p-6 text-center">
+          <h1 className="text-lg font-semibold text-white">{t('settings.communityUnavailableTitle')}</h1>
+          <p className="mt-2 text-sm leading-6 text-gray-400">{t('community.notFound')}</p>
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/home"
+              className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-750"
+            >
+              {t('settings.goHome')}
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -203,11 +272,28 @@ export default function CommunitySettingsPage() {
 
   if (!canManageSettings) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 text-gray-400">
-        <svg className="h-12 w-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="flex h-full items-center justify-center px-6">
+        <div className="w-full max-w-lg rounded-2xl border border-gray-800 bg-gray-900/80 p-6 text-center">
+          <svg className="mx-auto h-12 w-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m0 0a2 2 0 100-4 2 2 0 000 4zm6-6V7a6 6 0 10-12 0v4m-2 0h16a1 1 0 011 1v8a1 1 0 01-1 1H5a1 1 0 01-1-1v-8a1 1 0 011-1z" />
-        </svg>
-        <p className="text-sm">{t('settings.notAdmin')}</p>
+          </svg>
+          <p className="mt-4 text-sm text-gray-200">{t('settings.notAdmin')}</p>
+          <p className="mt-2 text-sm leading-6 text-gray-400">{t('settings.notAdminHelp')}</p>
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            <Link
+              href={`/communities/${slug}`}
+              className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-750"
+            >
+              {t('settings.backToCommunity')}
+            </Link>
+            <Link
+              href="/home"
+              className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-750"
+            >
+              {t('settings.goHome')}
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

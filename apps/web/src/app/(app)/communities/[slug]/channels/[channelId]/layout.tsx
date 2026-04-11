@@ -1,23 +1,23 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError, api } from '@/lib/api';
 import { getLivekitUrl } from '@/lib/runtime-config';
 import { useTranslation } from '@/lib/i18n';
 import { PinnedMessages } from '@/components/PinnedMessages';
 import { VoiceRoomButton, VoiceRoom } from '@/components/VoiceRoom';
 import { useVoiceStore } from '@/stores/voice';
 import { useMobileNavStore } from '@/stores/mobile-nav';
-import type { Channel } from '@zktalk/shared';
-
-interface CommunityChannelSummary {
-  id: string;
-  name: string;
-  type: string;
-}
+import {
+  getChannelBrowsePresentation,
+  isLockedBrowseChannel,
+  shouldRenderBrowseChannel,
+} from '@zktalk/shared';
+import type { Channel, Community } from '@zktalk/shared';
 
 export default function ChannelLayout({
   children,
@@ -26,17 +26,30 @@ export default function ChannelLayout({
 }) {
   const { t } = useTranslation();
   const params = useParams();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const slug = params.slug as string;
   const channelId = params.channelId as string;
   const [showPinned, setShowPinned] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
   const { isConnected, token, channelId: voiceChannelId, isVideoEnabled, disconnect } = useVoiceStore();
   const showVoiceRoom = isConnected && token && voiceChannelId === channelId;
   const toggleChannelSidebar = useMobileNavStore((s) => s.toggleChannelSidebar);
   const channelSidebarOpen = useMobileNavStore((s) => s.channelSidebarOpen);
   const livekitUrl = getLivekitUrl();
 
-  const { data: channel, isLoading } = useQuery({
+  const { data: community } = useQuery({
+    queryKey: ['community', slug],
+    queryFn: async () => {
+      const res = await api<{ community: Community }>(`/api/communities/${slug}`);
+      return res.community;
+    },
+  });
+
+  const {
+    data: channel,
+    isLoading,
+    error: channelError,
+  } = useQuery({
     queryKey: ['channel', channelId],
     queryFn: async () => {
       const res = await api<{ channel: Channel }>(`/api/channels/${channelId}`);
@@ -44,80 +57,112 @@ export default function ChannelLayout({
     },
   });
 
-  const summarizeMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api<{ summary: string }>(
-        `/api/channels/${channelId}/ai/summarize`,
-        { method: 'POST', body: {} },
-      );
-      return res.summary;
+  const { data: browseChannels = [] } = useQuery({
+    queryKey: ['community-channel-browse', community?.id],
+    enabled: !!community?.id,
+    queryFn: async () => {
+      const res = await api<{
+        uncategorized: Channel[];
+        categories: Array<{ channels: Channel[] }>;
+      }>(`/api/communities/${community!.id}/channels`);
+
+      return [
+        ...(res.uncategorized ?? []),
+        ...(res.categories ?? []).flatMap((category) => category.channels ?? []),
+      ];
     },
   });
-  const { data: communityChannelData } = useQuery({
-    queryKey: ['community-channels', channel?.communityId],
-    enabled: !!channel?.communityId,
-    queryFn: () =>
-      api<{
-        uncategorized: CommunityChannelSummary[];
-        categories: Array<{ channels: CommunityChannelSummary[] }>;
-      }>(`/api/communities/${channel!.communityId}/channels`),
+
+  const lockedBrowseChannel = (() => {
+    if (!(channelError instanceof ApiError) || channelError.status !== 403) {
+      return null;
+    }
+
+    const browseChannel = browseChannels.find((entry) => entry.id === channelId);
+    if (!browseChannel || !shouldRenderBrowseChannel(browseChannel) || !isLockedBrowseChannel(browseChannel)) {
+      return null;
+    }
+
+    return browseChannel;
+  })();
+  const lockedBrowsePresentation = lockedBrowseChannel
+    ? getChannelBrowsePresentation(lockedBrowseChannel)
+    : null;
+
+  const joinCommunityMutation = useMutation({
+    mutationFn: async () => {
+      if (!community?.id) {
+        throw new Error('Community is not loaded');
+      }
+
+      await api(`/api/communities/${community.id}/join`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['channel', channelId] }),
+        queryClient.invalidateQueries({ queryKey: ['community-channel-browse', community?.id] }),
+      ]);
+    },
   });
-
-  const communityVoiceChannels = useMemo(() => {
-    const channels = [
-      ...(communityChannelData?.uncategorized ?? []),
-      ...(communityChannelData?.categories ?? []).flatMap((category) => category.channels ?? []),
-    ];
-    return channels.filter((entry) => entry.type === 'voice');
-  }, [communityChannelData?.categories, communityChannelData?.uncategorized]);
-
-  const voiceParticipantQueries = useQueries({
-    queries: communityVoiceChannels.map((entry) => ({
-      queryKey: ['voice-participants', entry.id],
-      queryFn: () =>
-        api<{ participants: Array<{ userId: string }> }>(
-          `/api/channels/${entry.id}/voice/participants`,
-        ),
-      enabled: true,
-      refetchInterval: 15_000,
-    })),
-  });
-
-  const voiceParticipantCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    communityVoiceChannels.forEach((entry, index) => {
-      counts[entry.id] = voiceParticipantQueries[index]?.data?.participants?.length ?? 0;
-    });
-    return counts;
-  }, [communityVoiceChannels, voiceParticipantQueries]);
-
-  const otherLiveVoiceChannels = useMemo(
-    () =>
-      communityVoiceChannels
-        .filter((entry) => entry.id !== channelId && (voiceParticipantCounts[entry.id] ?? 0) > 0)
-        .sort((left, right) => {
-          const countDelta =
-            (voiceParticipantCounts[right.id] ?? 0) - (voiceParticipantCounts[left.id] ?? 0);
-          if (countDelta !== 0) {
-            return countDelta;
-          }
-          return left.name.localeCompare(right.name, undefined, {
-            sensitivity: 'base',
-            numeric: true,
-          });
-        }),
-    [channelId, communityVoiceChannels, voiceParticipantCounts],
-  );
-
-  const handleSummarize = () => {
-    setShowSummary(true);
-    summarizeMutation.mutate();
-  };
 
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="text-sm text-gray-400">{t('channel.loadingChannel')}</div>
+      </div>
+    );
+  }
+
+  if (lockedBrowseChannel) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+        <div
+          data-testid="channel-layout-locked-prompt"
+          className="w-full max-w-lg rounded-[1.75rem] border border-amber-300/20 bg-amber-400/10 px-6 py-6 text-amber-50 shadow-[0_24px_48px_rgba(2,8,23,0.28)]"
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100/70">
+            {t('channel.lockedPromptTitle')}
+          </p>
+          <h2 className="mt-2 text-lg font-semibold text-white">{lockedBrowseChannel.name}</h2>
+          <p className="mt-3 text-sm leading-6 text-amber-100/90">
+            {t(lockedBrowsePresentation?.lockedPromptBodyKey ?? 'channel.lockedPromptJoinBody')}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {lockedBrowseChannel.lockedReason === 'invite_required' ? (
+              <button
+                type="button"
+                data-testid="channel-layout-open-invite"
+                onClick={() => router.push('/')}
+                className="rounded-xl bg-amber-200 px-3 py-2 text-sm font-semibold text-amber-950 transition hover:bg-white"
+              >
+                {t('channel.lockedPromptInviteAction')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                data-testid="channel-layout-join-community"
+                onClick={() => joinCommunityMutation.mutate()}
+                disabled={joinCommunityMutation.isPending}
+                className="rounded-xl bg-amber-200 px-3 py-2 text-sm font-semibold text-amber-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {joinCommunityMutation.isPending
+                  ? t('channel.lockedPromptJoining')
+                  : t('channel.lockedPromptJoinAction')}
+              </button>
+            )}
+            <Link
+              href={`/communities/${slug}`}
+              className="rounded-xl border border-amber-100/20 px-3 py-2 text-sm font-medium text-amber-100/85 transition hover:bg-white/10 hover:text-white"
+            >
+              {t('common.back')}
+            </Link>
+          </div>
+          {joinCommunityMutation.isError && lockedBrowseChannel.lockedReason !== 'invite_required' && (
+            <p className="mt-3 text-xs text-amber-100/90">{t('channel.lockedPromptJoinFailed')}</p>
+          )}
+        </div>
       </div>
     );
   }
@@ -129,19 +174,6 @@ export default function ChannelLayout({
       </div>
     );
   }
-
-  const sourceDmName = channel.sourceDmConversation?.name?.trim() || null;
-  const sourceDmTypeLabel = channel.sourceDmConversation
-    ? channel.sourceDmConversation.type === 'direct'
-      ? t('dm.oneToOne')
-      : t('dm.group')
-    : null;
-  const sourceDmHeaderLabel = sourceDmTypeLabel
-    ? `${sourceDmTypeLabel} ${t('dm.historyCompact')}`
-    : t('dm.historyCompact');
-  const sourceDmFullLabel = sourceDmName
-    ? `${sourceDmHeaderLabel} · ${sourceDmName}`
-    : sourceDmHeaderLabel;
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -178,20 +210,6 @@ export default function ChannelLayout({
             )}
           </span>
           <div className="truncate text-base font-semibold text-white">{channel.name}</div>
-          {channel.sourceDmConversation && (
-            <span
-              className="hidden shrink-0 rounded-full bg-[#404249] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#dbdee1] sm:inline-flex"
-              title={sourceDmFullLabel}
-            >
-              {sourceDmHeaderLabel}
-            </span>
-          )}
-          {channel.description?.trim() && (
-            <>
-              <span className="shrink-0 text-[#4f545c]">|</span>
-              <p className="truncate text-sm text-[#72767d]">{channel.description.trim()}</p>
-            </>
-          )}
         </div>
 
         {/* Action buttons */}
@@ -218,16 +236,6 @@ export default function ChannelLayout({
             </Link>
           )}
           <button
-            onClick={handleSummarize}
-            disabled={summarizeMutation.isPending}
-            className="rounded-md p-1.5 text-[#72767d] hover:bg-white/10 hover:text-[#dcddde] disabled:opacity-50"
-            title={t('ai.summarize')}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-            </svg>
-          </button>
-          <button
             onClick={() => setShowPinned(!showPinned)}
             className={`rounded-md p-1.5 hover:bg-white/10 ${showPinned ? 'text-white' : 'text-[#72767d] hover:text-[#dcddde]'}`}
             title={t('pin.pinned')}
@@ -247,73 +255,6 @@ export default function ChannelLayout({
           </Link>
         </div>
       </div>
-
-      {/* Live voice rooms bar */}
-      {otherLiveVoiceChannels.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto border-b border-[#202225] bg-[#2f3136] px-4 py-1.5">
-          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[#72767d]">
-            {t('voice.liveRoomsTitle')}
-          </span>
-          {otherLiveVoiceChannels.map((entry) => (
-            <Link
-              key={entry.id}
-              href={`/communities/${slug}/channels/${entry.id}`}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded bg-[#40444b] px-2 py-1 text-xs font-medium text-[#dcddde] hover:bg-[#4f545c]"
-            >
-              <span className="h-2 w-2 rounded-full bg-green-400" />
-              <span>#{entry.name}</span>
-              <span className="rounded bg-green-500/20 px-1 text-[10px] text-green-300">
-                {voiceParticipantCounts[entry.id] ?? 0}
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* DM history bar */}
-      {channel.sourceDmConversation && (
-        <div
-          className="border-b border-[#202225] bg-[#2f3136] px-4 py-2"
-          data-testid="channel-source-dm-bar"
-          data-source-dm-id={channel.sourceDmConversation.id}
-        >
-          <Link
-            href={`/dm/${channel.sourceDmConversation.id}`}
-            data-testid="channel-source-dm-link"
-            className="flex items-center gap-3 text-sm text-[#96989d] hover:text-[#dcddde]"
-          >
-            <span className="rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-400">
-              {t('dm.historyBadge')}
-            </span>
-            <span className="truncate">{sourceDmFullLabel}</span>
-            <span className="ml-auto shrink-0 text-xs text-indigo-400">{t('dm.viewHistory')} →</span>
-          </Link>
-        </div>
-      )}
-
-      {/* AI Summary panel */}
-      {showSummary && (
-        <div className="border-b border-[#202225] bg-[#2f3136] px-4 py-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">{t('ai.summaryTitle')}</h3>
-            <button
-              onClick={() => setShowSummary(false)}
-              className="rounded p-1 text-[#72767d] hover:bg-white/10 hover:text-[#dcddde]"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </button>
-          </div>
-          <div className="mt-2 whitespace-pre-wrap text-sm text-[#96989d]">
-            {summarizeMutation.isPending
-              ? t('ai.summarizing')
-              : summarizeMutation.isError
-                ? t('ai.error')
-                : summarizeMutation.data ?? ''}
-          </div>
-        </div>
-      )}
 
       {showPinned && (
         <PinnedMessages channelId={channelId} onClose={() => setShowPinned(false)} />

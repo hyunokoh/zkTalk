@@ -6,16 +6,23 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
 import { useTranslation } from '@/lib/i18n';
 import { useMobileNavStore } from '@/stores/mobile-nav';
+import { useThreadStore } from '@/stores/thread';
+import { useDmStore } from '@/stores/dm';
 import { CommunityRail } from '@/components/CommunityRail';
 import { ConnectionStatusBar } from '@/components/ConnectionStatusBar';
 import { ToastViewport } from '@/components/ToastViewport';
 import { AIAssistant } from '@/components/AIAssistant/AIAssistant';
 import { AI_SETTINGS_UPDATED_EVENT, isAiAssistantEnabled } from '@/lib/ai-settings';
 import { api } from '@/lib/api';
+import { clearQueue } from '@/lib/offline-queue';
+import { clearCachedUserSettings } from '@/lib/user-settings';
 import { subscribe } from '@/hooks/useWebSocket';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useNotifications } from '@/hooks/useNotifications';
+import { AUTH_SESSION_LOST_EVENT } from '@/lib/session-token';
+import { useOfflineQueueStore } from '@/stores/offline-queue';
 import { useUnreadStore } from '@/stores/unread';
+import { useVoiceStore } from '@/stores/voice';
 import { WebSocketEvent } from '@zktalk/shared';
 import type { Community, User, WSOutgoing } from '@zktalk/shared';
 
@@ -50,11 +57,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const sidebarOpen = useMobileNavStore((s) => s.sidebarOpen);
   const toggleSidebar = useMobileNavStore((s) => s.toggleSidebar);
   const closeSidebar = useMobileNavStore((s) => s.closeSidebar);
+  const closeChannelSidebar = useMobileNavStore((s) => s.closeChannelSidebar);
+  const setDmShowList = useMobileNavStore((s) => s.setDmShowList);
+  const setActiveConversation = useDmStore((s) => s.setActiveConversation);
+  const closeThread = useThreadStore((s) => s.closeThread);
+  const disconnectVoice = useVoiceStore((s) => s.disconnect);
+  const resetUnread = useUnreadStore((s) => s.reset);
+  const resetOfflineQueue = useOfflineQueueStore((s) => s.reset);
   const [desktopRailWidth, setDesktopRailWidth] = useState(DEFAULT_DESKTOP_RAIL_WIDTH);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
-  const [aiAssistantEnabled, setAiAssistantEnabled] = useState(true);
+  const [aiAssistantEnabled, setAiAssistantEnabled] = useState(false);
   const unreadRefreshTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const lastUserRefreshAtRef = useRef(0);
+  const hadAuthenticatedUserRef = useRef(false);
+
+  const resetProtectedUi = useCallback(() => {
+    closeSidebar();
+    closeChannelSidebar();
+    setDmShowList(true);
+    setActiveConversation(null);
+    closeThread();
+    disconnectVoice();
+  }, [closeChannelSidebar, closeSidebar, closeThread, disconnectVoice, setActiveConversation, setDmShowList]);
 
   useWebSocket();
   useNotifications();
@@ -128,6 +152,46 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       window.removeEventListener(AVATAR_VERSION_EVENT, handleAvatarUpdated);
     };
   }, [fetchUser]);
+
+  useEffect(() => {
+    const hadAuthenticatedUser = hadAuthenticatedUserRef.current;
+    hadAuthenticatedUserRef.current = !!user;
+
+    if (isLoading || user || !hadAuthenticatedUser) {
+      return;
+    }
+
+    Object.values(unreadRefreshTimersRef.current).forEach((timer) => clearTimeout(timer));
+    unreadRefreshTimersRef.current = {};
+    queryClient.clear();
+    resetUnread();
+    resetOfflineQueue();
+    clearCachedUserSettings();
+    void clearQueue().catch(() => undefined);
+    lastUserRefreshAtRef.current = 0;
+    resetProtectedUi();
+  }, [isLoading, queryClient, resetOfflineQueue, resetProtectedUi, resetUnread, user]);
+
+  useEffect(() => {
+    const handleAuthSessionLost = () => {
+      Object.values(unreadRefreshTimersRef.current).forEach((timer) => clearTimeout(timer));
+      unreadRefreshTimersRef.current = {};
+      queryClient.clear();
+      resetUnread();
+      resetOfflineQueue();
+      clearCachedUserSettings();
+      void clearQueue().catch(() => undefined);
+      lastUserRefreshAtRef.current = 0;
+      resetProtectedUi();
+      setUser(null);
+    };
+
+    window.addEventListener(AUTH_SESSION_LOST_EVENT, handleAuthSessionLost);
+
+    return () => {
+      window.removeEventListener(AUTH_SESSION_LOST_EVENT, handleAuthSessionLost);
+    };
+  }, [queryClient, resetOfflineQueue, resetProtectedUi, resetUnread, setUser]);
 
   useEffect(() => {
     if (!isLoading && !user) {

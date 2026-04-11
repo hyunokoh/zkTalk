@@ -2,11 +2,13 @@ import { hasPermission, DEFAULT_ROLE_PERMISSIONS, WebSocketEvent } from '@zktalk
 import { uuidv7 } from 'uuidv7';
 import { AppError } from '../../lib/errors.js';
 import { markdownToPlaintext } from '../../lib/markdown.js';
+import { logServerError } from '../../lib/server-log.js';
 import * as repo from './message.repository.js';
 import * as automod from '../automod/automod.service.js';
 import { realtimeService } from '../realtime/realtime.service.js';
 import { incrementMentionCount } from '../unread/unread.repository.js';
 import { sendPushToUsers } from '../push-token/push-token.service.js';
+import { assertCanAccessChannel } from '../channel/channel-access.service.js';
 
 // ---------------------------------------------------------------------------
 // Permission helper (delegates to the channel repo helpers already in this
@@ -109,7 +111,11 @@ async function processMentions(
       }
     } catch (err) {
       // Don't fail message creation if mention processing fails
-      console.error('[Mention] Failed to process mention:', mention, (err as Error).message);
+      logServerError('Mention', 'Failed to process mention', err, {
+        mention,
+        communityId,
+        channelId,
+      });
     }
   }
 }
@@ -158,7 +164,10 @@ async function sendPushNotificationsForMessage(
       },
     });
   } catch (err) {
-    console.error('[Push] Error sending push notifications:', (err as Error).message);
+    logServerError('Push', 'Error sending push notifications', err, {
+      communityId,
+      channelId,
+    });
   }
 }
 
@@ -283,7 +292,11 @@ export async function createMessage(
 
   // Process @mentions asynchronously (don't block message creation)
   processMentions(data.bodyMarkdown, channelId, channel.communityId, userId).catch((err) => {
-    console.error('[Message] Failed to process mentions:', (err as Error).message);
+    logServerError('Message', 'Failed to process mentions', err, {
+      communityId: channel.communityId,
+      channelId,
+      userId,
+    });
   });
 
   // Send push notifications to offline channel members (async, non-blocking)
@@ -293,7 +306,11 @@ export async function createMessage(
     userId,
     bodyPlaintext,
   ).catch((err) => {
-    console.error('[Message] Failed to send push notifications:', (err as Error).message);
+    logServerError('Message', 'Failed to send push notifications', err, {
+      communityId: channel.communityId,
+      channelId,
+      userId,
+    });
   });
 
   // Return with author info
@@ -326,12 +343,7 @@ export async function forwardMessage(
     throw AppError.badRequest('Cannot forward this message type');
   }
 
-  await checkPermission(
-    userId,
-    source.message.communityId,
-    source.message.channelId,
-    'view_channel',
-  );
+  await assertCanAccessChannel(userId, source.message.channelId);
 
   return createMessage(
     userId,
@@ -406,12 +418,7 @@ export async function getMessages(
   limit?: number,
   topic?: string,
 ) {
-  const channel = await repo.findChannelById(channelId);
-  if (!channel) {
-    throw AppError.notFound('Channel not found');
-  }
-
-  await checkPermission(userId, channel.communityId, channelId, 'view_channel');
+  const channel = await assertCanAccessChannel(userId, channelId);
 
   const result = await repo.findMessagesByChannel(channelId, cursor, limit, topic);
 
@@ -438,12 +445,7 @@ export async function getMessages(
  * Get distinct topics for a channel (Zulip-style topic threading).
  */
 export async function getChannelTopics(userId: string, channelId: string) {
-  const channel = await repo.findChannelById(channelId);
-  if (!channel) {
-    throw AppError.notFound('Channel not found');
-  }
-
-  await checkPermission(userId, channel.communityId, channelId, 'view_channel');
+  await assertCanAccessChannel(userId, channelId);
 
   return repo.findDistinctTopics(channelId);
 }
@@ -526,13 +528,7 @@ export async function getMessage(userId: string, messageId: string) {
     throw AppError.notFound('Message not found');
   }
 
-  // Verify user can view the channel
-  await checkPermission(
-    userId,
-    existing.message.communityId,
-    existing.message.channelId,
-    'view_channel',
-  );
+  await assertCanAccessChannel(userId, existing.message.channelId);
 
   return existing;
 }

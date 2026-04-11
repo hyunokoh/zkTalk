@@ -1,10 +1,14 @@
+import { randomUUID } from 'node:crypto';
 import { WebSocket } from 'ws';
 import { eq, and } from 'drizzle-orm';
 import { redis, redisSub } from '../../lib/redis.js';
 import { db } from '../../lib/db/index.js';
-import { channels, communityMemberships } from '../../lib/db/schema.js';
+import { communityMemberships } from '../../lib/db/schema.js';
+import { logServerError } from '../../lib/server-log.js';
 import { WebSocketEvent } from '@zktalk/shared';
 import type { RedisPubSubMessage, WSOutgoing } from '@zktalk/shared';
+import * as dmRepo from '../dm/dm.repository.js';
+import { assertCanAccessChannel } from '../channel/channel-access.service.js';
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -13,6 +17,7 @@ export interface ConnectedClient {
   userId: string;
   subscribedChannels: Set<string>;
   subscribedCommunities: Set<string>;
+  subscribedDms: Set<string>;
 }
 
 // ── Redis key helpers ───────────────────────────────────────────────
@@ -36,6 +41,7 @@ class RealtimeService {
   private clients: Map<string, Set<ConnectedClient>> = new Map();
 
   private redisSubInitialized = false;
+  private readonly instanceId = randomUUID();
 
   // ── Client lifecycle ────────────────────────────────────────────
 
@@ -45,6 +51,7 @@ class RealtimeService {
       userId,
       subscribedChannels: new Set(),
       subscribedCommunities: new Set(),
+      subscribedDms: new Set(),
     };
 
     let userClients = this.clients.get(userId);
@@ -68,6 +75,10 @@ class RealtimeService {
       this.unsubscribeFromCommunity(client, communityId);
     }
 
+    for (const conversationId of client.subscribedDms) {
+      this.unsubscribeFromDm(client, conversationId);
+    }
+
     const userClients = this.clients.get(client.userId);
     if (userClients) {
       userClients.delete(client);
@@ -79,32 +90,42 @@ class RealtimeService {
 
   // ── Channel subscriptions ───────────────────────────────────────
 
+  private sendSocketEnvelope(
+    client: ConnectedClient,
+    envelope: {
+      event: string;
+      data: unknown;
+      channelId?: string;
+      communityId?: string;
+      conversationId?: string;
+    },
+  ): void {
+    if (client.ws.readyState !== client.ws.OPEN) {
+      return;
+    }
+
+    client.ws.send(
+      JSON.stringify({
+        ...envelope,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+  }
+
   async subscribeToChannel(client: ConnectedClient, channelId: string): Promise<void> {
     try {
-      // Verify the user has access to this channel's community
-      const [channel] = await db
-        .select({ communityId: channels.communityId })
-        .from(channels)
-        .where(eq(channels.id, channelId))
-        .limit(1);
-
-      if (!channel) return;
-
-      const [membership] = await db
-        .select({ id: communityMemberships.id })
-        .from(communityMemberships)
-        .where(
-          and(
-            eq(communityMemberships.userId, client.userId),
-            eq(communityMemberships.communityId, channel.communityId),
-            eq(communityMemberships.membershipStatus, 'active'),
-          ),
-        )
-        .limit(1);
-
-      if (!membership) return;
+      await assertCanAccessChannel(client.userId, channelId);
     } catch {
-      // If DB is unavailable, allow subscription (graceful degradation)
+      client.subscribedChannels.delete(channelId);
+      this.sendSocketEnvelope(client, {
+        event: 'error',
+        channelId,
+        data: {
+          code: 'CHANNEL_ACCESS_DENIED',
+          message: 'You are not allowed to subscribe to this channel',
+        },
+      });
+      return;
     }
 
     client.subscribedChannels.add(channelId);
@@ -112,6 +133,10 @@ class RealtimeService {
 
   unsubscribeFromChannel(client: ConnectedClient, channelId: string): void {
     client.subscribedChannels.delete(channelId);
+  }
+
+  isSubscribedToChannel(client: ConnectedClient, channelId: string): boolean {
+    return client.subscribedChannels.has(channelId);
   }
 
   // ── Community subscriptions ─────────────────────────────────────
@@ -156,6 +181,51 @@ class RealtimeService {
     }
   }
 
+  // ── DM subscriptions ────────────────────────────────────────────
+
+  async subscribeToDm(client: ConnectedClient, conversationId: string): Promise<void> {
+    try {
+      const isParticipant = await dmRepo.isParticipant(conversationId, client.userId);
+      if (!isParticipant) {
+        return;
+      }
+    } catch {
+      // Graceful degradation if DB unavailable
+    }
+
+    client.subscribedDms.add(conversationId);
+  }
+
+  unsubscribeFromDm(client: ConnectedClient, conversationId: string): void {
+    client.subscribedDms.delete(conversationId);
+  }
+
+  async requestChannelPeerFile(
+    client: ConnectedClient,
+    channelId: string,
+    fileId: string,
+  ): Promise<boolean> {
+    try {
+      await assertCanAccessChannel(client.userId, channelId);
+    } catch {
+      this.unsubscribeFromChannel(client, channelId);
+      return false;
+    }
+
+    if (!this.isSubscribedToChannel(client, channelId)) {
+      return false;
+    }
+
+    this.broadcastToChannel(
+      channelId,
+      'p2p.file_request',
+      { fileId, requesterId: client.userId },
+      client.userId,
+    );
+
+    return true;
+  }
+
   // ── Broadcasting ────────────────────────────────────────────────
 
   /**
@@ -173,12 +243,19 @@ class RealtimeService {
       data: payload,
       channelId,
       excludeUserId,
+      sourceInstanceId: this.instanceId,
     };
+
+    this.deliverToChannelSubscribers(
+      channelId,
+      this.buildOutgoingRaw(message),
+      excludeUserId,
+    );
 
     redis
       .publish(redisKey.channel(channelId), JSON.stringify(message))
       .catch((err) => {
-        console.error('[Realtime] Failed to publish to channel:', err.message);
+        logServerError('Realtime', 'Failed to publish to channel', err, { channelId });
       });
   }
 
@@ -194,12 +271,18 @@ class RealtimeService {
       event,
       data: payload,
       communityId,
+      sourceInstanceId: this.instanceId,
     };
+
+    this.deliverToCommunitySubscribers(
+      communityId,
+      this.buildOutgoingRaw(message),
+    );
 
     redis
       .publish(redisKey.community(communityId), JSON.stringify(message))
       .catch((err) => {
-        console.error('[Realtime] Failed to publish to community:', err.message);
+        logServerError('Realtime', 'Failed to publish to community', err, { communityId });
       });
   }
 
@@ -244,7 +327,7 @@ class RealtimeService {
         status: 'online',
       });
     } catch (err) {
-      console.error('[Realtime] setOnline failed:', (err as Error).message);
+      logServerError('Realtime', 'setOnline failed', err, { communityId, userId });
     }
   }
 
@@ -258,7 +341,7 @@ class RealtimeService {
         status: 'offline',
       });
     } catch (err) {
-      console.error('[Realtime] setOffline failed:', (err as Error).message);
+      logServerError('Realtime', 'setOffline failed', err, { communityId, userId });
     }
   }
 
@@ -266,7 +349,7 @@ class RealtimeService {
     try {
       return await redis.smembers(redisKey.presence(communityId));
     } catch (err) {
-      console.error('[Realtime] getOnlineUsers failed:', (err as Error).message);
+      logServerError('Realtime', 'getOnlineUsers failed', err, { communityId });
       return [];
     }
   }
@@ -333,13 +416,13 @@ class RealtimeService {
         const message: RedisPubSubMessage = JSON.parse(raw);
         this.handleRedisMessage(redisChannel, message);
       } catch (err) {
-        console.error('[Realtime] Failed to parse Redis message:', (err as Error).message);
+        logServerError('Realtime', 'Failed to parse Redis message', err);
       }
     });
 
     // Subscribe to all channel and community patterns
     redisSub.psubscribe('ws:channel:*', 'ws:community:*').catch((err) => {
-      console.error('[Realtime] Failed to psubscribe:', err.message);
+      logServerError('Realtime', 'Failed to psubscribe', err);
     });
   }
 
@@ -347,14 +430,11 @@ class RealtimeService {
     redisChannel: string,
     message: RedisPubSubMessage,
   ): void {
-    const outgoing: WSOutgoing = {
-      event: message.event as WSOutgoing['event'],
-      data: message.data,
-      channelId: message.channelId,
-      communityId: message.communityId,
-      timestamp: new Date().toISOString(),
-    };
-    const raw = JSON.stringify(outgoing);
+    if (message.sourceInstanceId && message.sourceInstanceId === this.instanceId) {
+      return;
+    }
+
+    const raw = this.buildOutgoingRaw(message);
 
     if (redisChannel.startsWith('ws:channel:')) {
       const channelId = redisChannel.slice('ws:channel:'.length);
@@ -391,6 +471,19 @@ class RealtimeService {
         }
       }
     }
+  }
+
+  private buildOutgoingRaw(message: RedisPubSubMessage): string {
+    const outgoing: WSOutgoing = {
+      event: message.event as WSOutgoing['event'],
+      data: message.data,
+      channelId: message.channelId,
+      communityId: message.communityId,
+      conversationId: message.conversationId,
+      timestamp: new Date().toISOString(),
+    };
+
+    return JSON.stringify(outgoing);
   }
 
   // ── Helpers ─────────────────────────────────────────────────────

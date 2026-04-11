@@ -1,12 +1,35 @@
 import React from 'react';
 import { act, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AppLayout from '../layout';
+
+const { mockClearOfflineQueue, mockClearCachedUserSettings } = vi.hoisted(() => ({
+  mockClearOfflineQueue: vi.fn(async () => undefined),
+  mockClearCachedUserSettings: vi.fn(),
+}));
 
 const mockReplace = vi.fn();
 const mockFetchUser = vi.fn();
 const mockSetUser = vi.fn();
+const mockClear = vi.fn();
+const mockResetUnread = vi.fn();
+const mockResetOfflineQueue = vi.fn();
+const mockCloseSidebar = vi.fn();
+const mockCloseChannelSidebar = vi.fn();
+const mockSetDmShowList = vi.fn();
+const mockSetActiveConversation = vi.fn();
+const mockCloseThread = vi.fn();
+const mockDisconnectVoice = vi.fn();
 let profileUpdatedHandler: ((message: { data?: unknown }) => void) | null = null;
+let currentUser: {
+  displayName: string;
+  username: string;
+  avatarUrl: null;
+} | null = {
+  displayName: 'Alice Example',
+  username: 'alice',
+  avatarUrl: null,
+};
 
 vi.mock('next/link', () => ({
   default: ({
@@ -30,6 +53,11 @@ vi.mock('next/navigation', () => ({
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({
     invalidateQueries: vi.fn(),
+    clear: mockClear,
+  }),
+  useMutation: () => ({
+    mutate: vi.fn(),
+    isPending: false,
   }),
   useQuery: ({ queryKey }: { queryKey?: unknown[] }) => {
     const key = queryKey?.[0];
@@ -65,17 +93,13 @@ vi.mock('@tanstack/react-query', () => ({
 
 vi.mock('@/stores/auth', () => ({
   useAuthStore: (selector: (state: {
-    user: { displayName: string; username: string; avatarUrl: null } | null;
+    user: typeof currentUser;
     isLoading: boolean;
     fetchUser: typeof mockFetchUser;
     setUser: typeof mockSetUser;
   }) => unknown) =>
     selector({
-      user: {
-        displayName: 'Alice Example',
-        username: 'alice',
-        avatarUrl: null,
-      },
+      user: currentUser,
       isLoading: false,
       fetchUser: mockFetchUser,
       setUser: mockSetUser,
@@ -86,12 +110,63 @@ vi.mock('@/stores/mobile-nav', () => ({
   useMobileNavStore: (selector: (state: {
     sidebarOpen: boolean;
     toggleSidebar: () => void;
-    closeSidebar: () => void;
+    closeSidebar: typeof mockCloseSidebar;
+    closeChannelSidebar: typeof mockCloseChannelSidebar;
+    setDmShowList: typeof mockSetDmShowList;
   }) => unknown) =>
     selector({
       sidebarOpen: false,
       toggleSidebar: vi.fn(),
-      closeSidebar: vi.fn(),
+      closeSidebar: mockCloseSidebar,
+      closeChannelSidebar: mockCloseChannelSidebar,
+      setDmShowList: mockSetDmShowList,
+    }),
+}));
+
+vi.mock('@/stores/thread', () => ({
+  useThreadStore: (selector: (state: {
+    closeThread: typeof mockCloseThread;
+  }) => unknown) =>
+    selector({
+      closeThread: mockCloseThread,
+    }),
+}));
+
+vi.mock('@/stores/dm', () => ({
+  useDmStore: (selector: (state: {
+    setActiveConversation: typeof mockSetActiveConversation;
+  }) => unknown) =>
+    selector({
+      setActiveConversation: mockSetActiveConversation,
+    }),
+}));
+
+vi.mock('@/stores/unread', () => ({
+  useUnreadStore: (selector: (state: {
+    fetchUnread: (communityId: string) => Promise<void>;
+    reset: typeof mockResetUnread;
+  }) => unknown) =>
+    selector({
+      fetchUnread: vi.fn(async () => undefined),
+      reset: mockResetUnread,
+    }),
+}));
+
+vi.mock('@/stores/offline-queue', () => ({
+  useOfflineQueueStore: (selector: (state: {
+    reset: typeof mockResetOfflineQueue;
+  }) => unknown) =>
+    selector({
+      reset: mockResetOfflineQueue,
+    }),
+}));
+
+vi.mock('@/stores/voice', () => ({
+  useVoiceStore: (selector: (state: {
+    disconnect: typeof mockDisconnectVoice;
+  }) => unknown) =>
+    selector({
+      disconnect: mockDisconnectVoice,
     }),
 }));
 
@@ -99,6 +174,18 @@ vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
+}));
+
+vi.mock('@/lib/offline-queue', () => ({
+  clearQueue: mockClearOfflineQueue,
+}));
+
+vi.mock('@/lib/user-settings', () => ({
+  clearCachedUserSettings: mockClearCachedUserSettings,
+}));
+
+vi.mock('@/lib/session-token', () => ({
+  AUTH_SESSION_LOST_EVENT: 'zktalk-auth-session-lost',
 }));
 
 vi.mock('@/components/CommunityRail', () => ({
@@ -141,6 +228,29 @@ vi.mock('@/hooks/useNotifications', () => ({
 }));
 
 describe('AppLayout', () => {
+  beforeEach(() => {
+    currentUser = {
+      displayName: 'Alice Example',
+      username: 'alice',
+      avatarUrl: null,
+    };
+    mockClear.mockReset();
+    mockResetUnread.mockReset();
+    mockResetOfflineQueue.mockReset();
+    mockCloseSidebar.mockReset();
+    mockCloseChannelSidebar.mockReset();
+    mockSetDmShowList.mockReset();
+    mockSetActiveConversation.mockReset();
+    mockCloseThread.mockReset();
+    mockDisconnectVoice.mockReset();
+    mockClearCachedUserSettings.mockReset();
+    mockClearOfflineQueue.mockClear();
+    mockReplace.mockReset();
+    mockFetchUser.mockReset();
+    mockSetUser.mockReset();
+    profileUpdatedHandler = null;
+  });
+
   it('passes summary badges into the sidebar rail and keeps the layout shell visible', () => {
     render(
       <AppLayout>
@@ -184,5 +294,57 @@ describe('AppLayout', () => {
       avatarUrl: 'http://127.0.0.1:4000/api/upload/assets/users/user-1/avatar.png',
       bio: null,
     });
+  });
+
+  it('clears cached authenticated state when the user session disappears', () => {
+    const view = render(
+      <AppLayout>
+        <div>ChildContent</div>
+      </AppLayout>,
+    );
+
+    currentUser = null;
+    view.rerender(
+      <AppLayout>
+        <div>ChildContent</div>
+      </AppLayout>,
+    );
+
+    expect(mockClear).toHaveBeenCalled();
+    expect(mockResetUnread).toHaveBeenCalled();
+    expect(mockResetOfflineQueue).toHaveBeenCalled();
+    expect(mockClearCachedUserSettings).toHaveBeenCalled();
+    expect(mockCloseSidebar).toHaveBeenCalled();
+    expect(mockCloseChannelSidebar).toHaveBeenCalled();
+    expect(mockSetDmShowList).toHaveBeenCalledWith(true);
+    expect(mockSetActiveConversation).toHaveBeenCalledWith(null);
+    expect(mockCloseThread).toHaveBeenCalled();
+    expect(mockDisconnectVoice).toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith('/login?next=%2Fhome');
+  });
+
+  it('handles a global auth loss event by clearing cached state and dropping the user', () => {
+    render(
+      <AppLayout>
+        <div>ChildContent</div>
+      </AppLayout>,
+    );
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent('zktalk-auth-session-lost'));
+    });
+
+    expect(mockClear).toHaveBeenCalled();
+    expect(mockResetUnread).toHaveBeenCalled();
+    expect(mockResetOfflineQueue).toHaveBeenCalled();
+    expect(mockClearCachedUserSettings).toHaveBeenCalled();
+    expect(mockClearOfflineQueue).toHaveBeenCalled();
+    expect(mockCloseSidebar).toHaveBeenCalled();
+    expect(mockCloseChannelSidebar).toHaveBeenCalled();
+    expect(mockSetDmShowList).toHaveBeenCalledWith(true);
+    expect(mockSetActiveConversation).toHaveBeenCalledWith(null);
+    expect(mockCloseThread).toHaveBeenCalled();
+    expect(mockDisconnectVoice).toHaveBeenCalled();
+    expect(mockSetUser).toHaveBeenCalledWith(null);
   });
 });

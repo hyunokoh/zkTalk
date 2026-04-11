@@ -38,6 +38,10 @@ function getCollapsedBody(body: string): string {
   return truncated.length === body.trimEnd().length ? truncated : `${truncated}…`;
 }
 
+function formatUnreadCount(readCount: number): string {
+  return String(Math.min(99, Math.max(0, Math.trunc(readCount))));
+}
+
 interface MessageBubbleProps {
   authorName: string;
   authorAvatarUrl?: string | null;
@@ -107,13 +111,18 @@ const MessageBubble = memo(function MessageBubble({
   const hasBubbleContent = Boolean(
     body || replyBody || poll || translatedBody || threadButtonLabel,
   );
+  const hasReactions = Boolean(reactions?.length);
   const meta = (
     <>
-      {isOwn && readCount !== undefined && readCount > 0 ? (
-        <Text style={styles.readCount}>{readCount}</Text>
+      {readCount !== undefined && readCount > 0 ? (
+        <Text style={styles.readCount}>{formatUnreadCount(readCount)}</Text>
       ) : null}
-      {isEdited && editedLabel ? <Text style={styles.time}>{editedLabel}</Text> : null}
-      <Text style={styles.time}>{time}</Text>
+      {!hasReactions ? (
+        <>
+          {isEdited && editedLabel ? <Text style={styles.time}>{editedLabel}</Text> : null}
+          <Text style={styles.time}>{time}</Text>
+        </>
+      ) : null}
     </>
   );
 
@@ -136,142 +145,170 @@ const MessageBubble = memo(function MessageBubble({
         {!isOwn && showAuthorName ? <Text style={styles.authorName}>{authorName}</Text> : null}
         {topic ? <Text style={styles.topicBadge}>{topic}</Text> : null}
 
-        <View style={[styles.bubbleRow, isOwn && styles.bubbleRowOwn]}>
-          {hasBubbleContent ? (
-            <View style={styles.bubbleWrap}>
-              {endsGroup ? (
-                <View
-                  style={[
-                    styles.tail,
-                    isOwn ? styles.tailOwn : styles.tailOther,
-                    isOwn ? styles.tailOwnColor : styles.tailOtherColor,
-                  ]}
-                />
-              ) : null}
-
-              <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
-                {replyBody ? (
-                  <View style={styles.replyPreview}>
-                    {replyAuthorName ? (
-                      <Text style={styles.replyAuthor} numberOfLines={1}>
-                        {replyAuthorName}
-                      </Text>
-                    ) : null}
-                    <Text style={styles.replyBody} numberOfLines={1}>
-                      {replyBody}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {body ? (
-                  <>
-                    <Text style={styles.body}>
-                      {isEncrypted ? '\u{1F512} ' : ''}
-                      {displayBody}
-                    </Text>
-                    {isLongMessage(body) ? (
-                      <TouchableOpacity onPress={() => setIsExpanded((prev) => !prev)} activeOpacity={0.8} style={styles.longMessageButton}>
-                        <Text style={styles.longMessageButtonText}>{isExpanded ? 'Show less' : 'Show more'}</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                  </>
-                ) : null}
-
-                {poll ? (
-                  <View style={styles.pollCard}>
-                    <View style={styles.pollHeader}>
-                      <Text style={styles.pollBadge}>{'\u{1F5F3}'}</Text>
-                      <Text style={styles.pollQuestion}>{poll.question}</Text>
-                    </View>
-                    {poll.options.map((option) => {
-                      const percentage =
-                        poll.totalVotes > 0 ? Math.round((option.voteCount / poll.totalVotes) * 100) : 0;
-                      return (
-                        <TouchableOpacity
-                          key={option.id}
-                          activeOpacity={onPressPollOption ? 0.8 : 1}
-                          disabled={!onPressPollOption || poll.closed}
-                          onPress={() => onPressPollOption?.(option.id, option.voted)}
-                          style={[
-                            styles.pollOption,
-                            option.voted && styles.pollOptionActive,
-                            poll.closed && styles.pollOptionClosed,
-                          ]}
-                        >
-                          <View
-                            style={[
-                              styles.pollOptionFill,
-                              option.voted ? styles.pollOptionFillActive : styles.pollOptionFillInactive,
-                              { width: `${percentage}%` },
-                            ]}
-                          />
-                          <View style={styles.pollOptionRow}>
-                            <Text
-                              style={[
-                                styles.pollOptionText,
-                                option.voted && styles.pollOptionTextActive,
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {option.text}
-                            </Text>
-                            <Text style={styles.pollOptionMeta}>
-                              {percentage}% ({option.voteCount})
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                    {poll.footerLabel ? <Text style={styles.pollFooter}>{poll.footerLabel}</Text> : null}
-                  </View>
-                ) : null}
-
-                {translatedBody ? (
-                  <View style={styles.translatedWrap}>
-                    {translatedLabel ? (
-                      <Text style={styles.translatedLabel}>{translatedLabel}</Text>
-                    ) : null}
-                    <Text style={styles.translatedBody}>{translatedBody}</Text>
-                  </View>
-                ) : null}
-
-                {threadButtonLabel ? (
-                  <TouchableOpacity
-                    style={styles.threadButton}
-                    activeOpacity={onPressThread ? 0.75 : 1}
-                    disabled={!onPressThread}
-                    onPress={onPressThread}
-                  >
-                    <Text style={styles.threadButtonText}>{threadButtonLabel}</Text>
-                  </TouchableOpacity>
-                ) : null}
+        <View style={[styles.bubbleStack, isOwn && styles.bubbleStackOwn]}>
+          <View style={[styles.bubbleRow, isOwn && styles.bubbleRowOwn]}>
+            {isOwn ? (
+              <View style={[styles.metaColumn, styles.metaColumnOwn, !hasBubbleContent && styles.metaColumnOnly]}>
+                {meta}
               </View>
-            </View>
-          ) : null}
+            ) : null}
+            {hasBubbleContent ? (
+              <View style={styles.bubbleWrap}>
+                {endsGroup ? (
+                  <View
+                    style={[
+                      styles.tail,
+                      isOwn ? styles.tailOwn : styles.tailOther,
+                      isOwn ? styles.tailOwnColor : styles.tailOtherColor,
+                    ]}
+                  />
+                ) : null}
 
-          <View style={[styles.meta, isOwn && styles.metaOwn, !hasBubbleContent && styles.metaOnly]}>
-            {meta}
+                <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
+                  {replyBody ? (
+                    <View style={styles.replyPreview}>
+                      {replyAuthorName ? (
+                        <Text style={styles.replyAuthor} numberOfLines={1}>
+                          {replyAuthorName}
+                        </Text>
+                      ) : null}
+                      <Text style={styles.replyBody} numberOfLines={1}>
+                        {replyBody}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {body ? (
+                    <>
+                      <Text style={styles.body}>
+                        {isEncrypted ? '\u{1F512} ' : ''}
+                        {displayBody}
+                      </Text>
+                      {isLongMessage(body) ? (
+                        <TouchableOpacity onPress={() => setIsExpanded((prev) => !prev)} activeOpacity={0.8} style={styles.longMessageButton}>
+                          <Text style={styles.longMessageButtonText}>{isExpanded ? 'Show less' : 'Show more'}</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  {poll ? (
+                    <View style={styles.pollCard}>
+                      <View style={styles.pollHeader}>
+                        <Text style={styles.pollBadge}>{'\u{1F5F3}'}</Text>
+                        <Text style={styles.pollQuestion}>{poll.question}</Text>
+                      </View>
+                      {poll.options.map((option) => {
+                        const percentage =
+                          poll.totalVotes > 0 ? Math.round((option.voteCount / poll.totalVotes) * 100) : 0;
+                        return (
+                          <TouchableOpacity
+                            key={option.id}
+                            activeOpacity={onPressPollOption ? 0.8 : 1}
+                            disabled={!onPressPollOption || poll.closed}
+                            onPress={() => onPressPollOption?.(option.id, option.voted)}
+                            style={[
+                              styles.pollOption,
+                              option.voted && styles.pollOptionActive,
+                              poll.closed && styles.pollOptionClosed,
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.pollOptionFill,
+                                option.voted ? styles.pollOptionFillActive : styles.pollOptionFillInactive,
+                                { width: `${percentage}%` },
+                              ]}
+                            />
+                            <View style={styles.pollOptionRow}>
+                              <Text
+                                style={[
+                                  styles.pollOptionText,
+                                  option.voted && styles.pollOptionTextActive,
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {option.text}
+                              </Text>
+                              <Text style={styles.pollOptionMeta}>
+                                {percentage}% ({option.voteCount})
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                      {poll.footerLabel ? <Text style={styles.pollFooter}>{poll.footerLabel}</Text> : null}
+                    </View>
+                  ) : null}
+
+                  {translatedBody ? (
+                    <View style={styles.translatedWrap}>
+                      {translatedLabel ? (
+                        <Text style={styles.translatedLabel}>{translatedLabel}</Text>
+                      ) : null}
+                      <Text style={styles.translatedBody}>{translatedBody}</Text>
+                    </View>
+                  ) : null}
+
+                  {threadButtonLabel ? (
+                    <TouchableOpacity
+                      style={styles.threadButton}
+                      activeOpacity={onPressThread ? 0.75 : 1}
+                      disabled={!onPressThread}
+                      onPress={onPressThread}
+                    >
+                      <Text style={styles.threadButtonText}>{threadButtonLabel}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
+            {!isOwn ? (
+              <View style={[styles.metaColumn, styles.metaColumnOther, !hasBubbleContent && styles.metaColumnOnly]}>
+                {meta}
+              </View>
+            ) : null}
           </View>
-        </View>
 
-        {reactions && reactions.length > 0 ? (
-          <View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
-            {reactions.map((reaction) => (
-              <TouchableOpacity
-                key={reaction.emoji}
-                activeOpacity={onPressReaction ? 0.7 : 1}
-                disabled={!onPressReaction}
-                onPress={() => onPressReaction?.(reaction.emoji)}
-                style={[
-                  styles.reactionChip,
-                  reaction.reactedByMe && styles.reactionChipActive,
-                ]}
-              >
-                <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
-                <Text style={styles.reactionCount}>{reaction.count}</Text>
-              </TouchableOpacity>
-            ))}
-            {showActionChips && onPressAddReaction ? (
+          {reactions && reactions.length > 0 ? (
+            <View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
+              {reactions.map((reaction) => (
+                <TouchableOpacity
+                  key={reaction.emoji}
+                  activeOpacity={onPressReaction ? 0.7 : 1}
+                  disabled={!onPressReaction}
+                  onPress={() => onPressReaction?.(reaction.emoji)}
+                  style={[
+                    styles.reactionChip,
+                    reaction.reactedByMe && styles.reactionChipActive,
+                  ]}
+                >
+                  <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
+                  <Text style={styles.reactionCount}>{reaction.count}</Text>
+                </TouchableOpacity>
+              ))}
+              {showActionChips && onPressAddReaction ? (
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={onPressAddReaction}
+                  style={styles.reactionAddChip}
+                >
+                  <Text style={styles.reactionAddEmoji}>{'\u{1F60A}'}</Text>
+                  <Text style={styles.reactionAddLabel}>+</Text>
+                </TouchableOpacity>
+              ) : null}
+              {showActionChips && onPressMore ? (
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={onPressMore}
+                  style={styles.reactionMoreChip}
+                >
+                  <Text style={styles.reactionMoreLabel}>{'\u{22EF}'}</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : showActionChips && onPressAddReaction ? (
+            <View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
               <TouchableOpacity
                 activeOpacity={0.75}
                 onPress={onPressAddReaction}
@@ -280,8 +317,18 @@ const MessageBubble = memo(function MessageBubble({
                 <Text style={styles.reactionAddEmoji}>{'\u{1F60A}'}</Text>
                 <Text style={styles.reactionAddLabel}>+</Text>
               </TouchableOpacity>
-            ) : null}
-            {showActionChips && onPressMore ? (
+              {onPressMore ? (
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={onPressMore}
+                  style={styles.reactionMoreChip}
+                >
+                  <Text style={styles.reactionMoreLabel}>{'\u{22EF}'}</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : showActionChips && onPressMore ? (
+            <View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
               <TouchableOpacity
                 activeOpacity={0.75}
                 onPress={onPressMore}
@@ -289,39 +336,9 @@ const MessageBubble = memo(function MessageBubble({
               >
                 <Text style={styles.reactionMoreLabel}>{'\u{22EF}'}</Text>
               </TouchableOpacity>
-            ) : null}
-          </View>
-        ) : showActionChips && onPressAddReaction ? (
-          <View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={onPressAddReaction}
-              style={styles.reactionAddChip}
-            >
-              <Text style={styles.reactionAddEmoji}>{'\u{1F60A}'}</Text>
-              <Text style={styles.reactionAddLabel}>+</Text>
-            </TouchableOpacity>
-            {onPressMore ? (
-              <TouchableOpacity
-                activeOpacity={0.75}
-                onPress={onPressMore}
-                style={styles.reactionMoreChip}
-              >
-                <Text style={styles.reactionMoreLabel}>{'\u{22EF}'}</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        ) : showActionChips && onPressMore ? (
-          <View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={onPressMore}
-              style={styles.reactionMoreChip}
-            >
-              <Text style={styles.reactionMoreLabel}>{'\u{22EF}'}</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+            </View>
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -356,6 +373,7 @@ const styles = StyleSheet.create({
   },
   contentOwn: {
     alignItems: 'flex-end',
+    alignSelf: 'flex-end',
   },
   authorName: {
     marginBottom: 3,
@@ -379,9 +397,18 @@ const styles = StyleSheet.create({
   bubbleRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    gap: 1,
   },
   bubbleRowOwn: {
-    flexDirection: 'row-reverse',
+    justifyContent: 'flex-end',
+    alignSelf: 'flex-end',
+  },
+  bubbleStack: {
+    alignItems: 'flex-start',
+  },
+  bubbleStackOwn: {
+    alignItems: 'flex-end',
+    alignSelf: 'flex-end',
   },
   bubbleWrap: {
     position: 'relative',
@@ -658,19 +685,19 @@ const styles = StyleSheet.create({
     fontSize: fs.sm,
     fontWeight: '600',
   },
-  meta: {
-    flexDirection: 'row',
-    gap: 5,
-    marginTop: 4,
-    marginHorizontal: 6,
+  metaColumn: {
+    minWidth: 14,
+    alignSelf: 'flex-end',
+    gap: 1,
+  },
+  metaColumnOther: {
     alignItems: 'flex-start',
   },
-  metaOwn: {
+  metaColumnOwn: {
     alignItems: 'flex-end',
-    justifyContent: 'flex-end',
   },
-  metaOnly: {
-    marginTop: 0,
+  metaColumnOnly: {
+    paddingBottom: 2,
   },
   time: {
     color: colors.talkMeta,
@@ -678,13 +705,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   readCount: {
-    color: '#111827',
+    color: colors.talkMeta,
     fontSize: 10,
     fontWeight: '800',
-    backgroundColor: '#f59e0b',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
   },
 });

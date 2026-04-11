@@ -99,6 +99,9 @@ export function OnboardingModal({
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {t('community.onboardingDefaultChannelsHint')}
             </p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {t('community.onboardingDefaultChannelsPolicyHint')}
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {starterChannels.map((channel) => (
                 <button

@@ -15,6 +15,7 @@ const statusScriptPath = path.join(rootDir, 'scripts', 'manual-smoke-status.mjs'
 const desktopCachePath = path.join(tmpDir, 'desktop-harness-last-e2e.json');
 const desktopResultPath = path.join(tmpDir, 'desktop-harness-last-result.json');
 const mobileCachePath = path.join(tmpDir, 'mobile-harness-last-e2e.json');
+const e2eSeedCachePath = path.join(tmpDir, 'e2e', 'ui-seed-v2.json');
 const uiSmokePlaywrightWebResultPath = path.join(tmpDir, 'ui-smoke-playwright-web-last-result.json');
 const uiSmokePlaywrightDesktopResultPath = path.join(tmpDir, 'ui-smoke-playwright-desktop-last-result.json');
 const uiSmokeMobileResultPath = path.join(tmpDir, 'ui-smoke-mobile-last-result.json');
@@ -42,7 +43,9 @@ function readJsonIfExists(filePath) {
 }
 
 function getPrimaryCache() {
-  return readJsonIfExists(desktopCachePath) ?? readJsonIfExists(mobileCachePath);
+  return readJsonIfExists(desktopCachePath)
+    ?? readJsonIfExists(mobileCachePath)
+    ?? readJsonIfExists(e2eSeedCachePath);
 }
 
 function buildLine(label, value) {
@@ -151,12 +154,12 @@ function buildBrief(cache) {
   const communitySlug = cache.communitySlug ?? '';
   const channelId = cache.channelId ?? '';
   const harnessConversationId = cache.harnessConversationId ?? cache.conversationId ?? '';
-  const webCommunity = communitySlug ? `http://127.0.0.1:3000/communities/${communitySlug}` : '';
+  const webCommunity = communitySlug ? `http://localhost:3000/communities/${communitySlug}` : '';
   const webChannel =
     communitySlug && channelId
-      ? `http://127.0.0.1:3000/communities/${communitySlug}/channels/${channelId}`
+      ? `http://localhost:3000/communities/${communitySlug}/channels/${channelId}`
       : '';
-  const webDm = harnessConversationId ? `http://127.0.0.1:3000/dm/${harnessConversationId}` : '';
+  const webDm = harnessConversationId ? `http://localhost:3000/dm/${harnessConversationId}` : '';
   const desktopChannelDeepLink = (() => {
     if (!cache.userB?.sessionToken || !communitySlug || !channelId) return '(missing)';
     const params = new URLSearchParams({
@@ -222,9 +225,9 @@ Generated from current cached QA data.
 
 ## Runtime
 
-${buildLine('Web login', 'http://127.0.0.1:3000/login')}
-${buildLine('Web home', 'http://127.0.0.1:3000/home')}
-${buildLine('API health', 'http://127.0.0.1:4000/api/health')}
+${buildLine('Web login', 'http://localhost:3000/login')}
+${buildLine('Web home', 'http://localhost:3000/home')}
+${buildLine('API health', 'http://localhost:4000/api/health')}
 ${buildLine('Desktop app', '/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/mac-arm64/zkTalk.app')}
 ${buildLine('Desktop mode', desktopMode)}
 ${buildLine('Desktop packaged PID', desktopPackagedPid || '(missing)')}

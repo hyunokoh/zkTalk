@@ -27,6 +27,14 @@ export const ChannelVisibility = {
 } as const;
 export type ChannelVisibility = (typeof ChannelVisibility)[keyof typeof ChannelVisibility];
 
+export const ChannelAccessPolicy = {
+  PUBLIC: 'public',
+  MEMBERS_ONLY: 'members_only',
+  INVITE_ONLY: 'invite_only',
+  PRIVATE: 'private',
+} as const;
+export type ChannelAccessPolicy = (typeof ChannelAccessPolicy)[keyof typeof ChannelAccessPolicy];
+
 export const MessageType = {
   USER: 'user',
   SYSTEM: 'system',
@@ -99,5 +107,53 @@ export const WebSocketEvent = {
   P2P_SIGNAL: 'p2p.signal',
   P2P_FILE_REQUEST: 'p2p.file_request',
   P2P_FILE_AVAILABLE: 'p2p.file_available',
+  MACHINE_REGISTERED: 'machine.registered',
+  MACHINE_PRESENCE_UPDATED: 'machine.presence.updated',
+  MACHINE_COMMAND_UPDATED: 'machine.command.updated',
 } as const;
 export type WebSocketEvent = (typeof WebSocketEvent)[keyof typeof WebSocketEvent];
+
+export const MachineType = {
+  DESKTOP: 'desktop',
+  LAPTOP: 'laptop',
+  BUILDBOX: 'buildbox',
+  OTHER: 'other',
+} as const;
+export type MachineType = (typeof MachineType)[keyof typeof MachineType];
+
+export const MachinePresenceStatus = {
+  ONLINE: 'online',
+  BUSY: 'busy',
+  OFFLINE: 'offline',
+  AUTH_MISSING: 'auth_missing',
+  BRIDGE_MISSING: 'bridge_missing',
+} as const;
+export type MachinePresenceStatus =
+  (typeof MachinePresenceStatus)[keyof typeof MachinePresenceStatus];
+
+export const MachineCodexAuthState = {
+  AUTH_PRESENT: 'auth_present',
+  AUTH_MISSING: 'auth_missing',
+} as const;
+export type MachineCodexAuthState =
+  (typeof MachineCodexAuthState)[keyof typeof MachineCodexAuthState];
+
+export const MachineExecutionIntent = {
+  ANALYZE: 'analyze',
+  EDIT: 'edit',
+  RUN: 'run',
+  SUMMARIZE: 'summarize',
+} as const;
+export type MachineExecutionIntent =
+  (typeof MachineExecutionIntent)[keyof typeof MachineExecutionIntent];
+
+export const MachineCommandStatus = {
+  QUEUED: 'queued',
+  ACCEPTED: 'accepted',
+  STREAMING: 'streaming',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  REJECTED: 'rejected',
+} as const;
+export type MachineCommandStatus =
+  (typeof MachineCommandStatus)[keyof typeof MachineCommandStatus];

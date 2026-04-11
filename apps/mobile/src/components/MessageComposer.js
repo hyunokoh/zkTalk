@@ -182,18 +182,18 @@ var MessageComposer = (0, react_1.memo)(function MessageComposer(_a) {
         </react_native_1.View>)}
       <react_native_1.View style={styles.composer}>
         {onPressAdd && (<react_native_1.TouchableOpacity testID={"".concat(testIDPrefix, "-attach")} style={styles.attachButton} onPress={onPressAdd} activeOpacity={0.8}>
-            <react_native_1.Text style={styles.attachButtonText}>+</react_native_1.Text>
+            <react_native_1.Text style={styles.attachButtonText}>{"\uD83D\uDCCE"}</react_native_1.Text>
           </react_native_1.TouchableOpacity>)}
         <react_native_1.View style={styles.inputWrap}>
           <react_native_1.TextInput testID={"".concat(testIDPrefix, "-input")} ref={inputRef} style={styles.input} placeholder={placeholder} placeholderTextColor={theme_1.colors.talkSubtle} onChange={handleChange} multiline maxLength={4000}/>
         </react_native_1.View>
-        <react_native_1.TouchableOpacity style={styles.emojiToggle} onPress={toggleEmoji} activeOpacity={0.8}>
+        <react_native_1.TouchableOpacity testID={"".concat(testIDPrefix, "-emoji")} style={styles.emojiToggle} onPress={toggleEmoji} activeOpacity={0.8}>
           <react_native_1.Text style={styles.emojiToggleText}>
-            {showEmoji ? "\u2328\uFE0F" : "\uD83D\uDE00"}
+            {showEmoji ? "\u2328\uFE0F" : "\u263A"}
           </react_native_1.Text>
         </react_native_1.TouchableOpacity>
         <react_native_1.TouchableOpacity testID={"".concat(testIDPrefix, "-send")} style={[styles.sendButton, isSending && styles.sendDisabled]} onPress={handleSend} disabled={isSending} activeOpacity={0.85} accessibilityLabel={isSending ? sendingLabel : sendLabel}>
-          <react_native_1.Text style={styles.sendText}>{isSending ? '...' : '\u2191'}</react_native_1.Text>
+          <react_native_1.Text style={styles.sendText}>{isSending ? '...' : '\u27A4'}</react_native_1.Text>
         </react_native_1.TouchableOpacity>
       </react_native_1.View>
     </react_native_1.View>);
@@ -203,98 +203,71 @@ var styles = react_native_1.StyleSheet.create({
     composer: {
         flexDirection: 'row',
         alignItems: 'flex-end',
-        paddingHorizontal: theme_1.spacing.md,
+        paddingHorizontal: theme_1.spacing.sm,
         paddingTop: theme_1.spacing.xs,
-        paddingBottom: theme_1.spacing.md,
+        paddingBottom: theme_1.spacing.sm,
         backgroundColor: theme_1.colors.talkBackground,
+        borderTopWidth: 1,
+        borderTopColor: theme_1.colors.talkPanelBorder,
     },
     attachButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: theme_1.colors.talkOtherBubble,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: theme_1.spacing.sm,
-        borderWidth: 1,
-        borderColor: theme_1.colors.talkPanelBorder,
-        shadowColor: '#000000',
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 1 },
-        elevation: 1,
-    },
-    attachButtonText: {
-        color: theme_1.colors.talkMeta,
-        fontSize: 22,
-        fontWeight: '700',
-        lineHeight: 24,
-    },
-    inputWrap: {
-        flex: 1,
-        backgroundColor: theme_1.colors.talkOtherBubble,
-        borderRadius: 28,
-        borderWidth: 1,
-        borderColor: theme_1.colors.talkPanelBorder,
-        minHeight: 56,
-        justifyContent: 'center',
-        paddingHorizontal: theme_1.spacing.lg,
-        marginRight: theme_1.spacing.sm,
-        shadowColor: '#6c8094',
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 1 },
-        elevation: 1,
-    },
-    input: {
-        paddingVertical: 15,
-        color: theme_1.colors.textPrimary,
-        fontSize: theme_1.fontSize.base,
-        maxHeight: 120,
-        minHeight: 56,
-    },
-    emojiToggle: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: theme_1.colors.talkPanel,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: theme_1.spacing.xs,
-        backgroundColor: theme_1.colors.talkOtherBubble,
-        borderWidth: 1,
-        borderColor: theme_1.colors.talkPanelBorder,
-        shadowColor: '#6c8094',
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 1 },
-        elevation: 1,
+    },
+    attachButtonText: {
+        color: theme_1.colors.talkMeta,
+        fontSize: 18,
+        lineHeight: 20,
+    },
+    inputWrap: {
+        flex: 1,
+        backgroundColor: theme_1.colors.talkPanel,
+        borderRadius: 20,
+        minHeight: 40,
+        justifyContent: 'center',
+        paddingHorizontal: theme_1.spacing.md,
+        marginRight: theme_1.spacing.xs,
+    },
+    input: {
+        paddingVertical: 10,
+        color: theme_1.colors.textPrimary,
+        fontSize: theme_1.fontSize.base,
+        maxHeight: 120,
+        minHeight: 40,
+    },
+    emojiToggle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: theme_1.spacing.xs,
+        backgroundColor: theme_1.colors.talkPanel,
     },
     emojiToggleText: {
-        fontSize: 22,
+        fontSize: 18,
     },
     sendButton: {
         backgroundColor: theme_1.colors.talkOwnBubble,
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        borderWidth: 1,
-        borderColor: theme_1.colors.talkOwnBubbleBorder,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#6c8094',
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 1 },
-        elevation: 1,
     },
     sendDisabled: {
         opacity: 0.4,
     },
     sendText: {
         color: theme_1.colors.white,
-        fontSize: 22,
+        fontSize: 17,
         fontWeight: '800',
-        lineHeight: 22,
+        lineHeight: 18,
     },
     // Emoji panel
     emojiPanel: {
@@ -302,16 +275,9 @@ var styles = react_native_1.StyleSheet.create({
         marginBottom: theme_1.spacing.sm,
         borderRadius: 24,
         backgroundColor: theme_1.colors.talkPanel,
-        borderWidth: 1,
-        borderColor: theme_1.colors.talkPanelBorder,
         maxHeight: 180,
         paddingVertical: theme_1.spacing.sm,
         paddingHorizontal: theme_1.spacing.sm,
-        shadowColor: '#000000',
-        shadowOpacity: 0.2,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 2,
     },
     emojiGrid: {
         flexDirection: 'row',

@@ -3,10 +3,16 @@ import type {
   CommunityVisibility,
   ChannelType,
   ChannelVisibility,
+  ChannelAccessPolicy,
   MessageType,
   ReportStatus,
   PermissionKey,
   PermissionEffect,
+  MachineType,
+  MachinePresenceStatus,
+  MachineCodexAuthState,
+  MachineExecutionIntent,
+  MachineCommandStatus,
 } from '../constants/index';
 
 export type { WSIncoming, WSOutgoing, RedisPubSubMessage } from './websocket';
@@ -30,6 +36,10 @@ export interface Community {
   iconUrl: string | null;
   bannerUrl: string | null;
   visibility: CommunityVisibility;
+  discovery?: {
+    isDiscoverable: boolean;
+    canSelfJoin: boolean;
+  };
   ownerUserId: string;
   createdAt: string;
   updatedAt: string;
@@ -68,12 +78,15 @@ export interface Channel {
   description: string | null;
   type: ChannelType;
   visibility: ChannelVisibility;
+  accessPolicy: ChannelAccessPolicy;
   slowModeSeconds: number;
   position: number;
   isArchived: boolean;
   isE2eeEnabled: boolean;
   disappearingDuration: number | null;
   requireTopic: boolean;
+  canView?: boolean;
+  lockedReason?: 'join_required' | 'invite_required';
   sourceDmConversation?: {
     id: string;
     name: string | null;
@@ -227,10 +240,36 @@ export interface LastVisitedLocation {
   conversationId?: string;
 }
 
+export type TranslationDisplayMode =
+  | 'manual_only'
+  | 'target_language_all'
+  | 'target_language_except_readable';
+
+export type TranslationDisplayPresetId =
+  | 'english_only'
+  | 'korean_preferred_english_readable'
+  | 'manual_only';
+
+export interface TranslationDisplayPreference {
+  uiLocale: string;
+  mode: TranslationDisplayMode;
+  targetLanguage: string | null;
+  readableLanguages: string[];
+}
+
+export interface TranslationDisplayPreset {
+  id: TranslationDisplayPresetId;
+  label: string;
+  description: string;
+  bridgeInstruction: string;
+  translationDisplay: TranslationDisplayPreference;
+}
+
 export interface UserSettings {
   communityOrder: string[];
   collapsedSections: Record<string, boolean>;
   lastVisited: LastVisitedLocation | null;
+  translationDisplay: TranslationDisplayPreference;
   updatedAt: string;
 }
 
@@ -238,4 +277,85 @@ export interface UpdateUserSettingsInput {
   communityOrder?: string[];
   collapsedSections?: Record<string, boolean>;
   lastVisited?: LastVisitedLocation | null;
+  translationDisplay?: TranslationDisplayPreference;
+}
+
+export interface LocalMachine {
+  id: string;
+  ownerUserId: string;
+  name: string;
+  type: MachineType;
+  bridgeIdentifier: string;
+  codexAuthState: MachineCodexAuthState;
+  presence: MachinePresenceStatus;
+  lastSeenAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RegisterLocalMachineInput {
+  name: string;
+  type: MachineType;
+  bridgeIdentifier: string;
+}
+
+export interface LocalMachinePresence {
+  machineId: string;
+  ownerUserId: string;
+  status: MachinePresenceStatus;
+  codexAuthState: MachineCodexAuthState;
+  activeCommandId: string | null;
+  lastSeenAt: string;
+  expiresAt: string;
+}
+
+export interface LocalMachineCommandSource {
+  kind: 'channel' | 'thread' | 'dm' | 'control';
+  communityId?: string | null;
+  channelId?: string | null;
+  threadId?: string | null;
+  conversationId?: string | null;
+}
+
+export interface LocalMachineSelectedMessageExcerpt {
+  messageId: string;
+  authorUserId: string;
+  bodyPlaintext: string;
+  createdAt: string;
+}
+
+export interface LocalMachineAttachmentReference {
+  attachmentId: string;
+  fileName: string;
+  mimeType: string;
+  downloadUrl: string;
+}
+
+export interface LocalMachineCommandEnvelope {
+  id: string;
+  targetMachineId: string;
+  owningUserId: string;
+  source: LocalMachineCommandSource;
+  instruction: string;
+  intent: MachineExecutionIntent;
+  selectedMessages: LocalMachineSelectedMessageExcerpt[];
+  attachmentReferences: LocalMachineAttachmentReference[];
+  createdAt: string;
+}
+
+export interface LocalMachineCommandUpdate {
+  commandId: string;
+  targetMachineId: string;
+  owningUserId: string;
+  status: MachineCommandStatus;
+  summary: string | null;
+  outputText: string | null;
+  errorCode:
+    | 'offline'
+    | 'busy'
+    | 'auth_missing'
+    | 'bridge_missing'
+    | 'rejected'
+    | null;
+  createdAt: string;
 }

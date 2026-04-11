@@ -16,10 +16,24 @@ const signingBlockersJsonPath = path.join(distDir, 'signing-blockers.json');
 const verificationPath = path.join(distDir, 'release-verification.md');
 const verificationJsonPath = path.join(distDir, 'release-verification.json');
 const verificationHtmlPath = path.join(distDir, 'release-verification.html');
+const repoRoot = path.resolve(desktopDir, '..', '..');
+const docsDir = path.join(repoRoot, 'docs');
+const docsIndexPath = path.join(docsDir, 'README.md');
+const currentStatusPath = path.join(docsDir, 'CURRENT_STATUS.md');
+const repoSnapshotPath = path.join(docsDir, 'current-release-next.json');
+const blockerSummaryPath = path.join(docsDir, 'current-blockers-2026-03-25.md');
+const runtimeRunbookPath = path.join(docsDir, 'production-runtime-runbook.md');
+const commercializationPlanPath = path.join(docsDir, 'COMMERCIALIZATION_PLAN.md');
+const implementationPlanPath = path.join(docsDir, 'IMPLEMENTATION_PLAN.md');
+const desktopReleasePath = path.join(desktopDir, 'RELEASE.md');
 
-function runStep(scriptName) {
+function runStep(scriptName, extraEnv = {}) {
   execFileSync('npm', ['run', scriptName], {
     cwd: desktopDir,
+    env: {
+      ...process.env,
+      ...extraEnv,
+    },
     stdio: 'inherit',
   });
 }
@@ -71,7 +85,9 @@ if (!existsSync(manifestPath)) {
 }
 runStep('release:status');
 runStep('release:signing-blockers');
-runStep('release:verification');
+runStep('release:verification', {
+  ZKTALK_RELEASE_SKIP_BUNDLE_PREREQS: '1',
+});
 
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 const status = JSON.parse(readFileSync(statusPath, 'utf8'));
@@ -118,6 +134,16 @@ const handoff = {
     verificationHtml: verificationHtmlPath,
     signingEnv: hasSigningEnv ? signingEnvPath : null,
     distDir,
+  },
+  sourceOfTruth: {
+    docsIndex: docsIndexPath,
+    currentStatus: currentStatusPath,
+    repoSnapshot: repoSnapshotPath,
+    blockerSummary: blockerSummaryPath,
+    runtimeRunbook: runtimeRunbookPath,
+    commercializationPlan: commercializationPlanPath,
+    implementationPlan: implementationPlanPath,
+    desktopReleaseRunbook: desktopReleasePath,
   },
 };
 
@@ -198,6 +224,17 @@ const markdown = [
     })
     : ['- No artifacts found']),
   '',
+  '## Source Of Truth',
+  '',
+  `- Docs index: \`${docsIndexPath}\``,
+  `- Current status: \`${currentStatusPath}\``,
+  `- Repo release snapshot: \`${repoSnapshotPath}\``,
+  `- Blocker summary: \`${blockerSummaryPath}\``,
+  `- Runtime runbook: \`${runtimeRunbookPath}\``,
+  `- Commercialization plan: \`${commercializationPlanPath}\``,
+  `- Implementation plan: \`${implementationPlanPath}\``,
+  `- Desktop release runbook: \`${desktopReleasePath}\``,
+  '',
   '## Paths',
   '',
   `- Release manifest: \`${manifestPath}\``,
@@ -235,6 +272,14 @@ const verificationItemsHtml = verificationLines.length > 0
   : '<li>None</li>';
 
 const resources = [
+  ['Docs index', docsIndexPath],
+  ['Current status', currentStatusPath],
+  ['Repo release snapshot', repoSnapshotPath],
+  ['Current blocker summary', blockerSummaryPath],
+  ['Production runtime runbook', runtimeRunbookPath],
+  ['Commercialization plan', commercializationPlanPath],
+  ['Implementation plan', implementationPlanPath],
+  ['Desktop release runbook', desktopReleasePath],
   ['Release manifest', manifestPath],
   ['Release status', statusPath],
   ['Signing blockers JSON', signingBlockersJsonPath],

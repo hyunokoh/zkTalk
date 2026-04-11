@@ -3,14 +3,9 @@ import * as jose from 'jose';
 import type { WSIncoming } from '@zktalk/shared';
 import { realtimeService } from './realtime.service.js';
 import * as dmRepo from '../dm/dm.repository.js';
+import { getCookieSecretBytes } from '../../lib/env.js';
 
 const COOKIE_NAME = 'zktalk_session';
-
-function getCookieSecret(): Uint8Array {
-  const secret =
-    process.env.COOKIE_SECRET || 'dev-cookie-secret-change-in-production';
-  return new TextEncoder().encode(secret);
-}
 
 interface TokenPayload {
   sub: string;
@@ -30,7 +25,7 @@ async function authenticateWs(
   if (!token) return null;
 
   try {
-    const { payload } = await jose.jwtVerify(token, getCookieSecret(), {
+    const { payload } = await jose.jwtVerify(token, getCookieSecretBytes(), {
       issuer: 'zktalk',
       audience: 'zktalk-session',
     });
@@ -71,6 +66,7 @@ export default async function realtimeRoutes(app: FastifyInstance): Promise<void
 
     const user = await authenticateWs(token);
     if (!user) {
+      request.log.warn({ req: request }, 'Rejected unauthorized WebSocket connection');
       socket.close(4001, 'Unauthorized');
       return;
     }
@@ -78,7 +74,7 @@ export default async function realtimeRoutes(app: FastifyInstance): Promise<void
     // ── Register client ───────────────────────────────────────────
     const client = realtimeService.addClient(user.sub, socket);
 
-    app.log.info(
+    app.log.debug(
       { userId: user.sub, connections: realtimeService.getConnectionCount() },
       'WebSocket client connected',
     );
@@ -113,7 +109,7 @@ export default async function realtimeRoutes(app: FastifyInstance): Promise<void
     // ── Handle close ──────────────────────────────────────────────
     socket.on('close', () => {
       realtimeService.removeClient(client);
-      app.log.info(
+      app.log.debug(
         { userId: user.sub, connections: realtimeService.getConnectionCount() },
         'WebSocket client disconnected',
       );
@@ -147,12 +143,24 @@ function handleMessage(
       realtimeService.unsubscribeFromCommunity(client, message.communityId);
       break;
 
+    case 'subscribe_dm':
+      realtimeService.subscribeToDm(client, message.conversationId).catch(() => {});
+      break;
+
+    case 'unsubscribe_dm':
+      realtimeService.unsubscribeFromDm(client, message.conversationId);
+      break;
+
     case 'typing_start':
-      realtimeService.startTyping(client.userId, message.channelId);
+      if (realtimeService.isSubscribedToChannel(client, message.channelId)) {
+        realtimeService.startTyping(client.userId, message.channelId);
+      }
       break;
 
     case 'typing_stop':
-      realtimeService.stopTyping(client.userId, message.channelId);
+      if (realtimeService.isSubscribedToChannel(client, message.channelId)) {
+        realtimeService.stopTyping(client.userId, message.channelId);
+      }
       break;
 
     case 'heartbeat':
@@ -182,12 +190,11 @@ function handleMessage(
     case 'p2p_file_request':
       // Broadcast file request to channel/DM participants to find seeders
       if (message.channelId) {
-        realtimeService.broadcastToChannel(
+        realtimeService.requestChannelPeerFile(
+          client,
           message.channelId,
-          'p2p.file_request',
-          { fileId: message.fileId, requesterId: client.userId },
-          client.userId,
-        );
+          message.fileId,
+        ).catch(() => {});
       } else if (message.conversationId) {
         dmRepo.getParticipantUserIds(message.conversationId)
           .then((participantUserIds) => {

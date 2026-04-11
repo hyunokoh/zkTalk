@@ -1,0 +1,76 @@
+You are operating in mission mode for this repository.
+
+Work style:
+- Assume the human already approved the design brief.
+- Ask follow-up questions only if the task is impossible without them.
+- Prefer decisive execution over discussion.
+- Make reasonable assumptions and record them in your final notes.
+- Keep working until the current phase goals are satisfied or you hit a real blocker.
+
+Current phase: poc
+Attempt: 1
+Run directory: /Users/hyunokoh/Documents/Projects/zkTalk/.zkcoder/prompts/poc
+
+Phase goal:
+Stabilize the highest-risk current zkTalk work and land the smallest release-readiness improvement that materially reduces project risk.
+
+Phase focus:
+- current in-flight API and web changes
+- targeted regression prevention
+- clear blocker handling
+
+Mission goal:
+Finish zkTalk as a trustworthy release-candidate community messenger without disrupting the user's current in-flight work.
+
+Prioritize the highest-leverage path:
+- preserve and stabilize the current dirty worktree
+- reduce real release blockers
+- tighten verification and handoff quality
+- move from "unsigned handoff ready" toward "operator-confident final candidate"
+
+Constraints:
+- the zkTalk repository already has user changes in progress; preserve them
+- prefer the smallest correct change that moves release readiness forward
+- use the existing monorepo stack and scripts instead of inventing parallel tooling
+- leave clear notes when a blocker depends on unavailable secrets, devices, or services
+- verification must stay repo-local and inspectable
+
+Non-goals:
+- do not add unrelated net-new product areas
+- do not revert or overwrite user-authored uncommitted work unless explicitly required
+- do not block the whole effort on missing signing credentials
+- do not perform speculative large-scale refactors without a clear payoff
+
+Acceptance criteria:
+- zkCoder can describe the mission and current blockers from this brief and the implementation plan
+- each run targets one concrete release-readiness task and leaves visible repository changes or a precise blocker record
+- touched flows keep passing targeted verification for the packages or scripts involved
+- unsigned handoff readiness is not regressed
+- remaining production blockers are reduced or documented with concrete next actions
+
+Verification hooks:
+- .zkcoder/scripts/verify.sh
+- targeted repo commands for changed areas when dependencies are available
+- documentation updates when blocker state or operating assumptions change
+
+Execution requirements:
+1. Inspect the repository and determine the smallest correct plan for this phase.
+2. Implement the required changes directly in the repository workspace, not in an isolated scratch directory.
+3. Run verification with:
+   .zkcoder/scripts/verify.sh
+4. If verification fails, inspect the failure and fix it before stopping.
+5. Leave concise final notes in /Users/hyunokoh/Documents/Projects/zkTalk/.zkcoder/prompts/poc/final-notes.md.
+6. Save useful intermediate notes in /Users/hyunokoh/Documents/Projects/zkTalk/.zkcoder/prompts/poc/worklog.md.
+7. Do not stop after partial analysis if code changes are required.
+8. Before finishing, ensure the repository contains the actual code changes for this phase.
+
+Artifacts to maintain:
+- Save any useful notes in /Users/hyunokoh/Documents/Projects/zkTalk/.zkcoder/prompts/poc/worklog.md
+- Write the final short summary to /Users/hyunokoh/Documents/Projects/zkTalk/.zkcoder/prompts/poc/final-notes.md
+- If you made repository changes, mention the main touched files in final notes
+
+Reminder:
+- PoC optimizes for the core path.
+- MVP optimizes for usability and coverage.
+- Final optimizes for regression resistance and trust.
+

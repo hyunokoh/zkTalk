@@ -1,30 +1,24 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { ApiError } from '@/lib/api';
+import { fetchAiRuntime } from '@/lib/ai-runtime';
 import { useTranslation } from '@/lib/i18n';
-import { saveLastVisited } from '@/lib/user-settings';
+import { buildComposerSelectedMessageAiState } from '@/lib/selected-message-ai';
+import { fetchUserSettings, saveLastVisited } from '@/lib/user-settings';
 import { MessageList } from '@/components/MessageList';
-import { MessageComposer } from '@/components/MessageComposer';
+import { MessageComposer, type ComposerAiActionRequest } from '@/components/MessageComposer';
 import { ForumPostList } from '@/components/ForumPostList';
 import { VoiceRoomButton } from '@/components/VoiceRoom';
 import { useUnreadStore } from '@/stores/unread';
-import type { Channel, Community, Message, User } from '@zktalk/shared';
+import type { MessageAiActionKind } from '@/components/MessageItem';
+import type { Channel, Community, Message, TranslationDisplayPreference, User } from '@zktalk/shared';
 
 interface ChannelPermissions {
   canPostMessage: boolean;
-}
-
-function getChannelTypeLabel(channel: Channel, t: (key: string) => string): string {
-  if (channel.type === 'announcement') {
-    return t('channel.announcement');
-  }
-  if (channel.type === 'forum') {
-    return t('channel.forum');
-  }
-  return t('channel.chat');
 }
 
 export default function ChannelPage() {
@@ -42,6 +36,7 @@ export default function ChannelPage() {
 
   // Inline reply state
   const [replyTo, setReplyTo] = useState<{ message: Message; author?: User | null } | null>(null);
+  const [aiActionRequest, setAiActionRequest] = useState<ComposerAiActionRequest | null>(null);
 
   // Mark channel as read when the page mounts or channelId changes
   useEffect(() => {
@@ -53,6 +48,7 @@ export default function ChannelPage() {
   // Clear reply when channel changes
   useEffect(() => {
     setReplyTo(null);
+    setAiActionRequest(null);
   }, [channelId]);
 
   const { data: channel } = useQuery({
@@ -74,10 +70,30 @@ export default function ChannelPage() {
   const { data: permissions } = useQuery({
     queryKey: ['channel-me-permissions', channelId],
     queryFn: async () => {
-      const res = await api<{ permissions: ChannelPermissions }>(`/api/channels/${channelId}/me-permissions`);
-      return res.permissions;
+      try {
+        const res = await api<{ permissions: ChannelPermissions }>(`/api/channels/${channelId}/me-permissions`);
+        return res.permissions;
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 403) {
+          return {
+            canPostMessage: false,
+          };
+        }
+        throw error;
+      }
     },
     enabled: !!channelId,
+  });
+
+  const { data: aiRuntime } = useQuery({
+    queryKey: ['ai-runtime'],
+    queryFn: fetchAiRuntime,
+    staleTime: 60_000,
+  });
+  const { data: userSettings } = useQuery({
+    queryKey: ['user-settings'],
+    queryFn: fetchUserSettings,
+    staleTime: 60_000,
   });
 
   useEffect(() => {
@@ -92,6 +108,24 @@ export default function ChannelPage() {
 
   const handleReply = useCallback((message: Message, author?: User | null) => {
     setReplyTo({ message, author });
+  }, []);
+
+  const handleAiAction = useCallback((message: Message, author: User | null | undefined, action: MessageAiActionKind) => {
+    const composerState = buildComposerSelectedMessageAiState({
+      action,
+      surface: 'channel',
+      message,
+      author,
+    });
+
+    if (!composerState) {
+      setReplyTo(null);
+      setAiActionRequest(null);
+      return;
+    }
+
+    setReplyTo(composerState.replyTo);
+    setAiActionRequest(composerState.aiActionRequest);
   }, []);
 
   if (!channel) return null;
@@ -130,40 +164,18 @@ export default function ChannelPage() {
 
   const isReadOnly = permissions?.canPostMessage === false;
   const isAnnouncementReadOnly = channel.type === 'announcement' && isReadOnly;
-  const channelTypeLabel = getChannelTypeLabel(channel, t);
-
   // Chat / Announcement channel
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_100%)] px-5 py-5 md:px-8">
-        <div className="mx-auto flex w-full max-w-5xl items-start justify-between gap-6">
-          <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
-              <span className="rounded-full border border-sky-300/18 bg-sky-300/10 px-2.5 py-1 text-sky-200">
-                {channelTypeLabel}
-              </span>
-              <span className="rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-white/54">
-                {community?.name ?? slug}
-              </span>
-              {isReadOnly ? (
-                <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-amber-200">
-                  {t('channel.readOnly')}
-                </span>
-              ) : null}
-            </div>
-            <h1 className="text-[1.75rem] font-semibold tracking-[-0.03em] text-white">
-              {channel.name}
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
-              {channel.description || t('channel.headerSubtitle')}
-            </p>
-          </div>
-        </div>
-      </div>
       <MessageList
         channelId={channelId}
         communityId={community?.id}
         onReplyToMessage={handleReply}
+        onRequestAiAction={handleAiAction}
+        aiRuntime={aiRuntime}
+        translationDisplayPreference={
+          (userSettings?.translationDisplay as TranslationDisplayPreference | undefined) ?? undefined
+        }
       />
       <MessageComposer
         channelId={channelId}
@@ -178,6 +190,9 @@ export default function ChannelPage() {
         disabled={isReadOnly}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
+        aiActionRequest={aiActionRequest}
+        onAiActionRequestHandled={() => setAiActionRequest(null)}
+        aiRuntime={aiRuntime}
       />
     </div>
   );

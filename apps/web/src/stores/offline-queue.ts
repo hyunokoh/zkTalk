@@ -12,6 +12,7 @@ interface OfflineQueueState {
     topic?: string | null;
     status: 'pending' | 'sending' | 'failed';
   }>>;
+  reset: () => void;
   setChannelCounts: (channelId: string, counts: { pending: number; failed: number }) => void;
   setQueuedMessages: (channelId: string, messages: Array<{
     id: string;
@@ -29,6 +30,11 @@ export const useOfflineQueueStore = create<OfflineQueueState>((set) => ({
   pendingByChannel: {},
   failedByChannel: {},
   queuedMessagesByChannel: {},
+  reset: () => set({
+    pendingByChannel: {},
+    failedByChannel: {},
+    queuedMessagesByChannel: {},
+  }),
   setChannelCounts: (channelId, counts) => {
     set((state) => ({
       pendingByChannel: {

@@ -1,0 +1,53 @@
+appId: com.zktalk.mobile
+env:
+  FLOW_WAIT_TIMEOUT_MS: 20000
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: home-community-list
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- tapOn:
+    id: "community-row-${COMMUNITY_ID}"
+- extendedWaitUntil:
+    visible:
+      id: home-channel-list
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- tapOn:
+    id: "channel-row-${CHANNEL_ID}"
+- extendedWaitUntil:
+    visible:
+      id: channel-screen
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertNotVisible: 빠른 시작
+- assertNotVisible: 초대 코드 입력
+- assertNotVisible: 커뮤니티 만들기
+- assertNotVisible: 내 프로필 공유
+- assertVisible:
+    id: channel-message-list
+- assertVisible:
+    id: channel-header-search
+- assertVisible:
+    id: channel-header-pins
+- assertVisible:
+    id: message-composer-input
+- assertVisible:
+    id: message-composer-attach
+- assertVisible:
+    id: message-composer-emoji
+- assertVisible:
+    id: message-composer-send
+- assertNotVisible: 대화와 파일, 결정을 이 채널에서 이어가세요.
+- tapOn:
+    id: message-composer-attach
+- extendedWaitUntil:
+    visible:
+      id: channel-attach-menu
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertVisible:
+    id: channel-attach-menu-photo
+- assertVisible:
+    id: channel-attach-menu-document
+- assertVisible:
+    id: channel-attach-menu-poll

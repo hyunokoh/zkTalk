@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo, useEffect } from 'react';
+import React, { useState, useCallback, memo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,11 @@ import {
 } from '../lib/simulator-harness';
 import { useAuthStore } from '../stores/auth';
 import { colors, borderRadius, fontSize, spacing } from '../theme';
+import {
+  getChannelBrowsePresentation,
+  getCommunityChannelAccessSummaryKeys,
+  shouldRenderBrowseChannel,
+} from '@zktalk/shared';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { HomeStackParamList } from '../navigation/types';
 
@@ -58,6 +63,8 @@ interface Channel {
   id: string;
   name: string;
   type: string;
+  canView?: boolean;
+  lockedReason?: 'join_required' | 'invite_required';
   unreadCount?: number;
   sourceDmConversationId?: string | null;
   sourceDmConversation?: {
@@ -131,6 +138,14 @@ function getChannelIcon(type: string): string {
     default:
       return '#';
   }
+}
+
+function getLockedChannelDescription(
+  t: (key: string) => string,
+  channel: Pick<Channel, 'lockedReason'>,
+): string {
+  const { lockedCopyKey } = getChannelBrowsePresentation(channel);
+  return t(lockedCopyKey ?? 'channel.lockedJoinRequired');
 }
 
 function getSourceDmSearchTerms(
@@ -270,27 +285,39 @@ const ChannelListItem = memo(function ChannelListItem({
   isLiveVoiceChannel?: boolean;
 }) {
   const { t } = useTranslation();
+  const browsePresentation = getChannelBrowsePresentation(item);
+  const isLockedChannel = browsePresentation.isLocked;
+  const lockedDescription = isLockedChannel ? getLockedChannelDescription(t, item) : null;
 
   return (
     <TouchableOpacity
       testID={`channel-row-${item.id}`}
-      style={styles.channelItem}
+      style={[styles.channelItem, isLockedChannel && styles.channelItemLocked]}
       onPress={() => onPress(item)}
       accessibilityRole="button"
       accessibilityLabel={
-        item.sourceDmConversation
+        isLockedChannel
+          ? `${item.name}, ${lockedDescription ?? t('channel.lockedBadge')}`
+          : item.sourceDmConversation
           ? `${item.name}, ${
               item.sourceDmConversation.type === 'direct' ? directDmLabel : groupDmLabel
             }, ${item.sourceDmConversation.name ?? sourceDmLabel}`
           : item.name
       }
     >
-      <Text style={styles.channelIcon}>{getChannelIcon(item.type)}</Text>
+      <Text style={[styles.channelIcon, isLockedChannel && styles.channelIconLocked]}>
+        {isLockedChannel ? '\u{1F512}' : getChannelIcon(item.type)}
+      </Text>
       <View style={styles.channelCopy}>
-        <Text style={styles.channelName}>{item.name}</Text>
+        <Text style={[styles.channelName, isLockedChannel && styles.channelNameLocked]}>{item.name}</Text>
         {sourceDmMatchLabel ? (
           <Text style={styles.channelSourceMatch} numberOfLines={1}>
             {sourceDmMatchLabel}
+          </Text>
+        ) : null}
+        {isLockedChannel && lockedDescription ? (
+          <Text style={styles.channelLockedHint} numberOfLines={2}>
+            {lockedDescription}
           </Text>
         ) : null}
         {item.type === 'voice' && voiceStatusLabel ? (
@@ -325,6 +352,11 @@ const ChannelListItem = memo(function ChannelListItem({
           <Text style={styles.voiceLiveListBadgeText}>{t('voice.liveNow')}</Text>
         </View>
       ) : null}
+      {isLockedChannel ? (
+        <View style={styles.lockedBadge}>
+          <Text style={styles.lockedBadgeText}>{t('channel.lockedBadge')}</Text>
+        </View>
+      ) : null}
       {(item.unreadCount ?? 0) > 0 && (
         <View style={styles.unreadBadge}>
           <Text style={styles.unreadText}>{item.unreadCount}</Text>
@@ -348,6 +380,25 @@ const ChannelSectionHeader = memo(function ChannelSectionHeader({
 
 // Approximate row height for getItemLayout (performance optimization)
 const COMMUNITY_ROW_HEIGHT = 64;
+const COMMUNITY_PRESS_GUARD_MS = 400;
+
+function ChannelAccessSummaryCard({ labels }: { labels: string[] }) {
+  const { t } = useTranslation();
+
+  return (
+    <View style={styles.channelAccessCard}>
+      <Text style={styles.channelAccessTitle}>{t('community.selectChannel')}</Text>
+      <Text style={styles.channelAccessBody}>{t('community.channelAccessHint')}</Text>
+      <View style={styles.channelAccessChipRow}>
+        {labels.map((label) => (
+          <View key={label} style={styles.channelAccessChip}>
+            <Text style={styles.channelAccessChipText}>{label}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
 
 const communityGetItemLayout = (_data: unknown, index: number) => ({
   length: COMMUNITY_ROW_HEIGHT,
@@ -391,6 +442,12 @@ export default function HomeScreen({ navigation, route }: Props) {
   const [channelFilter, setChannelFilter] = useState<'all' | 'unread'>('all');
   const [recentVoiceChannelId, setRecentVoiceChannelId] = useState<string | null>(null);
   const [devActionAttempted, setDevActionAttempted] = useState(false);
+  const [isHomeInteractionBlocked, setIsHomeInteractionBlocked] = useState(false);
+  const [isCommunityExitPending, setIsCommunityExitPending] = useState(false);
+  const communityPressBlockedUntilRef = useRef(0);
+  const communityBackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasRestoredLastVisitedRef = useRef(false);
+  const suppressCommunityRestoreUntilRef = useRef(0);
   const selectedCommunityId = route.params?.selectedCommunityId;
   const restoreChannelId = route.params?.restoreChannelId;
   const queryClient = useQueryClient();
@@ -406,7 +463,13 @@ export default function HomeScreen({ navigation, route }: Props) {
   });
 
   useEffect(() => {
-    if (!selectedCommunityId || !communities?.communities?.length) return;
+    if (
+      !selectedCommunityId ||
+      !communities?.communities?.length ||
+      Date.now() < suppressCommunityRestoreUntilRef.current
+    ) {
+      return;
+    }
 
     const nextCommunity = communities.communities.find(
       (community) => community.id === selectedCommunityId,
@@ -420,10 +483,18 @@ export default function HomeScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     const communityList = communities?.communities ?? [];
-    if (!communityList.length || selectedCommunityId || selectedCommunity || restoreChannelId) {
+    if (
+      hasRestoredLastVisitedRef.current ||
+      !communityList.length ||
+      selectedCommunityId ||
+      selectedCommunity ||
+      restoreChannelId ||
+      Date.now() < suppressCommunityRestoreUntilRef.current
+    ) {
       return;
     }
 
+    hasRestoredLastVisitedRef.current = true;
     let cancelled = false;
 
     async function restoreLastVisited() {
@@ -530,6 +601,16 @@ export default function HomeScreen({ navigation, route }: Props) {
   }, [selectedCommunity?.id]);
 
   useEffect(() => {
+    if (!isFocused) {
+      return;
+    }
+    void refetchCommunities();
+    if (selectedCommunity) {
+      void refetchChannels();
+    }
+  }, [isFocused, refetchChannels, refetchCommunities, selectedCommunity]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function loadRecentVoiceChannel() {
@@ -598,6 +679,10 @@ export default function HomeScreen({ navigation, route }: Props) {
 
     if ((channelsData?.uncategorized?.length ?? 0) > 0) {
       const uncategorizedChannels = (channelsData?.uncategorized ?? []).filter((channel) => {
+        if (!shouldRenderBrowseChannel(channel)) {
+          return false;
+        }
+
         if (!matchesUnreadFilter(channel)) {
           return false;
         }
@@ -633,6 +718,10 @@ export default function HomeScreen({ navigation, route }: Props) {
 
     for (const category of channelsData?.categories ?? []) {
       const filteredChannels = (category.channels ?? []).filter((channel) => {
+        if (!shouldRenderBrowseChannel(channel)) {
+          return false;
+        }
+
         if (!matchesUnreadFilter(channel)) {
           return false;
         }
@@ -694,11 +783,11 @@ export default function HomeScreen({ navigation, route }: Props) {
       dedupeById([
         ...(channelsData?.uncategorized ?? []),
         ...(channelsData?.categories ?? []).flatMap((category) => category.channels),
-      ]),
+      ]).filter((channel) => shouldRenderBrowseChannel(channel)),
     [channelsData?.categories, channelsData?.uncategorized],
   );
   const voiceChannels = React.useMemo(
-    () => allCommunityChannels.filter((channel) => channel.type === 'voice'),
+    () => allCommunityChannels.filter((channel) => channel.canView !== false && channel.type === 'voice'),
     [allCommunityChannels],
   );
   const voiceParticipantQueries = useQueries({
@@ -740,6 +829,9 @@ export default function HomeScreen({ navigation, route }: Props) {
     [recentVoiceChannelId, voiceChannels, voiceParticipantCounts],
   );
   const singleVoiceChannel = sortedVoiceChannels.length === 1 ? sortedVoiceChannels[0] : null;
+  const accessSummaryLabels = React.useMemo(() => {
+    return getCommunityChannelAccessSummaryKeys(selectedCommunity?.visibility).map((key) => t(key));
+  }, [selectedCommunity?.visibility, t]);
   const leaveCommunityMutation = useMutation({
     mutationFn: (communityId: string) =>
       api(`/api/communities/${communityId}/leave`, { method: 'POST' }),
@@ -780,9 +872,10 @@ export default function HomeScreen({ navigation, route }: Props) {
     },
   });
 
-  const handleChannelPress = useCallback(
-    (item: Channel) => {
+  const handleChannelPressAccessible = useCallback(
+    async (item: Channel) => {
       if (!selectedCommunity) return;
+
       void saveLastVisited({
         kind: 'channel',
         communityId: selectedCommunity.id,
@@ -815,12 +908,128 @@ export default function HomeScreen({ navigation, route }: Props) {
     [navigation, selectedCommunity, t],
   );
 
+  const handleLockedChannelPress = useCallback(
+    (item: Channel) => {
+      if (!selectedCommunity) return;
+      const { lockedReason, lockedPromptBodyKey } = getChannelBrowsePresentation(item);
+      const promptBodyKey = lockedPromptBodyKey ?? 'channel.lockedPromptJoinBody';
+      if (lockedReason === 'invite_required') {
+        Alert.alert(
+          t('channel.lockedPromptTitle'),
+          t(promptBodyKey),
+          [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('channel.lockedPromptInviteAction'),
+              onPress: () => navigation.navigate('JoinInvite'),
+            },
+          ],
+        );
+        return;
+      }
+
+      Alert.alert(
+        t('channel.lockedPromptTitle'),
+        t(promptBodyKey),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('channel.lockedPromptJoinAction'),
+            onPress: () => {
+              void (async () => {
+                try {
+                  await api(`/api/communities/${selectedCommunity.id}/join`, { method: 'POST' });
+                  await queryClient.invalidateQueries({ queryKey: ['communities'] });
+                  await queryClient.invalidateQueries({ queryKey: ['channels', selectedCommunity.id] });
+                  await handleChannelPressAccessible({
+                    ...item,
+                    canView: true,
+                  });
+                } catch (error) {
+                  Alert.alert(
+                    t('common.error'),
+                    error instanceof Error ? error.message : t('channel.lockedPromptJoinFailed'),
+                  );
+                }
+              })();
+            },
+          },
+        ],
+      );
+    },
+    [handleChannelPressAccessible, navigation, queryClient, selectedCommunity, t],
+  );
+
+  const handleChannelPress = useCallback(
+    (item: Channel) => {
+      if (Date.now() < communityPressBlockedUntilRef.current) return;
+      if (getChannelBrowsePresentation(item).isLocked) {
+        handleLockedChannelPress(item);
+        return;
+      }
+      void handleChannelPressAccessible(item);
+    },
+    [handleChannelPressAccessible, handleLockedChannelPress],
+  );
+
   const handleCommunityPress = useCallback((item: Community) => {
+    if (Date.now() < communityPressBlockedUntilRef.current || isCommunityExitPending) {
+      return;
+    }
     setSelectedCommunity(item);
     void saveLastVisited({
       kind: 'community',
       communityId: item.id,
     });
+  }, [isCommunityExitPending]);
+
+  const handleCommunityBackPress = useCallback(() => {
+    if (communityBackTimeoutRef.current) {
+      clearTimeout(communityBackTimeoutRef.current);
+    }
+    suppressCommunityRestoreUntilRef.current = Date.now() + 2000;
+    communityPressBlockedUntilRef.current = Date.now() + 1200;
+    setIsHomeInteractionBlocked(true);
+    setIsCommunityExitPending(true);
+    void saveLastVisited(null);
+    communityBackTimeoutRef.current = setTimeout(() => {
+      navigation.setParams({ restoreChannelId: undefined, selectedCommunityId: undefined });
+      setSelectedCommunity(null);
+      setIsCommunityExitPending(false);
+      communityBackTimeoutRef.current = null;
+    }, 16);
+  }, [navigation]);
+
+  const handleCommunityBackPressStart = useCallback(() => {
+    suppressCommunityRestoreUntilRef.current = Date.now() + 2000;
+    communityPressBlockedUntilRef.current = Date.now() + 1200;
+    setIsHomeInteractionBlocked(true);
+    setIsCommunityExitPending(true);
+    if (communityBackTimeoutRef.current) {
+      clearTimeout(communityBackTimeoutRef.current);
+      communityBackTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isHomeInteractionBlocked) {
+      return;
+    }
+    const timeout = setTimeout(() => {
+      setIsHomeInteractionBlocked(false);
+      if (!selectedCommunity) {
+        setIsCommunityExitPending(false);
+      }
+    }, 1200);
+    return () => clearTimeout(timeout);
+  }, [isHomeInteractionBlocked, selectedCommunity]);
+
+  useEffect(() => {
+    return () => {
+      if (communityBackTimeoutRef.current) {
+        clearTimeout(communityBackTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -832,7 +1041,9 @@ export default function HomeScreen({ navigation, route }: Props) {
       ...(channelsData.uncategorized ?? []),
       ...(channelsData.categories ?? []).flatMap((category) => category.channels ?? []),
     ];
-    const targetChannel = allChannels.find((channel) => channel.id === restoreChannelId);
+    const targetChannel = allChannels.find(
+      (channel) => channel.id === restoreChannelId && channel.canView !== false,
+    );
     if (!targetChannel) {
       navigation.setParams({ restoreChannelId: undefined });
       return;
@@ -1225,15 +1436,36 @@ export default function HomeScreen({ navigation, route }: Props) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="light-content" />
-        <View style={styles.container}>
+        <View style={styles.container} pointerEvents={isCommunityExitPending ? 'none' : 'auto'}>
+          {isCommunityExitPending ? <View style={styles.communityInteractionBlocker} /> : null}
           <View style={styles.communityHeader}>
             <View style={styles.communityHeaderTop}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => setSelectedCommunity(null)}
-              >
-                <Text style={styles.backArrow}>{'\u{2190}'}</Text>
-              </TouchableOpacity>
+              <View style={styles.communityHeaderLead}>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPressIn={handleCommunityBackPressStart}
+                  onPress={handleCommunityBackPress}
+                  hitSlop={12}
+                >
+                  <Text style={styles.backArrow}>{'\u{2190}'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.backToListButton}
+                  onPressIn={handleCommunityBackPressStart}
+                  onPress={handleCommunityBackPress}
+                  activeOpacity={0.8}
+                  hitSlop={8}
+                >
+                  <Text style={styles.backToListButtonText}>{t('home.backToCommunities')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.communityActionChip}
+                  onPress={handleMembersPress}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.communityActionChipText}>{t('members.title')}</Text>
+                </TouchableOpacity>
+              </View>
               <TouchableOpacity
                 style={styles.menuButton}
                 onPress={handleCommunityMenuPress}
@@ -1243,96 +1475,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 <Text style={styles.menuButtonText}>{'\u{22EF}'}</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.communityHeroCard}>
-              <View style={styles.communityHeroMain}>
-                <View
-                  style={[
-                    styles.headerIcon,
-                    { backgroundColor: getCommunityColor(selectedCommunity.name) },
-                  ]}
-                >
-                  {selectedCommunityIconUrl ? (
-                    <Image source={{ uri: selectedCommunityIconUrl }} style={styles.headerIconImage} />
-                  ) : (
-                    <Text style={styles.headerIconText}>
-                      {selectedCommunity.name.charAt(0).toUpperCase()}
-                    </Text>
-                  )}
-                </View>
-                <View style={styles.headerInfo}>
-                  <Text style={styles.headerTitle} numberOfLines={1}>
-                    {selectedCommunity.name}
-                  </Text>
-                  <Text style={styles.headerSubtitle} numberOfLines={2}>
-                    {selectedCommunity.description?.trim() || t('community.manageBody')}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.communityActionRow}>
-                <TouchableOpacity
-                  style={styles.communityActionChip}
-                  onPress={handleMembersPress}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.communityActionChipText}>
-                    {activeMemberCount === 1
-                      ? t('discover.member', { count: activeMemberCount })
-                      : t('discover.members', { count: activeMemberCount })}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.communityActionChip}
-                  onPress={handleEventsPress}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.communityActionChipText}>
-                    {t('community.eventsMenu')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.communityActionChip}
-                  onPress={handleShareInvitePress}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.communityActionChipText}>
-                    {t('invite.inviteMembers')}
-                  </Text>
-                </TouchableOpacity>
-                {singleVoiceChannel ? (
-                  <TouchableOpacity
-                    style={styles.communityActionChip}
-                    onPress={() => handleVoiceEntryPress(singleVoiceChannel, false)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.communityActionChipText}>
-                      {`${t('voice.join')} · #${singleVoiceChannel.name}`}
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
-                {singleVoiceChannel ? (
-                  <TouchableOpacity
-                    style={styles.communityActionChip}
-                    onPress={() => handleVoiceEntryPress(singleVoiceChannel, true)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.communityActionChipText}>
-                      {`${t('voice.videoCall')} · #${singleVoiceChannel.name}`}
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
-                {canManageChannels ? (
-                  <TouchableOpacity
-                    style={styles.communityActionChipPrimary}
-                    onPress={handleCreateChannelPress}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.communityActionChipPrimaryText}>
-                      {t('channel.create')}
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-              {sortedVoiceChannels.length > 1 ? (
+            {sortedVoiceChannels.length > 1 ? (
                 <View style={styles.voiceChannelChooser}>
                   <Text style={styles.communityVoiceHint}>{t('voice.chooseChannel')}</Text>
                   <View style={styles.voiceChannelList}>
@@ -1425,7 +1568,6 @@ export default function HomeScreen({ navigation, route }: Props) {
               ) : (
                 <Text style={styles.communityVoiceHint}>{t('voice.noChannelsInCommunity')}</Text>
               )}
-            </View>
           </View>
 
           {/* Channel list */}
@@ -1437,6 +1579,7 @@ export default function HomeScreen({ navigation, route }: Props) {
             <FlatList
               testID="home-channel-list"
               data={channelRows}
+              scrollEnabled={!isCommunityExitPending}
               keyExtractor={(item) => item.id}
               refreshControl={
                 <RefreshControl
@@ -1565,6 +1708,9 @@ export default function HomeScreen({ navigation, route }: Props) {
                     autoCorrect={false}
                     returnKeyType="search"
                   />
+                  {accessSummaryLabels.length > 0 ? (
+                    <ChannelAccessSummaryCard labels={accessSummaryLabels} />
+                  ) : null}
                   <View style={styles.filterRow}>
                     <TouchableOpacity
                       style={[
@@ -1630,7 +1776,8 @@ export default function HomeScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.container}>
+      <View style={styles.container} pointerEvents={isHomeInteractionBlocked ? 'none' : 'auto'}>
+        {isHomeInteractionBlocked ? <View style={styles.homeInteractionBlocker} /> : null}
         {/* App header */}
         <View style={styles.appHeader}>
           <Text style={styles.appTitle}>{t('app.name')}</Text>
@@ -1846,6 +1993,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
+  channelAccessCard: {
+    backgroundColor: '#111827',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
+  channelAccessTitle: {
+    color: colors.white,
+    fontSize: fontSize.base,
+    fontWeight: '700',
+  },
+  channelAccessBody: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    lineHeight: 20,
+    marginTop: spacing.xs,
+  },
+  channelAccessChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  channelAccessChip: {
+    backgroundColor: '#1f2937',
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: '#334155',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  channelAccessChipText: {
+    color: '#dbeafe',
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
   filterRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1890,6 +2075,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
+  communityHeaderLead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   communityHeroCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
@@ -1907,6 +2097,19 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 22,
     fontWeight: '600',
+  },
+  backToListButton: {
+    backgroundColor: colors.backgroundDark,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  backToListButtonText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    fontWeight: '700',
   },
   headerIcon: {
     width: 36,
@@ -2177,6 +2380,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
+  channelItemLocked: {
+    backgroundColor: '#3b2b14',
+    borderWidth: 1,
+    borderColor: '#7c5b23',
+  },
   channelIcon: {
     color: colors.textSecondary,
     fontSize: fontSize.xl,
@@ -2185,9 +2393,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginRight: spacing.sm,
   },
+  channelIconLocked: {
+    color: '#f7c66d',
+  },
   channelName: {
     color: colors.text,
     fontSize: fontSize.body,
+  },
+  channelNameLocked: {
+    color: '#f6e2b8',
   },
   channelCopy: {
     flex: 1,
@@ -2196,6 +2410,11 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: fontSize.xs,
     marginTop: 2,
+  },
+  channelLockedHint: {
+    marginTop: 2,
+    fontSize: fontSize.xs,
+    color: '#d7b67b',
   },
   channelVoiceStatus: {
     color: colors.textMuted,
@@ -2265,6 +2484,18 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: '700',
   },
+  lockedBadge: {
+    borderRadius: 999,
+    backgroundColor: '#5a431a',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    marginLeft: spacing.sm,
+  },
+  lockedBadgeText: {
+    color: '#f6e2b8',
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
   emptyList: {
     flex: 1,
   },
@@ -2331,6 +2562,16 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSize.md,
     fontWeight: '700',
+  },
+  homeInteractionBlocker: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+    backgroundColor: 'transparent',
+  },
+  communityInteractionBlocker: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 30,
+    backgroundColor: 'transparent',
   },
   createCommunityText: {
     color: colors.white,

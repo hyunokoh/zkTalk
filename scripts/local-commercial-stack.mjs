@@ -117,6 +117,8 @@ function main() {
   process.stdout.write('- postgres: docker-postgres-1 -> 5432\n');
   process.stdout.write('- redis: docker-redis-1 -> 6379\n');
   process.stdout.write('- minio: docker-minio-1 -> 9000/9001 (bucket: zktalk-uploads)\n');
+  process.stdout.write('\nNext step:\n');
+  process.stdout.write('- start API/web, then run `pnpm local:commercial:seed` to create a chat-ready QA community\n');
 }
 
 main();

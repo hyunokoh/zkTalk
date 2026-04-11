@@ -1,18 +1,21 @@
-function toUint8Array(bytes: Uint8Array | number[] | ArrayBuffer): Uint8Array {
-  if (bytes instanceof Uint8Array) {
-    return bytes;
-  }
+export interface DesktopPickedFile {
+  kind: 'desktop-picked-file';
+  path: string;
+  name: string;
+  type: string;
+  size: number;
+  lastModified: number;
+}
 
-  if (bytes instanceof ArrayBuffer) {
-    return new Uint8Array(bytes);
-  }
+export type ComposerPickedFile = File | DesktopPickedFile;
 
-  return Uint8Array.from(bytes);
+export function isDesktopPickedFile(file: ComposerPickedFile): file is DesktopPickedFile {
+  return typeof file === 'object' && file !== null && 'kind' in file && file.kind === 'desktop-picked-file';
 }
 
 export async function pickDesktopFiles(
   options: { multiple?: boolean } = { multiple: true },
-): Promise<File[] | null> {
+): Promise<DesktopPickedFile[] | null> {
   if (typeof window === 'undefined' || typeof window.zkTalkDesktop?.pickFiles !== 'function') {
     return null;
   }
@@ -22,15 +25,38 @@ export async function pickDesktopFiles(
     return [];
   }
 
-  return pickedFiles.map((file) => {
-    const normalizedBytes = new Uint8Array(toUint8Array(file.bytes));
-    return new File(
-      [normalizedBytes],
-      file.name,
-      {
-        type: file.type ?? '',
-        lastModified: file.lastModified ?? Date.now(),
-      },
-    );
+  return pickedFiles.map((file) => ({
+    kind: 'desktop-picked-file',
+    path: String(file.path ?? ''),
+    name: String(file.name ?? ''),
+    type: String(file.type ?? ''),
+    size: Number(file.size ?? 0),
+    lastModified: Number(file.lastModified ?? Date.now()),
+  }));
+}
+
+export async function readDesktopFileChunk(
+  file: DesktopPickedFile,
+  start: number,
+  end: number,
+): Promise<Uint8Array> {
+  if (typeof window === 'undefined' || typeof window.zkTalkDesktop?.readFileChunk !== 'function') {
+    throw new Error('Desktop file chunk reader is not available.');
+  }
+
+  const bytes = await window.zkTalkDesktop.readFileChunk({
+    path: file.path,
+    start,
+    end,
   });
+
+  if (bytes instanceof Uint8Array) {
+    return bytes;
+  }
+
+  if (bytes instanceof ArrayBuffer) {
+    return new Uint8Array(bytes);
+  }
+
+  return Uint8Array.from(bytes ?? []);
 }

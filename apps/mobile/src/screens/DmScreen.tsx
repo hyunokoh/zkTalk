@@ -17,6 +17,14 @@ import {
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, createRequestId } from '../lib/api';
+import {
+  buildSelectedMessageAiAction,
+  fetchAiRuntime,
+  getAiRuntimePresentation,
+  getSelectedMessageAiAppliedMessageKey,
+  isAiRuntimeUsable,
+  requestAiChat,
+} from '../lib/ai';
 import { Directory, File, Paths } from 'expo-file-system';
 import {
   dequeueMessagesByEndpoint,
@@ -59,8 +67,14 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { colors, spacing, fontSize as fs, borderRadius } from '../theme';
 import { useFocusEffect, useIsFocused, useNavigation, type NavigationProp } from '@react-navigation/native';
 import {
+  getSelectedMessageAiSourceText,
+  getTranslationRenderSourceVersion,
   isImageAttachmentMimeType,
+  resolveTranslationResponse,
+  resolveTranslationRenderCacheState,
   shouldHideAttachmentBody,
+  type TranslationRenderCacheEntry,
+  type TranslationRuntimeStatus,
 } from '@zktalk/shared';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { DmStackParamList, RootStackParamList } from '../navigation/types';
@@ -80,6 +94,7 @@ interface DmMessage {
   bodyMarkdown?: string;
   authorUserId: string;
   createdAt: string;
+  updatedAt?: string;
   isEncrypted?: boolean;
   encryptedPayload?: string | null;
   isDeleted?: boolean;
@@ -195,6 +210,61 @@ interface PendingMessage {
   createdAt: number;
 }
 
+interface InlineTranslationState {
+  entry: TranslationRenderCacheEntry;
+  runtimeStatus: TranslationRuntimeStatus;
+  issue?: string;
+}
+
+const MOBILE_FALLBACK_MESSAGE_POLL_MS = 5_000;
+const REALTIME_FOLLOWUP_REFRESH_MS = 150;
+
+function formatUnreadCount(unreadCount: number): string {
+  return String(Math.min(99, Math.max(0, Math.trunc(unreadCount))));
+}
+
+function formatMessageMetaTime(value: string | Date): string {
+  return new Date(value).toLocaleTimeString('ko-KR', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function formatMessageDateDivider(value: string | Date): string {
+  return new Date(value).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  });
+}
+
+function createOptimisticDmMessage(params: {
+  conversationId: string;
+  authorUserId: string;
+  authorDisplayName: string;
+  authorUsername: string;
+  authorAvatarUrl?: string | null;
+  bodyPlaintext: string;
+}): DmMessage {
+  return {
+    id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    conversationId: params.conversationId,
+    bodyPlaintext: params.bodyPlaintext,
+    bodyMarkdown: params.bodyPlaintext,
+    authorUserId: params.authorUserId,
+    createdAt: new Date().toISOString(),
+    isEncrypted: false,
+    author: {
+      displayName: params.authorDisplayName,
+      username: params.authorUsername,
+      avatarUrl: params.authorAvatarUrl ?? null,
+    },
+    attachments: [],
+  };
+}
+
 export default function DmScreen({ route, navigation }: Props) {
   const { conversationId, userId = '', displayName = '' } = route.params;
   const { t, locale } = useTranslation();
@@ -205,8 +275,11 @@ export default function DmScreen({ route, navigation }: Props) {
   const [sharedKey, setSharedKey] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<DmMessage | null>(null);
   const [actionMessage, setActionMessage] = useState<DmMessage | null>(null);
-  const [translatedBodies, setTranslatedBodies] = useState<Record<string, string>>({});
+  const [translatedBodies, setTranslatedBodies] = useState<Record<string, InlineTranslationState>>({});
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [composerDraftText, setComposerDraftText] = useState('');
+  const [composerDraftSeed, setComposerDraftSeed] = useState('');
+  const [composerDraftKey, setComposerDraftKey] = useState<string | null>(null);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
   const [promotedConflictTarget, setPromotedConflictTarget] = useState<{
@@ -218,6 +291,11 @@ export default function DmScreen({ route, navigation }: Props) {
   );
   const [promotionChannelName, setPromotionChannelName] = useState('general');
   const [authToken, setAuthToken] = useState<string | null>(null);
+  const { data: aiRuntime } = useQuery({
+    queryKey: ['ai-runtime'],
+    queryFn: fetchAiRuntime,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     if (conversationId) {
@@ -253,7 +331,7 @@ export default function DmScreen({ route, navigation }: Props) {
   // WebSocket subscription for real-time DM updates
   const { queuedEventCount, consumeEvents } = useDmSubscription(conversationId);
   const scheduleDmRefresh = useCallback(
-    (delayMs = 1_200) => {
+    (delayMs = REALTIME_FOLLOWUP_REFRESH_MS) => {
       if (dmRefreshTimeoutRef.current) {
         clearTimeout(dmRefreshTimeoutRef.current);
       }
@@ -325,7 +403,7 @@ export default function DmScreen({ route, navigation }: Props) {
       };
     },
     // Slower polling with WS fallback
-    refetchInterval: shouldPollMessages ? 30_000 : false,
+    refetchInterval: shouldPollMessages ? MOBILE_FALLBACK_MESSAGE_POLL_MS : false,
   });
   const loadConversationDetail = useCallback(
     () => api<DmConversationDetailResponse>(`/api/dm/conversations/${conversationId}`),
@@ -518,6 +596,7 @@ export default function DmScreen({ route, navigation }: Props) {
               },
             );
             queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
+            scheduleDmRefresh();
             break;
           }
           case 'dm.message_deleted': {
@@ -595,7 +674,7 @@ export default function DmScreen({ route, navigation }: Props) {
           method: 'PATCH',
           body: messageBody,
         });
-        return { queued: false as const };
+        return { queued: false as const, message: null as DmMessage | null };
       }
 
       let attachmentData: Awaited<ReturnType<typeof uploadFile>> | null = null;
@@ -632,8 +711,10 @@ export default function DmScreen({ route, navigation }: Props) {
 
         if (attachmentData && result.message?.id) {
           await attachToDmMessage(result.message.id, attachmentData);
+          const hydratedMessage = await api<DmMessage>(`/api/dm/messages/${result.message.id}`);
+          return { queued: false as const, message: hydratedMessage };
         }
-        return { queued: false as const };
+        return { queued: false as const, message: result.message ?? null };
       } catch (err) {
         const shouldQueue = !(err instanceof ApiError) || err.status === 0;
         if (!shouldQueue) {
@@ -650,10 +731,72 @@ export default function DmScreen({ route, navigation }: Props) {
           ...prev,
           { id: queued.id, body: fallbackBody, createdAt: queued.createdAt },
         ]);
-        return { queued: true as const };
+        return { queued: true as const, message: null as DmMessage | null };
       }
     },
-    onSuccess: (result) => {
+    onMutate: async (body) => {
+      if (editingMessage) {
+        return { optimisticId: null as string | null };
+      }
+
+      const fallbackBody = body.trim().length > 0 ? body : pendingAttachment?.name || ' ';
+      const optimisticMessage = createOptimisticDmMessage({
+        conversationId,
+        authorUserId: currentUser?.id ?? 'me',
+        authorDisplayName: currentUser?.displayName ?? t('common.you'),
+        authorUsername: currentUser?.username ?? 'me',
+        authorAvatarUrl: currentUser?.avatarUrl ?? null,
+        bodyPlaintext: fallbackBody,
+      });
+
+      queryClient.setQueryData(
+        dmMessagesQueryKey,
+        (old: { messages: DmMessage[]; unreadCounts?: Record<string, number> } | undefined) => ({
+          messages: [optimisticMessage, ...(old?.messages ?? [])],
+          unreadCounts: old?.unreadCounts ?? {},
+        }),
+      );
+
+      return { optimisticId: optimisticMessage.id };
+    },
+    onSuccess: async (result, _body, context) => {
+      if (result.queued && context?.optimisticId) {
+        queryClient.setQueryData(
+          dmMessagesQueryKey,
+          (old: { messages: DmMessage[]; unreadCounts?: Record<string, number> } | undefined) => {
+            if (!old) return old;
+            return {
+              messages: old.messages.filter((message) => message.id !== context.optimisticId),
+              unreadCounts: old.unreadCounts ?? {},
+            };
+          },
+        );
+      } else if (result.message && context?.optimisticId) {
+        const resolvedMessage = await hydrateDmMessage(
+          flattenDmMessage(result.message),
+          sharedKey,
+          t,
+        );
+        queryClient.setQueryData(
+          dmMessagesQueryKey,
+          (old: { messages: DmMessage[]; unreadCounts?: Record<string, number> } | undefined) => {
+            if (!old) {
+              return { messages: [resolvedMessage], unreadCounts: {} };
+            }
+            return {
+              messages: [
+                resolvedMessage,
+                ...old.messages.filter(
+                  (message) =>
+                    message.id !== context.optimisticId && message.id !== resolvedMessage.id,
+                ),
+              ],
+              unreadCounts: old.unreadCounts ?? {},
+            };
+          },
+        );
+      }
+
       if (!result.queued && shouldPollMessages) {
         void queryClient.invalidateQueries({ queryKey: dmMessagesQueryKey });
         void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
@@ -662,6 +805,20 @@ export default function DmScreen({ route, navigation }: Props) {
       }
       setPendingAttachment(null);
       setEditingMessage(null);
+    },
+    onError: (_error, _body, context) => {
+      if (context?.optimisticId) {
+        queryClient.setQueryData(
+          dmMessagesQueryKey,
+          (old: { messages: DmMessage[]; unreadCounts?: Record<string, number> } | undefined) => {
+            if (!old) return old;
+            return {
+              messages: old.messages.filter((message) => message.id !== context.optimisticId),
+              unreadCounts: old.unreadCounts ?? {},
+            };
+          },
+        );
+      }
     },
   });
 
@@ -789,7 +946,7 @@ export default function DmScreen({ route, navigation }: Props) {
 
         const targetFile = new File(
           attachmentDirectory,
-          `${attachment.id}-${sanitizeAttachmentName(attachment.fileName)}`,
+          sanitizeAttachmentName(attachment.fileName),
         );
 
         const downloadedFile = await File.downloadFileAsync(
@@ -1006,11 +1163,45 @@ export default function DmScreen({ route, navigation }: Props) {
     setActionMessage(null);
   }, [actionMessage]);
 
+  const applyComposerDraft = useCallback((nextDraft: string) => {
+    setComposerDraftSeed(nextDraft);
+    setComposerDraftText(nextDraft);
+    setComposerDraftKey(`ai-draft-${Date.now()}`);
+  }, []);
+
+  const aiRuntimePresentation = getAiRuntimePresentation(t, aiRuntime);
+  const aiStatusLabel = aiRuntimePresentation?.label;
+  const aiStatusTone: 'live' | 'mock' | 'unavailable' = aiRuntimePresentation?.tone ?? 'unavailable';
+  const aiStatusRuntimeDescription = aiRuntimePresentation?.description ?? t('common.loading');
+  const aiStatusDescription = [aiStatusRuntimeDescription, t('ai.selectedMessageScopeHint')]
+    .filter(Boolean)
+    .join(' ');
+
   const handleTranslate = useCallback(async () => {
     if (!actionMessage) return;
 
-    const existing = translatedBodies[actionMessage.id];
-    if (existing) {
+    const contract = buildSelectedMessageAiAction({
+      action: 'translate-inline',
+      surface: 'dm',
+      sourceMessage: {
+        authorDisplayName: actionMessage.author?.displayName ?? displayName,
+        bodyText: getSelectedMessageAiSourceText(actionMessage),
+      },
+    });
+
+    if (contract.errorKey || !contract.sourceText) {
+      Alert.alert(t('common.error'), t(contract.errorKey ?? 'ai.selectedMessageUnavailable'));
+      return;
+    }
+
+    const existing = translatedBodies[actionMessage.id]?.entry;
+    const sourceVersion = getTranslationRenderSourceVersion(actionMessage);
+    const existingState = resolveTranslationRenderCacheState({
+      entry: existing,
+      sourceVersion,
+      targetLanguage: locale,
+    });
+    if (existingState === 'ready') {
       setTranslatedBodies((prev) => {
         const next = { ...prev };
         delete next[actionMessage.id];
@@ -1020,24 +1211,145 @@ export default function DmScreen({ route, navigation }: Props) {
     }
 
     try {
-      const result = await api<{ translatedText: string }>('/api/translate', {
+      const result = await api<{
+        translatedText: string | null;
+        runtime: {
+          status: TranslationRuntimeStatus;
+          issue?: string;
+        };
+      }>('/api/translate', {
         method: 'POST',
         body: {
-          text: actionMessage.bodyPlaintext,
+          text: contract.sourceText,
           targetLang: locale,
         },
       });
-      setTranslatedBodies((prev) => ({
-        ...prev,
-        [actionMessage.id]: result.translatedText,
-      }));
+      const resolution = resolveTranslationResponse({
+        response: result,
+        targetLanguage: locale,
+        sourceVersion,
+      });
+
+      const entry = resolution.entry;
+      if (entry) {
+        setTranslatedBodies((prev) => ({
+          ...prev,
+          [actionMessage.id]: {
+            entry,
+            runtimeStatus: resolution.runtime.status,
+            issue: resolution.runtime.issue,
+          },
+        }));
+        return;
+      }
+
+      Alert.alert(
+        t('common.error'),
+        resolution.state === 'runtime-disabled'
+          ? t('message.translationDisabled')
+          : resolution.runtime.issue
+            ? t('message.translationUnavailableWithIssue', { issue: resolution.runtime.issue })
+            : t('message.translationUnavailable'),
+      );
     } catch (error) {
       Alert.alert(
         t('common.error'),
         error instanceof Error ? error.message : t('message.translateFailed'),
       );
     }
-  }, [actionMessage, locale, t, translatedBodies]);
+  }, [actionMessage, displayName, locale, t, translatedBodies]);
+
+  const getRenderedTranslation = useCallback(
+    (message: DmMessage) => {
+      const translationState = translatedBodies[message.id];
+      const entry = translationState?.entry;
+      const cacheState = resolveTranslationRenderCacheState({
+        entry,
+        sourceVersion: getTranslationRenderSourceVersion(message),
+        targetLanguage: locale,
+      });
+      if (!entry || (cacheState !== 'ready' && cacheState !== 'stale')) {
+        return { body: undefined, label: undefined };
+      }
+      return {
+        body: entry.translatedText,
+        label:
+          cacheState === 'stale'
+            ? t('message.translatedStale')
+            : translationState?.runtimeStatus === 'mock'
+              ? t('message.translatedMock')
+              : t('message.translated'),
+      };
+    },
+    [locale, t, translatedBodies],
+  );
+
+  const handleAiReplyDraft = useCallback(async () => {
+    if (!actionMessage) {
+      return;
+    }
+
+    const contract = buildSelectedMessageAiAction({
+      action: 'reply-draft',
+      surface: 'dm',
+      sourceMessage: {
+        authorDisplayName: actionMessage.author?.displayName ?? displayName,
+        bodyText: getSelectedMessageAiSourceText(actionMessage),
+      },
+    });
+
+    if (contract.errorKey || !contract.chatMessages) {
+      Alert.alert(t('common.error'), t(contract.errorKey ?? 'ai.selectedMessageUnavailable'));
+      return;
+    }
+
+    try {
+      const reply = await requestAiChat(contract.chatMessages);
+      setEditingMessage(null);
+      applyComposerDraft(reply);
+      Alert.alert(t('ai.messageReplyDraft'), t(getSelectedMessageAiAppliedMessageKey('reply-draft', aiRuntime)));
+    } catch (error) {
+      Alert.alert(
+        t('common.error'),
+        getUserFacingErrorMessage(error, t),
+      );
+    }
+  }, [actionMessage, aiRuntime, applyComposerDraft, displayName, t]);
+
+  const handleAiRewriteDraft = useCallback(async () => {
+    if (!actionMessage) {
+      return;
+    }
+
+    const contract = buildSelectedMessageAiAction({
+      action: 'rewrite-draft',
+      surface: 'dm',
+      sourceMessage: {
+        authorDisplayName: actionMessage.author?.displayName ?? displayName,
+        bodyText: getSelectedMessageAiSourceText(actionMessage),
+      },
+      currentDraft: composerDraftText,
+    });
+
+    if (contract.errorKey || !contract.chatMessages) {
+      Alert.alert(t('common.error'), t(contract.errorKey ?? 'ai.selectedMessageUnavailable'));
+      return;
+    }
+
+    try {
+      const rewrittenDraft = await requestAiChat(contract.chatMessages);
+      applyComposerDraft(rewrittenDraft);
+      Alert.alert(
+        t('ai.messageRewriteDraft'),
+        t(getSelectedMessageAiAppliedMessageKey('rewrite-draft', aiRuntime)),
+      );
+    } catch (error) {
+      Alert.alert(
+        t('common.error'),
+        getUserFacingErrorMessage(error, t),
+      );
+    }
+  }, [actionMessage, aiRuntime, applyComposerDraft, composerDraftText, displayName, t]);
 
   const handlePromoteToCommunity = useCallback(() => {
     if (promotedTarget) {
@@ -1106,26 +1418,55 @@ export default function DmScreen({ route, navigation }: Props) {
       displayName || conversationDetail?.conversation.name || t('dm.groupConversation');
 
     navigation.setOptions({
-      title: promotedTarget ? `${baseTitle} · ${t('dm.historyBadge')}` : baseTitle,
+      title: baseTitle,
+      headerStyle: {
+        backgroundColor: colors.talkPanel,
+      },
+      headerTintColor: colors.textPrimary,
+      headerTitleStyle: {
+        color: colors.textPrimary,
+        fontWeight: '700',
+      },
       headerRight: () => (
-        <TouchableOpacity
-          onPress={handlePromoteToCommunity}
-          disabled={promoteMutation.isPending}
-          style={styles.promoteButton}
-        >
-          {promoteMutation.isPending ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <Text style={styles.promoteButtonText}>
-              {promotedTarget ? t('dm.goToCurrentChannelShort') : t('dm.promoteShort')}
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            testID="dm-header-call"
+            onPress={() => {
+              void handleStartCall(false);
+            }}
+            disabled={callTargetMutation.isPending}
+            style={styles.headerIconAction}
+          >
+            <Text style={styles.headerIconText}>{'\u2706'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="dm-header-video"
+            onPress={() => {
+              void handleStartCall(true);
+            }}
+            disabled={callTargetMutation.isPending}
+            style={styles.headerIconAction}
+          >
+            <Text style={styles.headerIconText}>{'\u25C9'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="dm-header-promote"
+            onPress={handlePromoteToCommunity}
+            disabled={promoteMutation.isPending}
+            style={styles.headerIconAction}
+          >
+            <Text style={styles.headerIconText}>
+              {promotedTarget ? '\u2197' : '\u2295'}
             </Text>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [
+    callTargetMutation.isPending,
     conversationDetail?.conversation.name,
     displayName,
+    handleStartCall,
     handlePromoteToCommunity,
     navigation,
     promoteMutation.isPending,
@@ -1155,120 +1496,6 @@ export default function DmScreen({ route, navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={90}
     >
-      {/* E2EE status banner */}
-      {!promotedTarget && e2eeEnabled && (
-        <View style={styles.e2eeBanner}>
-          <Text style={styles.e2eeText}>
-            {t('dm.encrypted')}
-          </Text>
-        </View>
-      )}
-
-      <View style={styles.dmHeroWrap}>
-        <View style={styles.dmHeroCard}>
-          <Text style={styles.dmHeroEyebrow}>{t('dm.title')}</Text>
-          <Text style={styles.dmHeroTitle} testID="dm-screen-title">
-            {displayName || conversationDetail?.conversation.name || t('dm.groupConversation')}
-          </Text>
-          <Text style={styles.dmHeroBody}>{t('dm.listSubtitle')}</Text>
-          <View style={styles.dmHeroMetaRow}>
-            <View style={styles.dmHeroMetaBadge}>
-              <Text style={styles.dmHeroMetaBadgeText}>
-                {conversationDetail?.conversation.type === 'group' ? t('dm.group') : t('dm.oneToOne')}
-              </Text>
-            </View>
-            {conversationDetail?.conversation.type === 'group' ? (
-              <View style={styles.dmHeroMetaBadge}>
-                <Text style={styles.dmHeroMetaBadgeText}>
-                  {t('dm.groupMembers', {
-                    count: String(conversationDetail?.participants.length ?? 0),
-                  })}
-                </Text>
-              </View>
-            ) : null}
-            {!promotedTarget && e2eeEnabled ? (
-              <View style={styles.dmHeroMetaBadgeSuccess}>
-                <Text style={styles.dmHeroMetaBadgeSuccessText}>{t('e2ee.badge')}</Text>
-              </View>
-            ) : null}
-            {promotedTarget ? (
-              <View style={styles.historyBadge}>
-                <Text style={styles.historyBadgeText}>{t('dm.historyBadge')}</Text>
-              </View>
-            ) : null}
-          </View>
-          <View style={styles.dmHeroActionRow}>
-            <TouchableOpacity
-              onPress={() => {
-                void handleStartCall(false);
-              }}
-              activeOpacity={0.85}
-              style={styles.dmHeroActionChip}
-            >
-              {callTargetMutation.isPending ? (
-                <ActivityIndicator size="small" color={colors.textSecondary} />
-              ) : (
-                <Text style={styles.dmHeroActionChipText}>{t('voice.join')}</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                void handleStartCall(true);
-              }}
-              activeOpacity={0.85}
-              style={styles.dmHeroActionChip}
-            >
-              {callTargetMutation.isPending ? (
-                <ActivityIndicator size="small" color={colors.textSecondary} />
-              ) : (
-                <Text style={styles.dmHeroActionChipText}>{t('voice.videoCall')}</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handlePromoteToCommunity}
-              activeOpacity={0.85}
-              style={[
-                styles.dmHeroActionChip,
-                promotedTarget && styles.dmHeroActionChipPrimary,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.dmHeroActionChipText,
-                  promotedTarget && styles.dmHeroActionChipPrimaryText,
-                ]}
-              >
-                {promotedTarget ? t('dm.goToCurrentChannelShort') : t('dm.promoteShort')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {promotedTarget && (
-        <View style={styles.promotedBannerWrap}>
-          <View style={styles.promotedBanner}>
-            <View style={styles.promotedBannerIcon}>
-              <Text style={styles.promotedBannerIconText}>#</Text>
-            </View>
-            <View style={styles.promotedBannerContent}>
-              <View style={styles.historyBadge}>
-                <Text style={styles.historyBadgeText}>{t('dm.historyBadge')}</Text>
-              </View>
-              <Text style={styles.promotedBannerTitle}>
-                {t('dm.promotedBannerTitle', { community: promotedTarget.community.name })}
-              </Text>
-              <Text style={styles.promotedBannerBody}>
-                {t('dm.promotedBannerBody', { channel: promotedTarget.channel.name })}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={handlePromoteToCommunity} style={styles.promotedBannerAction}>
-              <Text style={styles.promotedBannerActionText}>{t('dm.goToCurrentChannelShort')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
       <FlatList
         testID="dm-message-list"
         data={messages}
@@ -1291,6 +1518,7 @@ export default function DmScreen({ route, navigation }: Props) {
           const startsGroup = previousMessage?.authorUserId !== item.authorUserId;
           const endsGroup = nextMessage?.authorUserId !== item.authorUserId;
           const itemAttachments = item.attachments ?? [];
+          const translated = getRenderedTranslation(item);
           const displayBody = shouldHideAttachmentBody(
             item.bodyPlaintext || item.bodyMarkdown,
             itemAttachments,
@@ -1299,13 +1527,27 @@ export default function DmScreen({ route, navigation }: Props) {
             : item.bodyPlaintext;
           return (
             <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() =>
-                setSelectedMessageId((current) => (current === item.id ? null : item.id))
+              testID={`dm-message-touchable-${item.id}`}
+              activeOpacity={1}
+              onLongPress={
+                promotedTarget
+                  ? undefined
+                  : () => {
+                      setSelectedMessageId(item.id);
+                      setActionMessage(item);
+                    }
               }
-              onLongPress={promotedTarget ? undefined : () => setActionMessage(item)}
               delayLongPress={400}
             >
+              {index === 0 ||
+              new Date(messages[index - 1].createdAt).toDateString() !==
+                new Date(item.createdAt).toDateString() ? (
+                <View style={styles.dateDividerRow}>
+                  <View style={styles.dateDividerLine} />
+                  <Text style={styles.dateDividerText}>{formatMessageDateDivider(item.createdAt)}</Text>
+                  <View style={styles.dateDividerLine} />
+                </View>
+              ) : null}
               <MessageBubble
                 authorName={
                   isOwn
@@ -1314,17 +1556,14 @@ export default function DmScreen({ route, navigation }: Props) {
                 }
                 authorAvatarUrl={item.author?.avatarUrl ?? null}
                 body={displayBody}
-                translatedBody={translatedBodies[item.id]}
-                translatedLabel={translatedBodies[item.id] ? t('message.translated') : undefined}
-                time={new Date(item.createdAt).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                translatedBody={translated.body}
+                translatedLabel={translated.label}
+                time={formatMessageMetaTime(item.createdAt)}
                 isOwn={isOwn}
                 isEncrypted={item.isEncrypted}
                 isEdited={item.isEdited}
                 editedLabel={t('message.edited')}
-                readCount={unreadCounts[item.id]}
+                readCount={itemAttachments.length > 0 ? undefined : unreadCounts[item.id]}
                 showAvatar={startsGroup}
                 showAuthorName={startsGroup}
                 startsGroup={startsGroup}
@@ -1332,7 +1571,33 @@ export default function DmScreen({ route, navigation }: Props) {
                 showActionChips={selectedMessageId === item.id}
                 onPressMore={promotedTarget ? undefined : () => setActionMessage(item)}
               />
-              {itemAttachments.length > 0 ? renderAttachments(itemAttachments) : null}
+              {itemAttachments.length > 0 ? (
+                <View style={[styles.attachmentMetaRow, isOwn ? styles.attachmentMetaRowOwn : styles.attachmentMetaRowOther]}>
+                  {isOwn ? (
+                    <View style={[styles.attachmentMetaColumn, styles.attachmentMetaColumnOwn]}>
+                      {(unreadCounts[item.id] ?? 0) > 0 ? (
+                        <Text style={styles.attachmentReadCount}>
+                          {formatUnreadCount(unreadCounts[item.id] ?? 0)}
+                        </Text>
+                      ) : null}
+                      <Text style={styles.attachmentMetaTime}>{formatMessageMetaTime(item.createdAt)}</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.attachmentMetaMain}>
+                    {renderAttachments(itemAttachments)}
+                  </View>
+                  {!isOwn ? (
+                    <View style={[styles.attachmentMetaColumn, styles.attachmentMetaColumnOther]}>
+                      {(unreadCounts[item.id] ?? 0) > 0 ? (
+                        <Text style={styles.attachmentReadCount}>
+                          {formatUnreadCount(unreadCounts[item.id] ?? 0)}
+                        </Text>
+                      ) : null}
+                      <Text style={styles.attachmentMetaTime}>{formatMessageMetaTime(item.createdAt)}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
             </TouchableOpacity>
           );
         }}
@@ -1469,10 +1734,11 @@ export default function DmScreen({ route, navigation }: Props) {
           sendingLabel={t('channel.sending')}
           isSending={sendMutation.isPending}
           onSend={handleSend}
+          onDraftChange={setComposerDraftText}
           onPressAdd={promotedTarget ? undefined : handleAddAttachment}
           allowEmptySubmit={!!pendingAttachment}
-          draftText={editingMessage?.bodyPlaintext ?? ''}
-          draftKey={editingMessage?.id ?? null}
+          draftText={editingMessage?.bodyPlaintext ?? composerDraftSeed}
+          draftKey={editingMessage?.id ?? composerDraftKey}
           testIDPrefix="dm-composer"
         />
       )}
@@ -1509,6 +1775,12 @@ export default function DmScreen({ route, navigation }: Props) {
           isOwn={actionMessage.authorUserId === currentUser?.id}
           onEdit={actionMessage.authorUserId === currentUser?.id ? handleEdit : undefined}
           onTranslate={handleTranslate}
+          onAiReplyDraft={handleAiReplyDraft}
+          onAiRewriteDraft={handleAiRewriteDraft}
+          aiStatusLabel={aiStatusLabel}
+          aiStatusTone={aiStatusTone}
+          aiStatusDescription={aiStatusDescription}
+          aiActionsDisabled={!isAiRuntimeUsable(aiRuntime)}
           onClose={() => setActionMessage(null)}
           onDelete={handleDelete}
         />
@@ -1655,7 +1927,8 @@ function formatFileSize(bytes: number): string {
 }
 
 function sanitizeAttachmentName(fileName: string): string {
-  return fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const normalized = fileName.trim().replace(/[\/\\:\u0000-\u001F]/g, '_');
+  return normalized.length > 0 ? normalized : 'attachment';
 }
 
 function getAttachmentKindLabel(fileName: string, mimeType: string): string {
@@ -1767,138 +2040,26 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   listContent: {
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
   },
-  // E2EE status banner
-  e2eeBanner: {
-    backgroundColor: colors.talkPanel,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.talkPanelBorder,
-  },
-  e2eeText: {
-    color: colors.success,
-    fontSize: fs.sm,
-    fontWeight: '600',
-  },
-  dmHeroWrap: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-  },
-  dmHeroCard: {
-    borderWidth: 1,
-    borderColor: colors.talkPanelBorder,
-    backgroundColor: colors.talkPanel,
-    borderRadius: 18,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  dmHeroEyebrow: {
-    color: colors.talkMeta,
-    fontSize: fs.xs - 1,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-  dmHeroTitle: {
-    marginTop: spacing.xs,
-    color: colors.text,
-    fontSize: fs.base + 2,
-    fontWeight: '700',
-  },
-  dmHeroBody: {
-    marginTop: spacing.xs,
-    color: colors.talkMeta,
-    fontSize: fs.sm,
-    lineHeight: 20,
-  },
-  dmHeroMetaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  dmHeroMetaBadge: {
-    borderRadius: 999,
-    backgroundColor: '#40444b',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-  },
-  dmHeroMetaBadgeText: {
-    color: colors.textPrimary,
-    fontSize: fs.xs,
-    fontWeight: '700',
-  },
-  dmHeroMetaBadgeSuccess: {
-    borderRadius: 999,
-    backgroundColor: 'rgba(34,197,94,0.18)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-  },
-  dmHeroMetaBadgeSuccessText: {
-    color: colors.success,
-    fontSize: fs.xs,
-    fontWeight: '700',
-  },
-  dmHeroActionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  dmHeroActionChip: {
-    borderRadius: 12,
-    backgroundColor: colors.talkOtherBubble,
-    borderWidth: 1,
-    borderColor: colors.talkPanelBorder,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-  },
-  dmHeroActionChipPrimary: {
-    backgroundColor: colors.talkOwnBubble,
-    borderColor: colors.talkOwnBubbleBorder,
-  },
-  dmHeroActionChipText: {
-    color: colors.textPrimary,
-    fontSize: fs.sm,
-    fontWeight: '700',
-  },
-  dmHeroActionChipPrimaryText: {
-    color: colors.white,
-  },
-  promotedBannerWrap: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-  },
-  promotedBanner: {
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.talkPanelBorder,
-    backgroundColor: colors.talkPanel,
-    borderRadius: 18,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm - 2,
   },
-  promotedBannerIcon: {
+  headerIconAction: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.talkPanel,
+    marginLeft: spacing.xs,
   },
-  promotedBannerIconText: {
-    color: colors.white,
-    fontSize: fs.md,
-    fontWeight: '800',
-  },
-  promotedBannerContent: {
-    flex: 1,
+  headerIconText: {
+    color: colors.textPrimary,
+    fontSize: fs.base,
+    fontWeight: '600',
   },
   historyBadge: {
     alignSelf: 'flex-start',
@@ -2067,6 +2228,61 @@ const styles = StyleSheet.create({
   },
   attachmentFileCtaText: {
     color: colors.primary,
+    fontSize: fs.xs,
+    fontWeight: '700',
+  },
+  attachmentMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  attachmentMetaRowOwn: {
+    alignSelf: 'flex-end',
+  },
+  attachmentMetaRowOther: {
+    alignSelf: 'flex-start',
+  },
+  attachmentMetaMain: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  attachmentMetaColumn: {
+    minWidth: 14,
+    alignSelf: 'flex-end',
+    gap: 1,
+    pointerEvents: 'none',
+  },
+  attachmentMetaColumnOther: {
+    alignItems: 'flex-start',
+  },
+  attachmentMetaColumnOwn: {
+    alignItems: 'flex-end',
+  },
+  attachmentReadCount: {
+    color: colors.talkMeta,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  attachmentMetaTime: {
+    color: colors.talkMeta,
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  dateDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  dateDividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.talkPanelBorder,
+  },
+  dateDividerText: {
+    color: colors.talkMeta,
     fontSize: fs.xs,
     fontWeight: '700',
   },

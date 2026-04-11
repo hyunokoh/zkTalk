@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api } from '@/lib/api';
+import { ApiError, api } from '@/lib/api';
 
 interface UnreadEntry {
   unread: number;
@@ -18,6 +18,7 @@ interface UnreadState {
   unreadMap: Record<string, UnreadEntry>;
   /** Maps communityId -> set of channelIds that belong to it */
   communityChannelIds: Record<string, string[]>;
+  reset: () => void;
   fetchUnread: (communityId: string) => Promise<void>;
   markRead: (channelId: string, lastMessageId?: string | null) => Promise<void>;
   decrementUnread: (channelId: string) => void;
@@ -29,6 +30,7 @@ interface UnreadState {
 export const useUnreadStore = create<UnreadState>((set, get) => ({
   unreadMap: {},
   communityChannelIds: {},
+  reset: () => set({ unreadMap: {}, communityChannelIds: {} }),
 
   fetchUnread: async (communityId: string) => {
     try {
@@ -50,7 +52,12 @@ export const useUnreadStore = create<UnreadState>((set, get) => ({
           [communityId]: channelIds,
         },
       }));
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        set({ unreadMap: {}, communityChannelIds: {} });
+        return;
+      }
+
       // silently fail – unread counts are non-critical
     }
   },
@@ -67,7 +74,12 @@ export const useUnreadStore = create<UnreadState>((set, get) => ({
           [channelId]: { unread: 0, mentions: 0 },
         },
       }));
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        set({ unreadMap: {}, communityChannelIds: {} });
+        return;
+      }
+
       // silently fail
     }
   },

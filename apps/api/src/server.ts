@@ -3,7 +3,28 @@ import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
+import { isCorsOriginAllowed } from './lib/cors.js';
 import { AppError } from './lib/errors.js';
+import {
+  getCookieSecret,
+  getDatabaseUrl,
+  getRedisUrl,
+  getS3Bucket,
+  getS3Endpoint,
+  getS3Region,
+  getServerPort,
+} from './lib/env.js';
+import { buildLivenessReport, buildReadinessReport } from './lib/health.js';
+import {
+  buildStartupLogContext,
+  classifyRequestLog,
+  sanitizeErrorForLogs,
+  sanitizeUrlForLogs,
+  summarizeConnectionTarget,
+} from './lib/server-log.js';
+import { db } from './lib/db/index.js';
+import { redis } from './lib/redis.js';
+import { sql } from 'drizzle-orm';
 import authRoutes from './modules/auth/auth.routes.js';
 import communityRoutes from './modules/community/community.routes.js';
 import channelRoutes from './modules/channel/channel.routes.js';
@@ -32,6 +53,7 @@ import backupRoutes from './modules/backup/backup.routes.js';
 import contactRoutes from './modules/contact/contact.routes.js';
 import channelE2eeRoutes from './modules/channel-e2ee/channel-e2ee.routes.js';
 import aiRoutes from './modules/ai/ai.routes.js';
+import { getAIRuntimeSummary } from './modules/ai/ai.service.js';
 import scheduleRoutes from './modules/schedule/schedule.routes.js';
 import discoverRoutes from './modules/discover/discover.routes.js';
 import translateRoutes from './modules/translate/translate.routes.js';
@@ -40,29 +62,88 @@ import zkIdentityRoutes from './modules/zk-identity/zk-identity.routes.js';
 import pushTokenRoutes from './modules/push-token/push-token.routes.js';
 
 const app = Fastify({
+  disableRequestLogging: true,
   logger: {
     level: process.env.LOG_LEVEL || 'info',
+    redact: {
+      paths: [
+        'req.headers.authorization',
+        'req.headers.cookie',
+        'req.headers.set-cookie',
+        'req.headers.x-api-key',
+        'req.headers.x-forwarded-for',
+      ],
+      censor: '[redacted]',
+    },
+    serializers: {
+      req(request) {
+        return {
+          method: request.method,
+          url: sanitizeUrlForLogs(request.url),
+          host: request.host,
+          remoteAddress: request.ip,
+          remotePort: request.socket.remotePort,
+        };
+      },
+      res(reply) {
+        return {
+          statusCode: reply.statusCode,
+        };
+      },
+      err(error) {
+        return {
+          ...sanitizeErrorForLogs(error),
+          stack: error.stack ?? '',
+        };
+      },
+    },
   },
 });
 
-const defaultCorsOrigins = [
-  'http://localhost:3000',
-  'http://localhost:8081',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:8081',
-];
-const configuredCorsOrigins = (process.env.CORS_ORIGIN || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-const allowedCorsOrigins = new Set([
-  ...defaultCorsOrigins,
-  ...configuredCorsOrigins,
-]);
+const readinessExcludedDependencies = [
+  {
+    name: 'object_storage',
+    includedInReadiness: false,
+    failureBoundary: 'Attachment upload and public asset retrieval can fail while baseline API readiness stays green.',
+    operatorAction: 'Verify bucket existence, API-side credentials, region, optional endpoint, presign, and asset retrieval separately.',
+  },
+  {
+    name: 'livekit',
+    includedInReadiness: false,
+    failureBoundary: 'Voice and video token issuance or room join can fail while baseline API readiness stays green.',
+    operatorAction: 'Verify public LiveKit URL, API credentials, and an actual room join separately.',
+  },
+  {
+    name: 'ai_provider',
+    includedInReadiness: false,
+    failureBoundary: 'AI summarize/chat routes can fail while baseline API readiness stays green.',
+    operatorAction: 'Verify AI_PROVIDER, the matching provider key env, and a real summarize/chat request separately.',
+  },
+] as const;
+const readinessRequiredDependencies = ['database', 'redis'] as const;
 
-function isAllowedLoopbackOrigin(origin: string) {
-  return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(origin);
-}
+app.addHook('onResponse', async (request, reply) => {
+  const requestLog = classifyRequestLog({
+    method: request.method,
+    rawUrl: request.url,
+    statusCode: reply.statusCode,
+    responseTimeMs: reply.elapsedTime,
+  });
+
+  if (!requestLog) {
+    return;
+  }
+
+  request.log[requestLog.level](
+    {
+      req: request,
+      res: reply,
+      route: request.routeOptions.url,
+      responseTimeMs: Math.round(reply.elapsedTime),
+    },
+    requestLog.message,
+  );
+});
 
 const configuredGlobalRateLimitMax = Number.parseInt(
   process.env.GLOBAL_RATE_LIMIT_MAX ?? '',
@@ -83,7 +164,7 @@ await app.register(cors, {
       return;
     }
 
-    if (allowedCorsOrigins.has(origin) || isAllowedLoopbackOrigin(origin)) {
+    if (isCorsOriginAllowed(origin, process.env.CORS_ORIGIN)) {
       callback(null, true);
       return;
     }
@@ -94,7 +175,7 @@ await app.register(cors, {
 });
 
 await app.register(cookie, {
-  secret: process.env.COOKIE_SECRET || 'dev-cookie-secret-change-in-production',
+  secret: getCookieSecret(),
 });
 
 await app.register(websocket);
@@ -116,7 +197,7 @@ await app.register(rateLimit, {
   timeWindow: '1 minute',
 });
 
-app.setErrorHandler((error: FastifyError | AppError, _request, reply) => {
+app.setErrorHandler((error: FastifyError | AppError, request, reply) => {
   if (error instanceof AppError) {
     return reply.status(error.statusCode).send({
       error: error.code,
@@ -143,7 +224,7 @@ app.setErrorHandler((error: FastifyError | AppError, _request, reply) => {
     });
   }
 
-  app.log.error(error);
+  request.log.error({ req: request, err: error }, 'Unhandled request error');
   return reply.status(500).send({
     error: 'INTERNAL_ERROR',
     message: 'Internal server error',
@@ -151,7 +232,27 @@ app.setErrorHandler((error: FastifyError | AppError, _request, reply) => {
 });
 
 app.get('/api/health', async () => {
-  return { status: 'ok', timestamp: new Date().toISOString() };
+  return buildLivenessReport('api', {
+    checkedDependencies: [...readinessRequiredDependencies],
+    excludedDependencies: [...readinessExcludedDependencies],
+  });
+});
+
+app.get('/api/health/ready', async (_request, reply) => {
+  const report = await buildReadinessReport('api', [
+    {
+      name: 'database',
+      check: async () => db.execute(sql`select 1`),
+    },
+    {
+      name: 'redis',
+      check: async () => redis.ping(),
+    },
+  ], {
+    excludedDependencies: [...readinessExcludedDependencies],
+  });
+
+  return reply.status(report.status === 'ready' ? 200 : 503).send(report);
 });
 
 await app.register(authRoutes);
@@ -189,12 +290,38 @@ await app.register(zkVotingRoutes);
 await app.register(zkIdentityRoutes);
 await app.register(pushTokenRoutes);
 
-const port = Number(process.env.PORT) || 4000;
+const port = getServerPort();
 const host = process.env.HOST || '0.0.0.0';
+const s3Endpoint = getS3Endpoint();
+const aiRuntimeSummary = getAIRuntimeSummary();
 
 try {
   await app.listen({ port, host });
-  app.log.info(`Server running on http://${host}:${port}`);
+  app.log.info(
+    buildStartupLogContext({
+      service: 'api',
+      host,
+      port,
+      logLevel: process.env.LOG_LEVEL || 'info',
+      requiredDependencies: [...readinessRequiredDependencies],
+      excludedDependencies: [...readinessExcludedDependencies],
+      dependencyTargets: {
+        database: {
+          target: summarizeConnectionTarget(getDatabaseUrl()),
+        },
+        redis: {
+          target: summarizeConnectionTarget(getRedisUrl()),
+        },
+        object_storage: {
+          endpoint: s3Endpoint ? summarizeConnectionTarget(s3Endpoint) : 'aws-managed endpoint',
+          bucket: getS3Bucket(),
+          region: getS3Region(),
+        },
+        ai_provider: aiRuntimeSummary as unknown as Record<string, unknown>,
+      },
+    }),
+    'Server startup ready',
+  );
 } catch (err) {
   app.log.error(err);
   process.exit(1);

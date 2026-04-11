@@ -1,4 +1,4 @@
-import { eq, and, ne, sql } from 'drizzle-orm';
+import { eq, and, ne, sql, inArray } from 'drizzle-orm';
 import { db } from '../../lib/db/index.js';
 import {
   channelReads,
@@ -65,23 +65,20 @@ export async function findLatestMessageId(channelId: string) {
 // Unread summary for a community
 // ---------------------------------------------------------------------------
 
-export async function getUnreadSummary(communityId: string, userId: string) {
+export async function getUnreadSummary(
+  communityId: string,
+  userId: string,
+  accessibleChannelIds?: string[],
+) {
+  if (accessibleChannelIds && accessibleChannelIds.length === 0) {
+    return [];
+  }
+
   const result = await db
     .select({
       channelId: channels.id,
       channelName: channels.name,
       lastReadMessageId: channelReads.lastReadMessageId,
-      unreadCount: sql<number>`COALESCE((
-        SELECT count(*)::int
-        FROM ${messages} AS m
-        WHERE m.channel_id = ${channels.id}
-          AND m.thread_id IS NULL
-          AND m.author_user_id <> ${userId}
-          AND (
-            ${channelReads.lastReadMessageId} IS NULL
-            OR m.id > ${channelReads.lastReadMessageId}
-          )
-      ), 0)`,
       mentionCountCache: channelReads.mentionCountCache,
     })
     .from(channels)
@@ -92,15 +89,43 @@ export async function getUnreadSummary(communityId: string, userId: string) {
         eq(channelReads.userId, userId),
       ),
     )
-    .where(eq(channels.communityId, communityId));
+    .where(
+      accessibleChannelIds
+        ? and(
+            eq(channels.communityId, communityId),
+            inArray(channels.id, accessibleChannelIds),
+          )
+        : eq(channels.communityId, communityId),
+    );
 
-  return result.map((row) => ({
-    channelId: row.channelId,
-    channelName: row.channelName,
-    lastReadMessageId: row.lastReadMessageId,
-    unreadCount: row.unreadCount ?? 0,
-    mentionCount: row.mentionCountCache ?? 0,
-  }));
+  const summary = await Promise.all(
+    result.map(async (row) => {
+      const unreadWhere = [
+        eq(messages.channelId, row.channelId),
+        sql`${messages.threadId} IS NULL`,
+        ne(messages.authorUserId, userId),
+      ];
+
+      if (row.lastReadMessageId) {
+        unreadWhere.push(sql`${messages.id} > ${row.lastReadMessageId}`);
+      }
+
+      const [countRow] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(messages)
+        .where(and(...unreadWhere));
+
+      return {
+        channelId: row.channelId,
+        channelName: row.channelName,
+        lastReadMessageId: row.lastReadMessageId,
+        unreadCount: Number(countRow?.count ?? 0),
+        mentionCount: row.mentionCountCache ?? 0,
+      };
+    }),
+  );
+
+  return summary;
 }
 
 // ---------------------------------------------------------------------------

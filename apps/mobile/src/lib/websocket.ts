@@ -77,6 +77,8 @@ type WsClientMessage =
   | { type: 'unsubscribe_channel'; channelId: string }
   | { type: 'subscribe_community'; communityId: string }
   | { type: 'unsubscribe_community'; communityId: string }
+  | { type: 'subscribe_dm'; conversationId: string }
+  | { type: 'unsubscribe_dm'; conversationId: string }
   | { type: 'typing_start'; channelId: string }
   | { type: 'typing_stop'; channelId: string }
   | { type: 'heartbeat' };
@@ -94,6 +96,7 @@ class WebSocketManager {
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private subscribedChannels = new Set<string>();
   private subscribedCommunities = new Set<string>();
+  private subscribedDms = new Set<string>();
   private eventListeners = new Set<EventListener>();
   private statusListeners = new Set<StatusListener>();
   private isManualDisconnect = false;
@@ -209,6 +212,16 @@ class WebSocketManager {
     this.send({ type: 'unsubscribe_community', communityId });
   }
 
+  subscribeDm(conversationId: string): void {
+    this.subscribedDms.add(conversationId);
+    this.send({ type: 'subscribe_dm', conversationId });
+  }
+
+  unsubscribeDm(conversationId: string): void {
+    this.subscribedDms.delete(conversationId);
+    this.send({ type: 'unsubscribe_dm', conversationId });
+  }
+
   // ------ Send ------
 
   send(msg: WsClientMessage): void {
@@ -288,6 +301,9 @@ class WebSocketManager {
     }
     for (const communityId of this.subscribedCommunities) {
       this.send({ type: 'subscribe_community', communityId });
+    }
+    for (const conversationId of this.subscribedDms) {
+      this.send({ type: 'subscribe_dm', conversationId });
     }
   }
 

@@ -54,7 +54,17 @@ var LoadingSpinner_1 = require("../components/LoadingSpinner");
 var api_1 = require("../lib/api");
 var i18n_1 = require("../lib/i18n");
 var simulator_harness_1 = require("../lib/simulator-harness");
+var shared_1 = require("@zktalk/shared");
 var theme_1 = require("../theme");
+function getChannelAccessBadgeStyle(accessPolicy) {
+    if (accessPolicy === 'public') {
+        return styles.channelPolicyBadgeOpen;
+    }
+    if (accessPolicy === 'invite_only') {
+        return styles.channelPolicyBadgeInvite;
+    }
+    return styles.channelPolicyBadgeJoin;
+}
 function parseJsonArray(value) {
     if (!value)
         return [];
@@ -145,10 +155,13 @@ function CommunityOnboardingScreen(_a) {
     var channels = (_c = channelsQuery.data) !== null && _c !== void 0 ? _c : [];
     var filteredChannels = (0, react_1.useMemo)(function () {
         var normalizedQuery = channelSearchQuery.trim().toLowerCase();
+        var eligibleChannels = channels.filter(function (channel) {
+            return (0, shared_1.canUseChannelAsOnboardingStarter)(channel.accessPolicy);
+        });
         if (!normalizedQuery) {
-            return channels;
+            return eligibleChannels;
         }
-        return channels.filter(function (channel) { return channel.name.toLowerCase().includes(normalizedQuery); });
+        return eligibleChannels.filter(function (channel) { return channel.name.toLowerCase().includes(normalizedQuery); });
     }, [channelSearchQuery, channels]);
     var hasLoaded = !onboardingQuery.isLoading && !channelsQuery.isLoading;
     var ruleCount = (0, react_1.useMemo)(function () { return rulesText.split('\n').map(function (rule) { return rule.trim(); }).filter(Boolean).length; }, [rulesText]);
@@ -233,10 +246,12 @@ function CommunityOnboardingScreen(_a) {
           <react_native_1.View style={styles.section}>
             <react_native_1.Text style={styles.label}>{t('community.onboardingDefaultChannels')}</react_native_1.Text>
             <react_native_1.Text style={styles.helper}>{t('community.onboardingDefaultChannelsHint')}</react_native_1.Text>
+            <react_native_1.Text style={styles.helper}>{t('community.onboardingDefaultChannelsPolicyHint')}</react_native_1.Text>
             <react_native_1.TextInput style={styles.input} value={channelSearchQuery} onChangeText={setChannelSearchQuery} placeholder={t('community.onboardingChannelSearchPlaceholder')} placeholderTextColor={theme_1.colors.textDim} autoCapitalize="none" autoCorrect={false} returnKeyType="search"/>
             <react_native_1.View style={styles.channelWrap}>
               {filteredChannels.map(function (channel) {
             var selected = defaultChannelIds.includes(channel.id);
+            var accessSummaryKey = (0, shared_1.getChannelAccessSummaryKey)(channel.accessPolicy);
             return (<react_native_1.TouchableOpacity key={channel.id} style={[styles.channelChip, selected && styles.channelChipSelected]} onPress={function () {
                     return setDefaultChannelIds(function (prev) {
                         return prev.includes(channel.id)
@@ -244,9 +259,14 @@ function CommunityOnboardingScreen(_a) {
                             : __spreadArray(__spreadArray([], prev, true), [channel.id], false);
                     });
                 }}>
-                    <react_native_1.Text style={[styles.channelChipText, selected && styles.channelChipTextSelected]}>
-                      # {channel.name}
-                    </react_native_1.Text>
+                    <react_native_1.View style={styles.channelChipContent}>
+                      <react_native_1.Text style={[styles.channelChipText, selected && styles.channelChipTextSelected]}>
+                        # {channel.name}
+                      </react_native_1.Text>
+                      {accessSummaryKey ? (<react_native_1.View style={[styles.channelPolicyBadge, getChannelAccessBadgeStyle(channel.accessPolicy)]}>
+                          <react_native_1.Text style={styles.channelPolicyBadgeText}>{t(accessSummaryKey)}</react_native_1.Text>
+                        </react_native_1.View>) : null}
+                    </react_native_1.View>
                   </react_native_1.TouchableOpacity>);
         })}
             </react_native_1.View>
@@ -352,6 +372,11 @@ var styles = react_native_1.StyleSheet.create({
         paddingHorizontal: theme_1.spacing.md,
         paddingVertical: theme_1.spacing.sm,
     },
+    channelChipContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme_1.spacing.sm,
+    },
     channelChipSelected: {
         backgroundColor: theme_1.colors.primary,
     },
@@ -362,6 +387,25 @@ var styles = react_native_1.StyleSheet.create({
     },
     channelChipTextSelected: {
         color: theme_1.colors.white,
+    },
+    channelPolicyBadge: {
+        borderRadius: theme_1.borderRadius.round,
+        paddingHorizontal: theme_1.spacing.sm,
+        paddingVertical: 4,
+    },
+    channelPolicyBadgeOpen: {
+        backgroundColor: '#d1fae5',
+    },
+    channelPolicyBadgeJoin: {
+        backgroundColor: '#dbeafe',
+    },
+    channelPolicyBadgeInvite: {
+        backgroundColor: '#fef3c7',
+    },
+    channelPolicyBadgeText: {
+        color: '#1f2937',
+        fontSize: theme_1.fontSize.xs,
+        fontWeight: '700',
     },
     saveButton: {
         backgroundColor: theme_1.colors.primary,

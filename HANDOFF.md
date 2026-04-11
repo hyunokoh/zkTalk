@@ -4,6 +4,18 @@
 
 커뮤니티 메신저 (Discord + Zulip + 카카오톡 영감). 한글명 "모임톡", 영문명 "zkTalk".
 
+## 현재 기준 문서
+
+- 문서 인덱스: [docs/README.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/README.md)
+- 최신 상태 진입점: [docs/CURRENT_STATUS.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/CURRENT_STATUS.md)
+- 최신 릴리스 스냅샷: [docs/current-release-next.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/current-release-next.md), [docs/current-release-next.json](/Users/hyunokoh/Documents/Projects/zkTalk/docs/current-release-next.json)
+- 외부 블로커 기준선: [docs/current-blockers-2026-03-25.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/current-blockers-2026-03-25.md)
+- 최종 운영자 체크리스트: [docs/final-operator-checklist-2026-04-07.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/final-operator-checklist-2026-04-07.md)
+- 런타임/배포 기준선: [docs/production-runtime-runbook.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/production-runtime-runbook.md)
+- 엔지니어링 큐 기준선: [docs/COMMERCIALIZATION_PLAN.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/COMMERCIALIZATION_PLAN.md), [docs/IMPLEMENTATION_PLAN.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/IMPLEMENTATION_PLAN.md)
+
+위 문서들을 현재 소스 오브 트루스로 보고, 자격증명/실기기 의존 항목은 blocker 문서에만 남기고 저장소 내부에서 줄일 수 있는 작업은 계획 문서와 런타임 문서로 분리합니다.
+
 ### 기술 스택
 - **Monorepo**: Turborepo + pnpm workspaces
 - **API**: Fastify 5 + Drizzle ORM + PostgreSQL 16 + Redis 7 + MinIO S3
@@ -181,11 +193,19 @@ docker/         — Docker Compose (postgres, redis, minio, livekit)
 
 ### 아직 남은 큰 항목
 
+#### 외부 입력이 필요한 현재 블로커
+
 - mac 코드서명 / notarization
 - Windows 코드서명
-- 시뮬레이터 전용 자동 검증 훅 정리 여부 결정
+- 실제 iPhone 기기에서의 한글 IME 최종 확인
+
+#### 저장소 내부에서 계속 줄일 수 있는 follow-up
+
+- 웹/API 런타임 하드닝의 잔여 예외 경로 정리
+- 표적 회귀 테스트와 release-readiness 검증 범위 보강
 - 비핵심 lint/경고 정리
 - 데스크톱 signing blocker 리포트는 이제 최신 `release-status`를 매번 다시 읽고 `signing.env` 존재/로드 상태도 같이 보여줍니다
+- 서비스 배포 판단은 데스크톱 서명 문서보다 먼저 `docs/production-runtime-runbook.md`, `docs/release-readiness-checklist-2026-03-25.md`, `docs/final-operator-checklist-2026-04-07.md` 순서로 확인하는 것이 현재 기준입니다
 
 ### 문서 주의
 
@@ -197,6 +217,19 @@ docker/         — Docker Compose (postgres, redis, minio, livekit)
 고정 경로의 최신 상태 요약은 [docs/CURRENT_STATUS.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/CURRENT_STATUS.md)에 정리되어 있습니다.
 문서 전체 인덱스는 [docs/README.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/README.md)에 정리되어 있습니다.
 저장소 루트 진입점은 [README.md](/Users/hyunokoh/Documents/Projects/zkTalk/README.md)입니다.
+
+### 현재 인수인계용 분류 기준
+
+- 지금 바로 저장소 수정으로 줄일 수 있는 항목:
+  - 웹/API 런타임 하드닝
+  - 표적 회귀 테스트 추가
+  - release/runtime 문서 정합성 수정
+- 외부 입력 없이는 진행할 수 없는 항목:
+  - mac 서명 / notarization 자격증명
+  - Windows 코드서명 자격증명
+  - 실제 iPhone 기기에서의 한글 IME 최종 확인
+- 따라서 blocker 문서는 외부 입력 항목만 유지하고, 나머지 engineering follow-up은 계획 문서와 검증 문서에서 추적하는 것이 현재 원칙입니다.
+- 운영자가 바로 실행할 단계와 외부 입력 대기 항목은 [docs/final-operator-checklist-2026-04-07.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/final-operator-checklist-2026-04-07.md)에 짧게 정리되어 있습니다.
 
 ---
 
@@ -215,12 +248,10 @@ docker/         — Docker Compose (postgres, redis, minio, livekit)
   - 안내 문구 표시
   - 저장될 링크 preview 표시
 
-#### 2. 시뮬레이터 전용 자동 검증 훅 release 정책 결정 필요
-- 이번 검증 라운드에서는 빠른 회귀를 위해 mobile 앱에 시뮬레이터 전용 dev route / auto action을 다수 추가했습니다.
-- 현재는 screen-level의 산발적인 직접 체크는 대부분 공통 harness gate로 정리된 상태입니다.
-- 현재 harness는 시뮬레이터 dev 빌드에선 기본 활성이고, non-dev/release 빌드에선 `EXPO_PUBLIC_ENABLE_SIMULATOR_HARNESS=true`를 주지 않으면 기본 비활성입니다.
-- 남아 있는 접점은 주로 공통 helper, App bootstrap의 `dev-session-token` / `dev-route.json`, 그리고 결과/에러 파일 쪽입니다. 핵심 bootstrap/login/settings/home의 JSON read/write, route marker cleanup, simulator 생성 중복 방지 marker claim은 이미 공통 helper로 모였습니다.
-- 릴리스 전에는 이 중앙 harness를 유지할지, 별도 테스트 빌드 전용으로 옮길지, 혹은 release branch에서만 더 강하게 제한할지 결정이 필요합니다.
+#### 2. 시뮬레이터 전용 자동 검증 훅 정책
+- 현재 기준으로는 별도 release blocker가 아닙니다.
+- 공통 harness gate로 정리되어 있고, physical device에서는 `Device.isDevice`로 비활성, non-dev/release 빌드에서는 `EXPO_PUBLIC_ENABLE_SIMULATOR_HARNESS=true`가 없으면 기본 비활성입니다.
+- 따라서 남은 작업은 정책 재논의가 아니라, 실제 회귀나 누출이 발견될 때만 `docs/COMMERCIALIZATION_PLAN.md`와 `docs/IMPLEMENTATION_PLAN.md`의 엔지니어링 follow-up으로 다루는 것이 현재 분류입니다.
 
 #### 3. 비핵심 경고 및 정리 작업
 - 현재 기능을 막는 크리티컬 버그보다, 남아 있는 경고/정리 작업 쪽 비중이 큽니다.
@@ -233,6 +264,8 @@ docker/         — Docker Compose (postgres, redis, minio, livekit)
 - desktop snapshot json: `/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/release-next.json`
 - one-shot next command: `cd /Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop && npm run release:next`
 - repo-level next command: `cd /Users/hyunokoh/Documents/Projects/zkTalk && npm run release:next`
+- 운영자 handoff shortcut: `/Users/hyunokoh/Documents/Projects/zkTalk/docs/final-operator-checklist-2026-04-07.md`
+- 현재 외부 blocker 요약: `/Users/hyunokoh/Documents/Projects/zkTalk/docs/current-blockers-2026-03-25.md`
 
 ---
 

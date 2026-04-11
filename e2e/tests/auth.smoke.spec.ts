@@ -21,7 +21,7 @@ test.describe('auth smoke', () => {
     await expect(page.getByTestId('community-rail-profile-link')).toBeVisible();
   });
 
-  test('phone login uses the dev OTP and opens the app', async ({ page }) => {
+  test('phone login restores the session after reload and allows logout from settings', async ({ page }) => {
     const phoneNumber = `010${String(Date.now()).slice(-8)}`;
 
     await page.goto('/login');
@@ -38,5 +38,25 @@ test.describe('auth smoke', () => {
 
     await expect(page).toHaveURL(/\/home$/);
     await expect(page.getByTestId('community-rail-profile-link')).toBeVisible();
+
+    await expect
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('zktalk_session_token')))
+      .not.toBeNull();
+
+    await page.reload();
+    await expect(page).toHaveURL(/\/home$/);
+    await expect(page.getByTestId('community-rail-profile-link')).toBeVisible();
+
+    await page.goto('/settings');
+    await expect(page.getByTestId('settings-signout-button')).toBeVisible();
+    await page.getByTestId('settings-signout-button').click();
+
+    await expect(page).toHaveURL(/\/login$/);
+    await expect
+      .poll(() => page.evaluate(() => window.sessionStorage.getItem('zktalk_session_token')))
+      .toBeNull();
+
+    await page.goto('/home');
+    await expect(page).toHaveURL(/\/login\?next=%2Fhome$/);
   });
 });

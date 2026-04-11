@@ -29,7 +29,7 @@ import { realtimeService } from '../realtime/realtime.service.js';
 
 export const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1 GB attachments
 export const MAX_ASSET_FILE_SIZE = 10 * 1024 * 1024; // 10 MB avatars/icons
-export const SINGLE_PART_UPLOAD_MAX_BYTES = 100 * 1024 * 1024;
+export const SINGLE_PART_UPLOAD_MAX_BYTES = MAX_FILE_SIZE;
 export const MULTIPART_CHUNK_SIZE = 10 * 1024 * 1024;
 export const UPLOAD_SESSION_TTL_MS = 60 * 60 * 1000;
 

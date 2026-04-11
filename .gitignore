@@ -44,3 +44,8 @@ apps/api/dev.db
 apps/api/uploads/
 apps/mobile/tmp-*.png
 apps/mobile/package-lock.json
+.zkcoder/home/
+.zkcoder/file-store/
+.zkcoder/runs/
+.zkcoder/status.json
+.zkcoder/resume-status.json

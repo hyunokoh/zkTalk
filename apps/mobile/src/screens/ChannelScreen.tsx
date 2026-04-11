@@ -18,6 +18,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as LegacyFileSystem from 'expo-file-system/legacy';
 import { api, ApiError, createRequestId } from '../lib/api';
+import {
+  buildSelectedMessageAiAction,
+  fetchAiRuntime,
+  getAiRuntimePresentation,
+  getSelectedMessageAiAppliedMessageKey,
+  isAiRuntimeUsable,
+  requestAiChat,
+} from '../lib/ai';
 import { enqueueMessage, getPendingMessages } from '../lib/offline-queue';
 import { getUserFacingErrorMessage } from '../lib/error-message';
 import {
@@ -53,8 +61,14 @@ import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { colors, spacing, fontSize as fs, borderRadius } from '../theme';
 import {
+  getSelectedMessageAiSourceText,
+  getTranslationRenderSourceVersion,
   isImageAttachmentMimeType,
+  resolveTranslationResponse,
+  resolveTranslationRenderCacheState,
   shouldHideAttachmentBody,
+  type TranslationRenderCacheEntry,
+  type TranslationRuntimeStatus,
 } from '@zktalk/shared';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { HomeStackParamList, RootStackParamList } from '../navigation/types';
@@ -70,6 +84,7 @@ interface Message {
   parentMessageId?: string | null;
   authorUserId: string;
   createdAt: string;
+  updatedAt?: string;
   isEdited?: boolean;
   author?: {
     displayName: string;
@@ -157,6 +172,12 @@ interface PendingMessage {
   createdAt: number;
 }
 
+interface InlineTranslationState {
+  entry: TranslationRenderCacheEntry;
+  runtimeStatus: TranslationRuntimeStatus;
+  issue?: string;
+}
+
 interface ChannelMePermissions {
   canViewChannel: boolean;
   canPostMessage: boolean;
@@ -175,6 +196,57 @@ interface ThreadSummary {
   };
 }
 
+const MOBILE_FALLBACK_MESSAGE_POLL_MS = 5_000;
+const REALTIME_FOLLOWUP_REFRESH_MS = 150;
+
+function formatUnreadCount(unreadCount: number): string {
+  return String(Math.min(99, Math.max(0, Math.trunc(unreadCount))));
+}
+
+function formatMessageMetaTime(value: string | Date): string {
+  return new Date(value).toLocaleTimeString('ko-KR', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function formatMessageDateDivider(value: string | Date): string {
+  return new Date(value).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  });
+}
+
+function createOptimisticChannelMessage(params: {
+  authorUserId: string;
+  authorDisplayName: string;
+  authorUsername: string;
+  authorAvatarUrl?: string | null;
+  bodyPlaintext: string;
+  topic?: string | null;
+  parentMessageId?: string | null;
+}): Message {
+  return {
+    id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    bodyPlaintext: params.bodyPlaintext,
+    bodyMarkdown: params.bodyPlaintext,
+    topic: params.topic ?? null,
+    threadId: null,
+    parentMessageId: params.parentMessageId ?? null,
+    authorUserId: params.authorUserId,
+    createdAt: new Date().toISOString(),
+    author: {
+      displayName: params.authorDisplayName,
+      username: params.authorUsername,
+      avatarUrl: params.authorAvatarUrl ?? null,
+    },
+    attachments: [],
+  };
+}
+
 export default function ChannelScreen({ navigation, route }: Props) {
   const { channelId, focusMessageId } = route.params;
   const { t, locale } = useTranslation();
@@ -187,7 +259,7 @@ export default function ChannelScreen({ navigation, route }: Props) {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [actionMessage, setActionMessage] = useState<Message | null>(null);
-  const [translatedBodies, setTranslatedBodies] = useState<Record<string, string>>({});
+  const [translatedBodies, setTranslatedBodies] = useState<Record<string, InlineTranslationState>>({});
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [openingAttachmentId, setOpeningAttachmentId] = useState<string | null>(null);
   const [previewGallery, setPreviewGallery] = useState<{
@@ -195,6 +267,9 @@ export default function ChannelScreen({ navigation, route }: Props) {
     index: number;
   } | null>(null);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [composerDraftText, setComposerDraftText] = useState('');
+  const [composerDraftSeed, setComposerDraftSeed] = useState('');
+  const [composerDraftKey, setComposerDraftKey] = useState<string | null>(null);
   const [topic, setTopic] = useState('');
   const devComposeInFlightRef = useRef(false);
   const devAttachmentAttemptedRef = useRef(false);
@@ -206,6 +281,7 @@ export default function ChannelScreen({ navigation, route }: Props) {
   const wsStatus = useWebSocketStatus();
   const shouldPollMessages = wsStatus !== 'connected';
   const endpoint = `/api/channels/${channelId}/messages`;
+  const channelMessagesQueryKey = ['messages', channelId] as const;
   const { data: channelDetailData } = useQuery({
     queryKey: ['channel', channelId],
     queryFn: () => api<{ channel: ChannelDetail }>(`/api/channels/${channelId}`),
@@ -226,6 +302,11 @@ export default function ChannelScreen({ navigation, route }: Props) {
       api<{ permissions: ChannelMePermissions }>(
         `/api/channels/${channelId}/me-permissions`,
       ),
+  });
+  const { data: aiRuntime } = useQuery({
+    queryKey: ['ai-runtime'],
+    queryFn: fetchAiRuntime,
+    staleTime: 60_000,
   });
   const canManageChannel = permissionsData?.permissions.canManageChannel ?? false;
   const canPostChannel = permissionsData?.permissions.canPostMessage ?? true;
@@ -324,32 +405,38 @@ export default function ChannelScreen({ navigation, route }: Props) {
         <View style={styles.headerActions}>
           {sourceDmConversation ? (
             <TouchableOpacity
+              testID="channel-header-history"
               onPress={openSourceDmHistory}
               hitSlop={8}
-              style={styles.headerHistoryAction}
+              style={styles.headerIconAction}
               accessibilityRole="button"
               accessibilityLabel={sourceDmFullLabel}
             >
-              <Text
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                style={styles.headerHistoryActionText}
-              >
-                {sourceDmHeaderLabel}
-              </Text>
+              <Text style={styles.headerIconText}>{'\u21A9'}</Text>
             </TouchableOpacity>
           ) : null}
           {route.params.communityId ? (
             <TouchableOpacity
+              testID="channel-header-search"
               onPress={openChannelSearch}
               hitSlop={8}
-              style={styles.headerSearchAction}
+              style={styles.headerIconAction}
               accessibilityRole="button"
               accessibilityLabel={t('channel.searchHintTitle')}
             >
-              <Text style={styles.headerSearchActionText}>{t('channel.searchHintTitle')}</Text>
+              <Text style={styles.headerIconText}>{'\u2315'}</Text>
             </TouchableOpacity>
           ) : null}
+          <TouchableOpacity
+            testID="channel-header-pins"
+            onPress={openChannelPins}
+            hitSlop={8}
+            style={styles.headerIconAction}
+            accessibilityRole="button"
+            accessibilityLabel={t('pin.pinned')}
+          >
+            <Text style={styles.headerIconText}>{'\u{1F4CC}'}</Text>
+          </TouchableOpacity>
         </View>
       ),
     });
@@ -371,21 +458,21 @@ export default function ChannelScreen({ navigation, route }: Props) {
   const { queuedEventCount, consumeEvents, typingUserIds } = useChannelSubscription(channelId);
   const { startTyping, stopTyping } = useTypingIndicator(channelId);
   const scheduleMessageRefresh = useCallback(
-    (delayMs = 1_200) => {
+    (delayMs = REALTIME_FOLLOWUP_REFRESH_MS) => {
       if (messageRefreshTimeoutRef.current) {
         clearTimeout(messageRefreshTimeoutRef.current);
       }
 
       messageRefreshTimeoutRef.current = setTimeout(() => {
         messageRefreshTimeoutRef.current = null;
-        void queryClient.invalidateQueries({ queryKey: ['messages', channelId] });
+        void queryClient.invalidateQueries({ queryKey: channelMessagesQueryKey });
       }, delayMs);
     },
-    [channelId, queryClient],
+    [channelMessagesQueryKey, queryClient],
   );
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['messages', channelId],
+    queryKey: channelMessagesQueryKey,
     queryFn: async () => {
       const res = await api<ChannelMessagesResponse>(endpoint);
       const messages = (res.messages ?? []).map(flattenMessage);
@@ -394,7 +481,7 @@ export default function ChannelScreen({ navigation, route }: Props) {
         unreadCounts: res.unreadCounts ?? {},
       };
     },
-    refetchInterval: shouldPollMessages ? 30_000 : false,
+    refetchInterval: shouldPollMessages ? MOBILE_FALLBACK_MESSAGE_POLL_MS : false,
   });
   const messages = data?.messages ?? [];
   const unreadCounts = data?.unreadCounts ?? {};
@@ -507,6 +594,7 @@ export default function ChannelScreen({ navigation, route }: Props) {
               };
             },
           );
+          scheduleMessageRefresh();
           break;
         }
         case 'message.deleted': {
@@ -627,7 +715,7 @@ export default function ChannelScreen({ navigation, route }: Props) {
           method: 'PATCH',
           body: { bodyMarkdown: body },
         });
-        return { queued: false as const };
+        return { queued: false as const, message: null as Message | null };
       }
 
       // If there's a pending attachment, upload it first
@@ -669,9 +757,11 @@ export default function ChannelScreen({ navigation, route }: Props) {
         // Attach file if uploaded
         if (attachmentData && result.message?.id) {
           await attachToMessage(result.message.id, attachmentData);
+          const hydratedMessage = await api<Message>(`/api/messages/${result.message.id}`);
+          return { queued: false as const, message: hydratedMessage };
         }
 
-        return { queued: false as const };
+        return { queued: false as const, message: result.message ?? null };
       } catch (err) {
         const shouldQueue = !(err instanceof ApiError) || err.status === 0;
         if (!shouldQueue) {
@@ -693,12 +783,72 @@ export default function ChannelScreen({ navigation, route }: Props) {
           ...prev,
           { id: queued.id, body, createdAt: queued.createdAt },
         ]);
-        return { queued: true as const };
+        return { queued: true as const, message: null as Message | null };
       }
     },
-    onSuccess: (result) => {
+    onMutate: async (body) => {
+      if (editingMessage) {
+        return { optimisticId: null as string | null };
+      }
+
+      const fallbackBody = body.trim().length > 0 ? body : pendingAttachment?.name || ' ';
+      const trimmedTopic = topic.trim();
+      const optimisticMessage = createOptimisticChannelMessage({
+        authorUserId: currentUser?.id ?? 'me',
+        authorDisplayName: currentUser?.displayName ?? t('common.you'),
+        authorUsername: currentUser?.username ?? 'me',
+        authorAvatarUrl: currentUser?.avatarUrl ?? null,
+        bodyPlaintext: fallbackBody,
+        topic: trimmedTopic || null,
+        parentMessageId: replyTo?.id ?? null,
+      });
+
+      queryClient.setQueryData(
+        channelMessagesQueryKey,
+        (old: { messages: Message[]; unreadCounts?: Record<string, number> } | undefined) => ({
+          messages: [optimisticMessage, ...(old?.messages ?? [])],
+          unreadCounts: old?.unreadCounts ?? {},
+        }),
+      );
+
+      return { optimisticId: optimisticMessage.id };
+    },
+    onSuccess: (result, _body, context) => {
+      if (result.queued && context?.optimisticId) {
+        queryClient.setQueryData(
+          channelMessagesQueryKey,
+          (old: { messages: Message[]; unreadCounts?: Record<string, number> } | undefined) => {
+            if (!old) return old;
+            return {
+              messages: old.messages.filter((message) => message.id !== context.optimisticId),
+              unreadCounts: old.unreadCounts ?? {},
+            };
+          },
+        );
+      } else if (result.message && context?.optimisticId) {
+        const resolvedMessage = flattenMessage(result.message);
+        queryClient.setQueryData(
+          channelMessagesQueryKey,
+          (old: { messages: Message[]; unreadCounts?: Record<string, number> } | undefined) => {
+            if (!old) {
+              return { messages: [resolvedMessage], unreadCounts: {} };
+            }
+            return {
+              messages: [
+                resolvedMessage,
+                ...old.messages.filter(
+                  (message) =>
+                    message.id !== context.optimisticId && message.id !== resolvedMessage.id,
+                ),
+              ],
+              unreadCounts: old.unreadCounts ?? {},
+            };
+          },
+        );
+      }
+
       if (!result.queued && shouldPollMessages) {
-        void queryClient.invalidateQueries({ queryKey: ['messages', channelId] });
+        void queryClient.invalidateQueries({ queryKey: channelMessagesQueryKey });
       }
       setPendingAttachment(null);
       setUploadProgress(null);
@@ -712,7 +862,19 @@ export default function ChannelScreen({ navigation, route }: Props) {
         Alert.alert(t('common.offline'), t('common.offlineQueue'));
       }
     },
-    onError: () => {
+    onError: (_error, _body, context) => {
+      if (context?.optimisticId) {
+        queryClient.setQueryData(
+          channelMessagesQueryKey,
+          (old: { messages: Message[]; unreadCounts?: Record<string, number> } | undefined) => {
+            if (!old) return old;
+            return {
+              messages: old.messages.filter((message) => message.id !== context.optimisticId),
+              unreadCounts: old.unreadCounts ?? {},
+            };
+          },
+        );
+      }
       setUploadProgress(null);
     },
   });
@@ -826,6 +988,20 @@ export default function ChannelScreen({ navigation, route }: Props) {
     [channelId, navigation, route.params.channelName, route.params.communityId, t, threadSummariesByRootId],
   );
 
+  const applyComposerDraft = useCallback((nextDraft: string) => {
+    setComposerDraftSeed(nextDraft);
+    setComposerDraftText(nextDraft);
+    setComposerDraftKey(`ai-draft-${Date.now()}`);
+  }, []);
+
+  const aiRuntimePresentation = getAiRuntimePresentation(t, aiRuntime);
+  const aiStatusLabel = aiRuntimePresentation?.label;
+  const aiStatusTone: 'live' | 'mock' | 'unavailable' = aiRuntimePresentation?.tone ?? 'unavailable';
+  const aiStatusRuntimeDescription = aiRuntimePresentation?.description ?? t('common.loading');
+  const aiStatusDescription = [aiStatusRuntimeDescription, t('ai.selectedMessageScopeHint')]
+    .filter(Boolean)
+    .join(' ');
+
   const handleBookmark = useCallback(() => {
     if (!actionMessage) return;
 
@@ -921,8 +1097,28 @@ export default function ChannelScreen({ navigation, route }: Props) {
   const handleTranslate = useCallback(async () => {
     if (!actionMessage) return;
 
-    const existing = translatedBodies[actionMessage.id];
-    if (existing) {
+    const contract = buildSelectedMessageAiAction({
+      action: 'translate-inline',
+      surface: 'channel',
+      sourceMessage: {
+        authorDisplayName: actionMessage.author?.displayName,
+        bodyText: getSelectedMessageAiSourceText(actionMessage),
+      },
+    });
+
+    if (contract.errorKey || !contract.sourceText) {
+      Alert.alert(t('common.error'), t(contract.errorKey ?? 'ai.selectedMessageUnavailable'));
+      return;
+    }
+
+    const existing = translatedBodies[actionMessage.id]?.entry;
+    const sourceVersion = getTranslationRenderSourceVersion(actionMessage);
+    const existingState = resolveTranslationRenderCacheState({
+      entry: existing,
+      sourceVersion,
+      targetLanguage: locale,
+    });
+    if (existingState === 'ready') {
       setTranslatedBodies((prev) => {
         const next = { ...prev };
         delete next[actionMessage.id];
@@ -932,17 +1128,46 @@ export default function ChannelScreen({ navigation, route }: Props) {
     }
 
     try {
-      const result = await api<{ translatedText: string }>('/api/translate', {
+      const result = await api<{
+        translatedText: string | null;
+        runtime: {
+          status: TranslationRuntimeStatus;
+          issue?: string;
+        };
+      }>('/api/translate', {
         method: 'POST',
         body: {
-          text: actionMessage.bodyPlaintext,
+          text: contract.sourceText,
           targetLang: locale,
         },
       });
-      setTranslatedBodies((prev) => ({
-        ...prev,
-        [actionMessage.id]: result.translatedText,
-      }));
+      const resolution = resolveTranslationResponse({
+        response: result,
+        targetLanguage: locale,
+        sourceVersion,
+      });
+
+      const entry = resolution.entry;
+      if (entry) {
+        setTranslatedBodies((prev) => ({
+          ...prev,
+          [actionMessage.id]: {
+            entry,
+            runtimeStatus: resolution.runtime.status,
+            issue: resolution.runtime.issue,
+          },
+        }));
+        return;
+      }
+
+      Alert.alert(
+        t('common.error'),
+        resolution.state === 'runtime-disabled'
+          ? t('message.translationDisabled')
+          : resolution.runtime.issue
+            ? t('message.translationUnavailableWithIssue', { issue: resolution.runtime.issue })
+            : t('message.translationUnavailable'),
+      );
     } catch (error) {
       Alert.alert(
         t('common.error'),
@@ -950,6 +1175,99 @@ export default function ChannelScreen({ navigation, route }: Props) {
       );
     }
   }, [actionMessage, locale, t, translatedBodies]);
+
+  const getRenderedTranslation = useCallback(
+    (message: Message) => {
+      const translationState = translatedBodies[message.id];
+      const entry = translationState?.entry;
+      const cacheState = resolveTranslationRenderCacheState({
+        entry,
+        sourceVersion: getTranslationRenderSourceVersion(message),
+        targetLanguage: locale,
+      });
+      if (!entry || (cacheState !== 'ready' && cacheState !== 'stale')) {
+        return { body: undefined, label: undefined };
+      }
+      return {
+        body: entry.translatedText,
+        label:
+          cacheState === 'stale'
+            ? t('message.translatedStale')
+            : translationState?.runtimeStatus === 'mock'
+              ? t('message.translatedMock')
+              : t('message.translated'),
+      };
+    },
+    [locale, t, translatedBodies],
+  );
+
+  const handleAiReplyDraft = useCallback(async () => {
+    if (!actionMessage) {
+      return;
+    }
+
+    const contract = buildSelectedMessageAiAction({
+      action: 'reply-draft',
+      surface: 'channel',
+      sourceMessage: {
+        authorDisplayName: actionMessage.author?.displayName,
+        bodyText: getSelectedMessageAiSourceText(actionMessage),
+      },
+    });
+
+    if (contract.errorKey || !contract.chatMessages) {
+      Alert.alert(t('common.error'), t(contract.errorKey ?? 'ai.selectedMessageUnavailable'));
+      return;
+    }
+
+    try {
+      const reply = await requestAiChat(contract.chatMessages);
+      setReplyTo(actionMessage);
+      setEditingMessage(null);
+      applyComposerDraft(reply);
+      Alert.alert(t('ai.messageReplyDraft'), t(getSelectedMessageAiAppliedMessageKey('reply-draft', aiRuntime)));
+    } catch (error) {
+      Alert.alert(
+        t('common.error'),
+        getUserFacingErrorMessage(error, t),
+      );
+    }
+  }, [actionMessage, aiRuntime, applyComposerDraft, t]);
+
+  const handleAiRewriteDraft = useCallback(async () => {
+    if (!actionMessage) {
+      return;
+    }
+
+    const contract = buildSelectedMessageAiAction({
+      action: 'rewrite-draft',
+      surface: 'channel',
+      sourceMessage: {
+        authorDisplayName: actionMessage.author?.displayName,
+        bodyText: getSelectedMessageAiSourceText(actionMessage),
+      },
+      currentDraft: composerDraftText,
+    });
+
+    if (contract.errorKey || !contract.chatMessages) {
+      Alert.alert(t('common.error'), t(contract.errorKey ?? 'ai.selectedMessageUnavailable'));
+      return;
+    }
+
+    try {
+      const rewrittenDraft = await requestAiChat(contract.chatMessages);
+      applyComposerDraft(rewrittenDraft);
+      Alert.alert(
+        t('ai.messageRewriteDraft'),
+        t(getSelectedMessageAiAppliedMessageKey('rewrite-draft', aiRuntime)),
+      );
+    } catch (error) {
+      Alert.alert(
+        t('common.error'),
+        getUserFacingErrorMessage(error, t),
+      );
+    }
+  }, [actionMessage, aiRuntime, applyComposerDraft, composerDraftText, t]);
 
   const handleReport = useCallback(() => {
     if (!actionMessage || !route.params.communityId) return;
@@ -1043,7 +1361,7 @@ export default function ChannelScreen({ navigation, route }: Props) {
 
         const targetFile = new File(
           attachmentDirectory,
-          `${attachment.id}-${sanitizeAttachmentName(attachment.fileName)}`,
+          sanitizeAttachmentName(attachment.fileName),
         );
 
         const downloadedFile = await File.downloadFileAsync(
@@ -1389,100 +1707,6 @@ export default function ChannelScreen({ navigation, route }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={90}
     >
-      <View style={styles.channelHeroWrap}>
-        <View style={styles.channelHeroCard}>
-          <Text style={styles.channelHeroEyebrow}>{t('nav.channel')}</Text>
-          <Text testID="channel-screen-title" style={styles.channelHeroTitle}># {channelName}</Text>
-          <Text style={styles.channelHeroBody}>{channelDescription}</Text>
-          <View style={styles.channelHeroMetaRow}>
-            {requiresTopic ? (
-              <View style={styles.channelHeroMetaBadge}>
-                <Text style={styles.channelHeroMetaBadgeText}>{t('channel.requireTopic')}</Text>
-              </View>
-            ) : null}
-            {isArchived ? (
-              <View style={styles.channelHeroMetaBadge}>
-                <Text style={styles.channelHeroMetaBadgeText}>{t('channel.archivedTitle')}</Text>
-              </View>
-            ) : null}
-          </View>
-          <View style={styles.channelHeroActionRow}>
-            {route.params.communityId ? (
-              <TouchableOpacity
-                onPress={openChannelSearch}
-                activeOpacity={0.85}
-                style={styles.channelHeroActionChip}
-              >
-                <Text style={styles.channelHeroActionChipText}>{t('channel.searchHintTitle')}</Text>
-              </TouchableOpacity>
-            ) : null}
-            <TouchableOpacity
-              onPress={openChannelPolls}
-              activeOpacity={0.85}
-              style={styles.channelHeroActionChip}
-            >
-              <Text style={styles.channelHeroActionChipText}>{t('poll.title')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={openChannelPins}
-              activeOpacity={0.85}
-              style={styles.channelHeroActionChip}
-            >
-              <Text style={styles.channelHeroActionChipText}>{t('pin.pinned')}</Text>
-            </TouchableOpacity>
-            {canManageChannel && route.params.communityId ? (
-              <TouchableOpacity
-                onPress={openEditChannel}
-                activeOpacity={0.85}
-                style={[styles.channelHeroActionChip, styles.channelHeroActionChipPrimary]}
-              >
-                <Text
-                  style={[
-                    styles.channelHeroActionChipText,
-                    styles.channelHeroActionChipPrimaryText,
-                  ]}
-                >
-                  {t('channel.edit')}
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        </View>
-      </View>
-
-      {sourceDmConversation && (
-        <View style={styles.sourceHistoryBannerWrap}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={openSourceDmHistory}
-            style={styles.sourceHistoryBanner}
-            accessibilityRole="button"
-            accessibilityLabel={sourceDmFullLabel}
-          >
-            <View style={styles.sourceHistoryBadge}>
-              <Text style={styles.sourceHistoryBadgeText}>{t('dm.historyBadge')}</Text>
-            </View>
-            {sourceDmTypeLabel ? (
-              <View style={styles.sourceHistoryTypeBadge}>
-                <Text style={styles.sourceHistoryTypeBadgeText}>{sourceDmTypeLabel}</Text>
-              </View>
-            ) : null}
-            <View style={styles.sourceHistoryContent}>
-              <Text style={styles.sourceHistoryTitle}>{t('channel.sourceDmTitle')}</Text>
-              {sourceDmName ? (
-                <Text style={styles.sourceHistoryName}>
-                  {t('channel.sourceDmNameLabelWithName', { name: sourceDmName })}
-                </Text>
-              ) : null}
-              <Text style={styles.sourceHistoryBody}>{sourceDmBody}</Text>
-            </View>
-            <View style={styles.sourceHistoryButton}>
-              <Text style={styles.sourceHistoryButtonText}>{t('dm.viewHistoryShort')}</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      )}
-
       <FlatList
         testID="channel-message-list"
         ref={listRef}
@@ -1512,6 +1736,8 @@ export default function ChannelScreen({ navigation, route }: Props) {
           const messagePoll = pollsByMessageId[item.id];
           const threadSummary = threadSummariesByRootId.get(item.id);
           const itemAttachments = item.attachments ?? [];
+          const messageReactions = reactionsByMessageId[item.id] ?? [];
+          const translated = getRenderedTranslation(item);
           const displayBody = shouldHideAttachmentBody(
             item.bodyPlaintext || item.bodyMarkdown,
             itemAttachments,
@@ -1520,13 +1746,24 @@ export default function ChannelScreen({ navigation, route }: Props) {
             : item.bodyPlaintext;
           return (
             <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() =>
-                setSelectedMessageId((current) => (current === item.id ? null : item.id))
-              }
-              onLongPress={() => setActionMessage(item)}
+              testID={`channel-message-touchable-${item.id}`}
+              activeOpacity={1}
+              onLongPress={() => {
+                setSelectedMessageId(item.id);
+                setActionMessage(item);
+              }}
               delayLongPress={400}
             >
+              <View>
+              {index === 0 ||
+              new Date(mergedMessages[index - 1].createdAt).toDateString() !==
+                new Date(item.createdAt).toDateString() ? (
+                <View style={styles.dateDividerRow}>
+                  <View style={styles.dateDividerLine} />
+                  <Text style={styles.dateDividerText}>{formatMessageDateDivider(item.createdAt)}</Text>
+                  <View style={styles.dateDividerLine} />
+                </View>
+              ) : null}
               <View
                 style={
                   item.id === focusMessageId
@@ -1539,28 +1776,25 @@ export default function ChannelScreen({ navigation, route }: Props) {
                 authorAvatarUrl={item.author?.avatarUrl ?? null}
                 body={displayBody}
                 topic={item.topic}
-                translatedBody={translatedBodies[item.id]}
-                translatedLabel={translatedBodies[item.id] ? t('message.translated') : undefined}
+                translatedBody={translated.body}
+                translatedLabel={translated.label}
                 replyAuthorName={repliedMessage?.author?.displayName ?? t('message.reply')}
                 replyBody={
                   item.parentMessageId
                     ? repliedMessage?.bodyPlaintext ?? t('message.replyUnavailable')
                     : undefined
                 }
-                  time={new Date(item.createdAt).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                })}
+                  time={formatMessageMetaTime(item.createdAt)}
                 isOwn={isOwn}
                 isEdited={item.isEdited}
                 editedLabel={t('message.edited')}
-                readCount={unreadCounts[item.id]}
+                readCount={itemAttachments.length > 0 ? undefined : unreadCounts[item.id]}
                 showAvatar={startsGroup}
                 showAuthorName={startsGroup}
                 startsGroup={startsGroup}
                 endsGroup={endsGroup}
                 showActionChips={selectedMessageId === item.id}
-                reactions={(reactionsByMessageId[item.id] ?? []).map((reaction) => ({
+                reactions={messageReactions.map((reaction) => ({
                   emoji: reaction.emoji,
                   count: reaction.count,
                   reactedByMe: reaction.users.some((user) => user.id === currentUser?.id),
@@ -1610,9 +1844,38 @@ export default function ChannelScreen({ navigation, route }: Props) {
                     : undefined
                 }
               />
-                {itemAttachments.length > 0
-                  ? renderAttachments(itemAttachments, isOwn)
-                  : null}
+                {itemAttachments.length > 0 ? (
+                  <View style={[styles.attachmentMetaRow, isOwn ? styles.attachmentMetaRowOwn : styles.attachmentMetaRowOther]}>
+                    {isOwn ? (
+                      <View style={[styles.attachmentMetaColumn, styles.attachmentMetaColumnOwn]}>
+                        {(unreadCounts[item.id] ?? 0) > 0 ? (
+                          <Text style={styles.attachmentReadCount}>
+                            {formatUnreadCount(unreadCounts[item.id] ?? 0)}
+                          </Text>
+                        ) : null}
+                        {messageReactions.length === 0 ? (
+                          <Text style={styles.attachmentMetaTime}>{formatMessageMetaTime(item.createdAt)}</Text>
+                        ) : null}
+                      </View>
+                    ) : null}
+                    <View style={styles.attachmentMetaMain}>
+                      {renderAttachments(itemAttachments, isOwn)}
+                    </View>
+                    {!isOwn ? (
+                      <View style={[styles.attachmentMetaColumn, styles.attachmentMetaColumnOther]}>
+                        {(unreadCounts[item.id] ?? 0) > 0 ? (
+                          <Text style={styles.attachmentReadCount}>
+                            {formatUnreadCount(unreadCounts[item.id] ?? 0)}
+                          </Text>
+                        ) : null}
+                        {messageReactions.length === 0 ? (
+                          <Text style={styles.attachmentMetaTime}>{formatMessageMetaTime(item.createdAt)}</Text>
+                        ) : null}
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
               </View>
             </TouchableOpacity>
           );
@@ -1790,6 +2053,16 @@ export default function ChannelScreen({ navigation, route }: Props) {
           >
             <Text style={styles.attachMenuText}>{t('channel.document')}</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            testID="channel-attach-menu-poll"
+            style={styles.attachMenuItem}
+            onPress={() => {
+              setShowAttachMenu(false);
+              openChannelPolls();
+            }}
+          >
+            <Text style={styles.attachMenuText}>{t('poll.title')}</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -1810,14 +2083,15 @@ export default function ChannelScreen({ navigation, route }: Props) {
           sendingLabel={t('channel.sending')}
           isSending={sendMutation.isPending}
           onSend={handleSend}
+          onDraftChange={setComposerDraftText}
           onTypingStart={startTyping}
           onTypingStop={stopTyping}
           onPressAdd={
             editingMessage || !canUploadAttachment ? undefined : handleToggleAttachMenu
           }
           allowEmptySubmit={!!pendingAttachment}
-          draftText={editingMessage?.bodyMarkdown ?? ''}
-          draftKey={editingMessage?.id ?? null}
+          draftText={editingMessage?.bodyMarkdown ?? composerDraftSeed}
+          draftKey={editingMessage?.id ?? composerDraftKey}
         />
       )}
 
@@ -1862,6 +2136,12 @@ export default function ChannelScreen({ navigation, route }: Props) {
               : undefined
           }
           onTranslate={handleTranslate}
+          onAiReplyDraft={handleAiReplyDraft}
+          onAiRewriteDraft={handleAiRewriteDraft}
+          aiStatusLabel={aiStatusLabel}
+          aiStatusTone={aiStatusTone}
+          aiStatusDescription={aiStatusDescription}
+          aiActionsDisabled={!isAiRuntimeUsable(aiRuntime)}
           onReact={canReactToMessages ? handleReact : undefined}
           onPin={handlePin}
           onBookmark={handleBookmark}
@@ -1880,7 +2160,8 @@ function formatFileSize(bytes: number): string {
 }
 
 function sanitizeAttachmentName(fileName: string): string {
-  return fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const normalized = fileName.trim().replace(/[\/\\:\u0000-\u001F]/g, '_');
+  return normalized.length > 0 ? normalized : 'attachment';
 }
 
 function getAttachmentKindLabel(fileName: string, mimeType: string): string {
@@ -2081,18 +2362,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  headerSearchAction: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 5,
-    borderRadius: 10,
-    backgroundColor: colors.talkOtherBubble,
-    borderWidth: 1,
-    borderColor: colors.talkPanelBorder,
+  headerIconAction: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.talkPanel,
+    marginLeft: spacing.xs,
   },
-  headerSearchActionText: {
+  headerIconText: {
     color: colors.textPrimary,
-    fontSize: fs.xs,
-    fontWeight: '700',
+    fontSize: fs.base,
+    fontWeight: '600',
   },
   // Pending offline messages
   pendingSection: {
@@ -2249,6 +2531,90 @@ const styles = StyleSheet.create({
   },
   attachmentFileCtaText: {
     color: colors.textPrimary,
+    fontSize: fs.xs,
+    fontWeight: '700',
+  },
+  attachmentMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  attachmentMetaRowOwn: {
+    alignSelf: 'flex-end',
+  },
+  attachmentMetaRowOther: {
+    alignSelf: 'flex-start',
+  },
+  attachmentMetaMain: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  attachmentMetaColumn: {
+    minWidth: 14,
+    alignSelf: 'flex-end',
+    gap: 1,
+    pointerEvents: 'none',
+  },
+  attachmentMetaColumnOther: {
+    alignItems: 'flex-start',
+  },
+  attachmentMetaColumnOwn: {
+    alignItems: 'flex-end',
+  },
+  attachmentReadCount: {
+    color: colors.talkMeta,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  attachmentMetaTime: {
+    color: colors.talkMeta,
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  channelHeaderCompact: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+    gap: spacing.sm,
+  },
+  channelHeaderCompactTitle: {
+    color: colors.textPrimary,
+    fontSize: fs.xl,
+    fontWeight: '800',
+  },
+  channelHeaderCompactActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  channelHeaderCompactChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.talkOtherBubbleBorder,
+    backgroundColor: colors.talkOtherBubble,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  channelHeaderCompactChipText: {
+    color: colors.textPrimary,
+    fontSize: fs.sm,
+    fontWeight: '700',
+  },
+  dateDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  dateDividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.talkPanelBorder,
+  },
+  dateDividerText: {
+    color: colors.talkMeta,
     fontSize: fs.xs,
     fontWeight: '700',
   },

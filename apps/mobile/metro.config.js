@@ -20,4 +20,10 @@ config.resolver.nodeModulesPaths = [
 // Enable symlink resolution (critical for pnpm)
 config.resolver.unstable_enableSymlinks = true;
 
+// Local simulator smoke can run without depending on host watchman access.
+config.watcher = {
+  ...(config.watcher ?? {}),
+  useWatchman: false,
+};
+
 module.exports = config;

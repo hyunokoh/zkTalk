@@ -20,6 +20,14 @@ import * as LegacyFileSystem from 'expo-file-system/legacy';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api, ApiError, createRequestId } from '../lib/api';
+import {
+  buildSelectedMessageAiAction,
+  fetchAiRuntime,
+  getAiRuntimePresentation,
+  getSelectedMessageAiAppliedMessageKey,
+  isAiRuntimeUsable,
+  requestAiChat,
+} from '../lib/ai';
 import { useAuthStore } from '../stores/auth';
 import { useTranslation } from '../lib/i18n';
 import {
@@ -50,8 +58,14 @@ import { getToken, saveLastVisited } from '../lib/storage';
 import type { HomeStackParamList } from '../navigation/types';
 import { borderRadius, colors, fontSize as fs, spacing } from '../theme';
 import {
+  getSelectedMessageAiSourceText,
+  getTranslationRenderSourceVersion,
   isImageAttachmentMimeType,
+  resolveTranslationResponse,
+  resolveTranslationRenderCacheState,
   shouldHideAttachmentBody,
+  type TranslationRenderCacheEntry,
+  type TranslationRuntimeStatus,
 } from '@zktalk/shared';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'ThreadScreen'>;
@@ -70,6 +84,7 @@ interface ThreadMessage {
   threadId?: string | null;
   authorUserId: string;
   createdAt: string;
+  updatedAt?: string;
   isEdited?: boolean;
   author?: ThreadAuthor;
   attachments?: Array<{
@@ -130,6 +145,12 @@ interface ChannelPermissions {
   canUploadAttachment: boolean;
 }
 
+interface InlineTranslationState {
+  entry: TranslationRenderCacheEntry;
+  runtimeStatus: TranslationRuntimeStatus;
+  issue?: string;
+}
+
 function formatThreadDateDivider(
   dateString: string,
   locale: string,
@@ -182,7 +203,7 @@ export default function ThreadScreen({ navigation, route }: Props) {
   const shouldPollReplies = wsStatus !== 'connected';
   const [editingMessage, setEditingMessage] = React.useState<ThreadMessage | null>(null);
   const [actionMessage, setActionMessage] = React.useState<ThreadMessage | null>(null);
-  const [translatedBodies, setTranslatedBodies] = React.useState<Record<string, string>>({});
+  const [translatedBodies, setTranslatedBodies] = React.useState<Record<string, InlineTranslationState>>({});
   const [pendingAttachment, setPendingAttachment] = React.useState<PickedFile | null>(null);
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
   const [showAttachMenu, setShowAttachMenu] = React.useState(false);
@@ -193,6 +214,9 @@ export default function ThreadScreen({ navigation, route }: Props) {
     index: number;
   } | null>(null);
   const [selectedMessageId, setSelectedMessageId] = React.useState<string | null>(null);
+  const [composerDraftText, setComposerDraftText] = React.useState('');
+  const [composerDraftSeed, setComposerDraftSeed] = React.useState('');
+  const [composerDraftKey, setComposerDraftKey] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<
     'all' | 'mine' | 'starter' | 'attachments' | 'images' | 'files' | 'unread' | 'reactions' | 'edited'
@@ -225,6 +249,11 @@ export default function ThreadScreen({ navigation, route }: Props) {
     queryKey: ['channel-me-permissions', channelId],
     queryFn: () =>
       api<{ permissions: ChannelPermissions }>(`/api/channels/${channelId}/me-permissions`),
+  });
+  const { data: aiRuntime } = useQuery({
+    queryKey: ['ai-runtime'],
+    queryFn: fetchAiRuntime,
+    staleTime: 60_000,
   });
 
   const repliesQuery = useInfiniteQuery({
@@ -749,6 +778,10 @@ export default function ThreadScreen({ navigation, route }: Props) {
 
       if (attachmentData && result.message?.id) {
         await attachToMessage(result.message.id, attachmentData);
+        const hydratedMessage = await api<ThreadMessage>(`/api/messages/${result.message.id}`);
+        return {
+          message: hydratedMessage,
+        };
       }
 
       return result;
@@ -1037,11 +1070,45 @@ export default function ThreadScreen({ navigation, route }: Props) {
     [actionMessage, toggleReaction],
   );
 
+  const applyComposerDraft = useCallback((nextDraft: string) => {
+    setComposerDraftSeed(nextDraft);
+    setComposerDraftText(nextDraft);
+    setComposerDraftKey(`ai-draft-${Date.now()}`);
+  }, []);
+
+  const aiRuntimePresentation = getAiRuntimePresentation(t, aiRuntime);
+  const aiStatusLabel = aiRuntimePresentation?.label;
+  const aiStatusTone: 'live' | 'mock' | 'unavailable' = aiRuntimePresentation?.tone ?? 'unavailable';
+  const aiStatusRuntimeDescription = aiRuntimePresentation?.description ?? t('common.loading');
+  const aiStatusDescription = [aiStatusRuntimeDescription, t('ai.selectedMessageScopeHint')]
+    .filter(Boolean)
+    .join(' ');
+
   const handleTranslate = useCallback(async () => {
     if (!actionMessage) return;
 
-    const existing = translatedBodies[actionMessage.id];
-    if (existing) {
+    const contract = buildSelectedMessageAiAction({
+      action: 'translate-inline',
+      surface: 'thread',
+      sourceMessage: {
+        authorDisplayName: actionMessage.author?.displayName,
+        bodyText: getSelectedMessageAiSourceText(actionMessage),
+      },
+    });
+
+    if (contract.errorKey || !contract.sourceText) {
+      Alert.alert(t('common.error'), t(contract.errorKey ?? 'ai.selectedMessageUnavailable'));
+      return;
+    }
+
+    const existing = translatedBodies[actionMessage.id]?.entry;
+    const sourceVersion = getTranslationRenderSourceVersion(actionMessage);
+    const existingState = resolveTranslationRenderCacheState({
+      entry: existing,
+      sourceVersion,
+      targetLanguage: locale,
+    });
+    if (existingState === 'ready') {
       setTranslatedBodies((prev) => {
         const next = { ...prev };
         delete next[actionMessage.id];
@@ -1051,17 +1118,46 @@ export default function ThreadScreen({ navigation, route }: Props) {
     }
 
     try {
-      const result = await api<{ translatedText: string }>('/api/translate', {
+      const result = await api<{
+        translatedText: string | null;
+        runtime: {
+          status: TranslationRuntimeStatus;
+          issue?: string;
+        };
+      }>('/api/translate', {
         method: 'POST',
         body: {
-          text: actionMessage.bodyPlaintext,
+          text: contract.sourceText,
           targetLang: locale,
         },
       });
-      setTranslatedBodies((prev) => ({
-        ...prev,
-        [actionMessage.id]: result.translatedText,
-      }));
+      const resolution = resolveTranslationResponse({
+        response: result,
+        targetLanguage: locale,
+        sourceVersion,
+      });
+
+      const entry = resolution.entry;
+      if (entry) {
+        setTranslatedBodies((prev) => ({
+          ...prev,
+          [actionMessage.id]: {
+            entry,
+            runtimeStatus: resolution.runtime.status,
+            issue: resolution.runtime.issue,
+          },
+        }));
+        return;
+      }
+
+      Alert.alert(
+        t('common.error'),
+        resolution.state === 'runtime-disabled'
+          ? t('message.translationDisabled')
+          : resolution.runtime.issue
+            ? t('message.translationUnavailableWithIssue', { issue: resolution.runtime.issue })
+            : t('message.translationUnavailable'),
+      );
     } catch (error) {
       Alert.alert(
         t('common.error'),
@@ -1069,6 +1165,98 @@ export default function ThreadScreen({ navigation, route }: Props) {
       );
     }
   }, [actionMessage, locale, t, translatedBodies]);
+
+  const getRenderedTranslation = useCallback(
+    (message: ThreadMessage) => {
+      const translationState = translatedBodies[message.id];
+      const entry = translationState?.entry;
+      const cacheState = resolveTranslationRenderCacheState({
+        entry,
+        sourceVersion: getTranslationRenderSourceVersion(message),
+        targetLanguage: locale,
+      });
+      if (!entry || (cacheState !== 'ready' && cacheState !== 'stale')) {
+        return { body: undefined, label: undefined };
+      }
+      return {
+        body: entry.translatedText,
+        label:
+          cacheState === 'stale'
+            ? t('message.translatedStale')
+            : translationState?.runtimeStatus === 'mock'
+              ? t('message.translatedMock')
+              : t('message.translated'),
+      };
+    },
+    [locale, t, translatedBodies],
+  );
+
+  const handleAiReplyDraft = useCallback(async () => {
+    if (!actionMessage) {
+      return;
+    }
+
+    const contract = buildSelectedMessageAiAction({
+      action: 'reply-draft',
+      surface: 'thread',
+      sourceMessage: {
+        authorDisplayName: actionMessage.author?.displayName,
+        bodyText: getSelectedMessageAiSourceText(actionMessage),
+      },
+    });
+
+    if (contract.errorKey || !contract.chatMessages) {
+      Alert.alert(t('common.error'), t(contract.errorKey ?? 'ai.selectedMessageUnavailable'));
+      return;
+    }
+
+    try {
+      const reply = await requestAiChat(contract.chatMessages);
+      setEditingMessage(null);
+      applyComposerDraft(reply);
+      Alert.alert(t('ai.messageReplyDraft'), t(getSelectedMessageAiAppliedMessageKey('reply-draft', aiRuntime)));
+    } catch (error) {
+      Alert.alert(
+        t('common.error'),
+        getUserFacingErrorMessage(error, t),
+      );
+    }
+  }, [actionMessage, aiRuntime, applyComposerDraft, t]);
+
+  const handleAiRewriteDraft = useCallback(async () => {
+    if (!actionMessage) {
+      return;
+    }
+
+    const contract = buildSelectedMessageAiAction({
+      action: 'rewrite-draft',
+      surface: 'thread',
+      sourceMessage: {
+        authorDisplayName: actionMessage.author?.displayName,
+        bodyText: getSelectedMessageAiSourceText(actionMessage),
+      },
+      currentDraft: composerDraftText,
+    });
+
+    if (contract.errorKey || !contract.chatMessages) {
+      Alert.alert(t('common.error'), t(contract.errorKey ?? 'ai.selectedMessageUnavailable'));
+      return;
+    }
+
+    try {
+      const rewrittenDraft = await requestAiChat(contract.chatMessages);
+      applyComposerDraft(rewrittenDraft);
+      Alert.alert(
+        t('ai.messageRewriteDraft'),
+        t(getSelectedMessageAiAppliedMessageKey('rewrite-draft', aiRuntime)),
+      );
+    } catch (error) {
+      Alert.alert(
+        t('common.error'),
+        getUserFacingErrorMessage(error, t),
+      );
+    }
+  }, [actionMessage, aiRuntime, applyComposerDraft, composerDraftText, t]);
 
   const handleReport = useCallback(() => {
     if (!actionMessage || !route.params.communityId) return;
@@ -1156,7 +1344,7 @@ export default function ThreadScreen({ navigation, route }: Props) {
 
         const targetFile = new File(
           attachmentDirectory,
-          `${attachment.id}-${sanitizeAttachmentName(attachment.fileName)}`,
+          sanitizeAttachmentName(attachment.fileName),
         );
 
         const downloadedFile = await File.downloadFileAsync(
@@ -1481,14 +1669,9 @@ export default function ThreadScreen({ navigation, route }: Props) {
                         ? ''
                         : rootMessage.bodyPlaintext
                     }
-                    translatedBody={translatedBodies[rootMessage.id]}
-                    translatedLabel={
-                      translatedBodies[rootMessage.id] ? t('message.translated') : undefined
-                    }
-                    time={new Date(rootMessage.createdAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    translatedBody={getRenderedTranslation(rootMessage).body}
+                    translatedLabel={getRenderedTranslation(rootMessage).label}
+                    time={formatMessageMetaTime(rootMessage.createdAt)}
                     isOwn={rootMessage.authorUserId === currentUser?.id}
                     isEdited={rootMessage.isEdited}
                     editedLabel={t('message.edited')}
@@ -1819,6 +2002,7 @@ export default function ThreadScreen({ navigation, route }: Props) {
                 </View>
               ) : null}
               <TouchableOpacity
+                testID={`thread-message-touchable-${item.id}`}
                 activeOpacity={0.9}
                 onPress={() =>
                   setSelectedMessageId((current) => (current === item.id ? null : item.id))
@@ -1851,12 +2035,9 @@ export default function ThreadScreen({ navigation, route }: Props) {
                         ? ''
                         : item.bodyPlaintext
                     }
-                    translatedBody={translatedBodies[item.id]}
-                    translatedLabel={translatedBodies[item.id] ? t('message.translated') : undefined}
-                    time={new Date(item.createdAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    translatedBody={getRenderedTranslation(item).body}
+                    translatedLabel={getRenderedTranslation(item).label}
+                    time={formatMessageMetaTime(item.createdAt)}
                     isOwn={item.authorUserId === currentUser?.id}
                     isEdited={item.isEdited}
                     editedLabel={t('message.edited')}
@@ -1979,10 +2160,13 @@ export default function ThreadScreen({ navigation, route }: Props) {
             sendingLabel={editingMessage ? t('common.save') : t('thread.replying')}
             isSending={sendMutation.isPending}
             onSend={handleSend}
+            onDraftChange={setComposerDraftText}
             onPressAdd={editingMessage || !canUploadAttachment ? undefined : handleToggleAttachMenu}
             allowEmptySubmit={!!pendingAttachment}
-            draftText={editingMessage?.bodyMarkdown ?? editingMessage?.bodyPlaintext ?? ''}
-            draftKey={editingMessage?.id ?? null}
+            draftText={
+              editingMessage?.bodyMarkdown ?? editingMessage?.bodyPlaintext ?? composerDraftSeed
+            }
+            draftKey={editingMessage?.id ?? composerDraftKey}
           />
         )}
         {actionMessage ? (
@@ -1991,6 +2175,12 @@ export default function ThreadScreen({ navigation, route }: Props) {
             isOwn={actionMessage.authorUserId === currentUser?.id}
             onEdit={actionMessage.authorUserId === currentUser?.id ? handleEdit : undefined}
             onTranslate={handleTranslate}
+            onAiReplyDraft={handleAiReplyDraft}
+            onAiRewriteDraft={handleAiRewriteDraft}
+            aiStatusLabel={aiStatusLabel}
+            aiStatusTone={aiStatusTone}
+            aiStatusDescription={aiStatusDescription}
+            aiActionsDisabled={!isAiRuntimeUsable(aiRuntime)}
             onReport={actionMessage.authorUserId !== currentUser?.id ? handleReport : undefined}
             onReact={handleReact}
             onClose={() => setActionMessage(null)}
@@ -2035,7 +2225,8 @@ function formatFileSize(bytes: number): string {
 }
 
 function sanitizeAttachmentName(fileName: string): string {
-  return fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const normalized = fileName.trim().replace(/[\/\\:\u0000-\u001F]/g, '_');
+  return normalized.length > 0 ? normalized : 'attachment';
 }
 
 function getAttachmentKindLabel(fileName: string, mimeType: string): string {
@@ -2506,3 +2697,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+function formatMessageMetaTime(value: string | Date): string {
+  return new Date(value).toLocaleTimeString('ko-KR', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}

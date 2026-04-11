@@ -1,0 +1,40 @@
+{
+  "name": "zkTalk zkCoder Runner",
+  "defaultPhase": "poc",
+  "uiLanguage": "ko",
+  "agentOutputFormat": "codex-jsonl",
+  "agentCommand": "bash",
+  "agentArgs": [
+    "-lc",
+    ".zkcoder/scripts/run-agent.sh"
+  ],
+  "autoContinue": true,
+  "verifyCommand": ".zkcoder/scripts/verify.sh",
+  "maxAttemptsPerPhase": 2,
+  "phases": {
+    "poc": {
+      "goal": "Stabilize the highest-risk current zkTalk work and land the smallest release-readiness improvement that materially reduces project risk.",
+      "focus": [
+        "current in-flight API and web changes",
+        "targeted regression prevention",
+        "clear blocker handling"
+      ]
+    },
+    "mvp": {
+      "goal": "Broaden coverage around release readiness by tightening scripts, docs, and remaining non-secret blockers across the monorepo.",
+      "focus": [
+        "release-readiness automation",
+        "docs and runbook accuracy",
+        "cross-surface confidence"
+      ]
+    },
+    "final": {
+      "goal": "Prepare zkTalk for final-candidate operator confidence, with remaining blockers sharply bounded to external credentials or device checks.",
+      "focus": [
+        "regression resistance",
+        "operator clarity",
+        "final hardening evidence"
+      ]
+    }
+  }
+}

@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { resolveFileMimeType } from '@/lib/file-mime';
 import { computeFileHash, getP2PManager, formatFileSize } from '@/lib/p2p';
 import { useTranslation } from '@/lib/i18n';
+import { devLogError } from '@/lib/client-log';
 import { useP2PSettingsStore } from '@/stores/p2p-settings';
 import { useToastStore } from '@/stores/toast';
 
@@ -129,7 +130,7 @@ export function P2PFileShare({
 
         onFileSent?.(fileId, file.name);
       } catch (error) {
-        console.error('[P2P] Failed to share file:', error);
+        devLogError('[P2P] Failed to share file:', error);
       } finally {
         setIsProcessing(false);
         setSelectedFile(null);

@@ -11,6 +11,24 @@ const SYSTEM_ROLES = [
   { name: SystemRole.GUEST, priority: 0 },
 ] as const;
 
+function getDefaultChannelAccessPolicy(
+  visibility: 'public' | 'invite_only' | 'private',
+): 'public' | 'members_only' {
+  return visibility === 'public' ? 'public' : 'members_only';
+}
+
+function withDiscoveryPolicy<T extends { visibility: 'public' | 'invite_only' | 'private' }>(
+  community: T,
+) {
+  return {
+    ...community,
+    discovery: {
+      isDiscoverable: community.visibility === 'public',
+      canSelfJoin: community.visibility === 'public',
+    },
+  };
+}
+
 export async function createCommunity(
   userId: string,
   data: {
@@ -51,7 +69,10 @@ export async function createCommunity(
   await communityRepo.assignRole(membership.id, createdRoles[SystemRole.OWNER]!);
 
   // Create default #general channel
-  await communityRepo.createDefaultChannel(community.id);
+  await communityRepo.createDefaultChannel(
+    community.id,
+    getDefaultChannelAccessPolicy(data.visibility),
+  );
 
   return community;
 }
@@ -61,7 +82,7 @@ export async function getCommunity(slug: string) {
   if (!community) {
     throw AppError.notFound('Community not found');
   }
-  return community;
+  return withDiscoveryPolicy(community);
 }
 
 export async function getCommunityById(communityId: string) {
@@ -69,11 +90,41 @@ export async function getCommunityById(communityId: string) {
   if (!community) {
     throw AppError.notFound('Community not found');
   }
+  return withDiscoveryPolicy(community);
+}
+
+async function getCommunityByReference(communityRef: string) {
+  const isUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(communityRef);
+  const community = isUuid
+    ? await communityRepo.findById(communityRef)
+    : await communityRepo.findBySlug(communityRef);
+
+  if (!community) {
+    throw AppError.notFound('Community not found');
+  }
+
   return community;
 }
 
 export async function getUserCommunities(userId: string) {
-  return communityRepo.findUserCommunities(userId);
+  const communities = await communityRepo.findUserCommunities(userId);
+  return communities.map((community) => withDiscoveryPolicy(community));
+}
+
+export async function getCommunityForUser(communityRef: string, userId: string) {
+  const community = await getCommunityByReference(communityRef);
+  const membership = await communityRepo.findMembership(community.id, userId);
+  const isMember = membership?.membershipStatus === 'active';
+
+  if (!isMember && community.visibility !== 'public') {
+    throw AppError.forbidden('You are not allowed to access this community');
+  }
+
+  return {
+    ...withDiscoveryPolicy(community),
+    isMember,
+  };
 }
 
 export async function updateCommunity(
@@ -95,8 +146,20 @@ export async function updateCommunity(
   // Check user has admin+ role
   await requireRole(communityId, userId, [SystemRole.OWNER, SystemRole.ADMIN]);
 
+  if (data.visibility && data.visibility !== 'public') {
+    const publicChannelCount = await communityRepo.countChannelsByAccessPolicy(
+      communityId,
+      'public',
+    );
+    if (publicChannelCount > 0) {
+      throw AppError.badRequest(
+        'Communities with public channels must stay public until those channels are restricted',
+      );
+    }
+  }
+
   const updated = await communityRepo.updateCommunity(communityId, data);
-  return updated;
+  return updated ? withDiscoveryPolicy(updated) : updated;
 }
 
 export async function createInvite(
@@ -214,11 +277,9 @@ export async function getCommunityMembers(communityId: string, userId: string) {
   return communityRepo.findCommunityMembers(communityId);
 }
 
-export async function joinPublicCommunity(communityId: string, userId: string) {
-  const community = await communityRepo.findById(communityId);
-  if (!community) {
-    throw AppError.notFound('Community not found');
-  }
+export async function joinPublicCommunity(communityRef: string, userId: string) {
+  const community = await getCommunityByReference(communityRef);
+  const communityId = community.id;
 
   if (community.visibility !== 'public') {
     throw AppError.forbidden('This community is not public');
@@ -227,7 +288,7 @@ export async function joinPublicCommunity(communityId: string, userId: string) {
   const existingMembership = await communityRepo.findMembership(communityId, userId);
   if (existingMembership && existingMembership.membershipStatus === 'active') {
     await ensureDefaultMemberRole(communityId, userId, existingMembership.id);
-    return { community, alreadyMember: true, onboarding: null };
+    return { community: withDiscoveryPolicy(community), alreadyMember: true, onboarding: null };
   }
 
   if (existingMembership && existingMembership.membershipStatus === 'banned') {
@@ -247,7 +308,7 @@ export async function joinPublicCommunity(communityId: string, userId: string) {
   const onboarding = await communityRepo.findOnboarding(communityId);
 
   return {
-    community,
+    community: withDiscoveryPolicy(community),
     alreadyMember: false,
     onboarding: onboarding && onboarding.isEnabled ? onboarding : null,
   };
@@ -432,6 +493,27 @@ export async function updateOnboarding(
   }
 
   await requireRole(communityId, userId, [SystemRole.OWNER, SystemRole.ADMIN]);
+
+  if (data.defaultChannelIds) {
+    const uniqueChannelIds = Array.from(new Set(data.defaultChannelIds));
+    const onboardingChannels = await communityRepo.findChannelsByIds(uniqueChannelIds);
+
+    if (onboardingChannels.length !== uniqueChannelIds.length) {
+      throw AppError.badRequest('Onboarding channels must exist in this community');
+    }
+
+    const invalidChannel = onboardingChannels.find(
+      (channel) =>
+        channel.communityId !== communityId ||
+        channel.accessPolicy === 'private',
+    );
+
+    if (invalidChannel) {
+      throw AppError.badRequest(
+        'Onboarding channels must belong to this community and stay visible after join',
+      );
+    }
+  }
 
   return communityRepo.upsertOnboarding(communityId, {
     welcomeMessage: data.welcomeMessage,

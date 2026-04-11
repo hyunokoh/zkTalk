@@ -1,7 +1,8 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AIRuntimeSummary } from '@/lib/ai-runtime';
 import type { Attachment, Message, User } from '@zktalk/shared';
 import { MessageList } from '../MessageList';
 
@@ -60,16 +61,33 @@ vi.mock('@/components/MessageItem', () => ({
     message,
     reactions = [],
     poll = null,
+    onRequestAiAction,
+    aiRuntime,
   }: {
     message: { id: string };
     reactions?: Array<{ emoji: string; count: number; userIds: string[] }>;
     poll?: { question?: string } | null;
+    onRequestAiAction?: (
+      message: { id: string },
+      author: null,
+      action: 'reply-draft' | 'rewrite-draft' | 'translate-inline'
+    ) => void;
+    aiRuntime?: { status: string } | null;
   }) => (
     <div
       data-testid={`message-item-${message.id}`}
       data-reactions={JSON.stringify(reactions)}
       data-poll-question={poll?.question ?? ''}
-    />
+      data-ai-runtime={aiRuntime?.status ?? ''}
+    >
+      <button
+        type="button"
+        data-testid={`message-item-ai-${message.id}`}
+        onClick={() => onRequestAiAction?.(message, null, 'reply-draft')}
+      >
+        ai
+      </button>
+    </div>
   ),
 }));
 
@@ -193,5 +211,93 @@ describe('MessageList', () => {
     const reactionUrl = new URL(`http://localhost${reactionCalls[0][0] as string}`);
     const requestedIds = reactionUrl.searchParams.get('messageIds')?.split(',').sort();
     expect(requestedIds).toEqual(['message-1', 'message-2']);
+  });
+
+  it('passes selected-message AI callbacks through to message items', async () => {
+    const author: User = {
+      id: 'user-1',
+      email: 'alice@example.com',
+      displayName: 'Alice',
+      username: 'alice',
+      avatarUrl: null,
+      bio: null,
+      createdAt: '2026-04-01T00:00:00.000Z',
+      updatedAt: '2026-04-01T00:00:00.000Z',
+    };
+
+    const row = {
+      message: {
+        id: 'message-ai',
+        communityId: 'community-1',
+        channelId: 'channel-1',
+        threadId: null,
+        parentMessageId: null,
+        authorUserId: author.id,
+        bodyMarkdown: 'hello',
+        bodyPlaintext: 'hello',
+        messageType: 'user' as const,
+        isEdited: false,
+        isDeleted: false,
+        isEncrypted: false,
+        topic: null,
+        expiresAt: null,
+        createdAt: '2026-04-01T00:00:00.000Z',
+        updatedAt: '2026-04-01T00:00:00.000Z',
+      },
+      author,
+      attachments: [],
+    };
+
+    mockApi.mockImplementation(async (path: string) => {
+      if (path.startsWith('/api/channels/channel-1/messages?')) {
+        return {
+          messages: [row],
+          hasMore: false,
+          nextCursor: null,
+        };
+      }
+
+      if (path.startsWith('/api/reactions?')) {
+        return { reactionsByMessageId: {} };
+      }
+
+      if (path.startsWith('/api/polls?')) {
+        return { pollsByMessageId: {} };
+      }
+
+      throw new Error(`Unexpected api call: ${path}`);
+    });
+
+    const handleAiAction = vi.fn();
+    const aiRuntime: AIRuntimeSummary = {
+      provider: 'mock',
+      status: 'mock',
+      issue: 'mock runtime',
+    };
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MessageList channelId="channel-1" onRequestAiAction={handleAiAction} aiRuntime={aiRuntime} />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-item-ai-message-ai')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByTestId('message-item-ai-message-ai'));
+
+    expect(handleAiAction).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'message-ai' }),
+      null,
+      'reply-draft',
+    );
+    expect(screen.getByTestId('message-item-message-ai').getAttribute('data-ai-runtime')).toBe('mock');
   });
 });

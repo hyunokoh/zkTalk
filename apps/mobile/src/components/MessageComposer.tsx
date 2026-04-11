@@ -33,6 +33,7 @@ interface MessageComposerProps {
   draftText?: string;
   draftKey?: string | null;
   testIDPrefix?: string;
+  onDraftChange?: (text: string) => void;
 }
 
 /**
@@ -60,6 +61,7 @@ const MessageComposer = memo(function MessageComposer({
   draftText,
   draftKey,
   testIDPrefix = 'message-composer',
+  onDraftChange,
 }: MessageComposerProps) {
   const textRef = useRef('');
   const inputRef = useRef<TextInput>(null);
@@ -67,10 +69,11 @@ const MessageComposer = memo(function MessageComposer({
   const isSubmittingRef = useRef(false);
   const [showEmoji, setShowEmoji] = useState(false);
 
-  const handleChange = useCallback(
-    (e: NativeSyntheticEvent<TextInputChangeEventData>) => {
-      textRef.current = e.nativeEvent.text;
-      const hasText = e.nativeEvent.text.trim().length > 0;
+  const applyTextChange = useCallback(
+    (nextText: string) => {
+      textRef.current = nextText;
+      onDraftChange?.(nextText);
+      const hasText = nextText.trim().length > 0;
       if (hasText && !isTypingRef.current) {
         isTypingRef.current = true;
         onTypingStart?.();
@@ -80,6 +83,20 @@ const MessageComposer = memo(function MessageComposer({
       }
     },
     [onTypingStart, onTypingStop],
+  );
+
+  const handleChange = useCallback(
+    (e: NativeSyntheticEvent<TextInputChangeEventData>) => {
+      applyTextChange(e.nativeEvent.text);
+    },
+    [applyTextChange],
+  );
+
+  const handleChangeText = useCallback(
+    (nextText: string) => {
+      applyTextChange(nextText);
+    },
+    [applyTextChange],
   );
 
   const handleSend = useCallback(async () => {
@@ -92,6 +109,7 @@ const MessageComposer = memo(function MessageComposer({
       if (shouldClear === false) return;
       textRef.current = '';
       inputRef.current?.clear();
+      onDraftChange?.('');
       isTypingRef.current = false;
       setShowEmoji(false);
       onTypingStop?.();
@@ -105,6 +123,7 @@ const MessageComposer = memo(function MessageComposer({
     // We need to set the native text value. Since we don't use controlled
     // value, we use setNativeProps.
     inputRef.current?.setNativeProps({ text: textRef.current });
+    onDraftChange?.(textRef.current);
     if (!isTypingRef.current && textRef.current.trim().length > 0) {
       isTypingRef.current = true;
       onTypingStart?.();
@@ -119,6 +138,7 @@ const MessageComposer = memo(function MessageComposer({
     if (draftKey === undefined) return;
 
     textRef.current = draftText ?? '';
+    onDraftChange?.(textRef.current);
     inputRef.current?.setNativeProps({
       text: textRef.current,
       selection: {
@@ -136,7 +156,7 @@ const MessageComposer = memo(function MessageComposer({
       isTypingRef.current = false;
       onTypingStop?.();
     }
-  }, [draftKey, draftText, onTypingStart, onTypingStop]);
+  }, [draftKey, draftText, onDraftChange, onTypingStart, onTypingStop]);
 
   return (
     <View>
@@ -167,7 +187,7 @@ const MessageComposer = memo(function MessageComposer({
             onPress={onPressAdd}
             activeOpacity={0.8}
           >
-            <Text style={styles.attachButtonText}>+</Text>
+            <Text style={styles.attachButtonText}>{'\u{1F4CE}'}</Text>
           </TouchableOpacity>
         )}
         <View style={styles.inputWrap}>
@@ -178,13 +198,19 @@ const MessageComposer = memo(function MessageComposer({
             placeholder={placeholder}
             placeholderTextColor={colors.talkSubtle}
             onChange={handleChange}
+            onChangeText={handleChangeText}
             multiline
             maxLength={32000}
           />
         </View>
-        <TouchableOpacity style={styles.emojiToggle} onPress={toggleEmoji} activeOpacity={0.8}>
+        <TouchableOpacity
+          testID={`${testIDPrefix}-emoji`}
+          style={styles.emojiToggle}
+          onPress={toggleEmoji}
+          activeOpacity={0.8}
+        >
           <Text style={styles.emojiToggleText}>
-            {showEmoji ? '\u{2328}\u{FE0F}' : '\u{1F600}'}
+            {showEmoji ? '\u{2328}\u{FE0F}' : '\u263A'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -195,7 +221,7 @@ const MessageComposer = memo(function MessageComposer({
           activeOpacity={0.85}
           accessibilityLabel={isSending ? sendingLabel : sendLabel}
         >
-          <Text style={styles.sendText}>{isSending ? '...' : '\u2191'}</Text>
+          <Text style={styles.sendText}>{isSending ? '...' : '\u27A4'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -208,98 +234,71 @@ const styles = StyleSheet.create({
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     paddingTop: spacing.xs,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
     backgroundColor: colors.talkBackground,
+    borderTopWidth: 1,
+    borderTopColor: colors.talkPanelBorder,
   },
   attachButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.talkOtherBubble,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.talkPanelBorder,
-    shadowColor: '#000000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
-  attachButtonText: {
-    color: colors.talkMeta,
-    fontSize: 22,
-    fontWeight: '700',
-    lineHeight: 24,
-  },
-  inputWrap: {
-    flex: 1,
-    backgroundColor: colors.talkOtherBubble,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: colors.talkPanelBorder,
-    minHeight: 56,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-    marginRight: spacing.sm,
-    shadowColor: '#6c8094',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
-  input: {
-    paddingVertical: 15,
-    color: colors.textPrimary,
-    fontSize: fs.base,
-    maxHeight: 120,
-    minHeight: 56,
-  },
-  emojiToggle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.talkPanel,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.xs,
-    backgroundColor: colors.talkOtherBubble,
-    borderWidth: 1,
-    borderColor: colors.talkPanelBorder,
-    shadowColor: '#6c8094',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
+  },
+  attachButtonText: {
+    color: colors.talkMeta,
+    fontSize: 18,
+    lineHeight: 20,
+  },
+  inputWrap: {
+    flex: 1,
+    backgroundColor: colors.talkPanel,
+    borderRadius: 20,
+    minHeight: 40,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    marginRight: spacing.xs,
+  },
+  input: {
+    paddingVertical: 10,
+    color: colors.textPrimary,
+    fontSize: fs.base,
+    maxHeight: 120,
+    minHeight: 40,
+  },
+  emojiToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.xs,
+    backgroundColor: colors.talkPanel,
   },
   emojiToggleText: {
-    fontSize: 22,
+    fontSize: 18,
   },
   sendButton: {
     backgroundColor: colors.talkOwnBubble,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.talkOwnBubbleBorder,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6c8094',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
   },
   sendDisabled: {
     opacity: 0.4,
   },
   sendText: {
     color: colors.white,
-    fontSize: 22,
+    fontSize: 17,
     fontWeight: '800',
-    lineHeight: 22,
+    lineHeight: 18,
   },
   // Emoji panel
   emojiPanel: {
@@ -307,16 +306,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     borderRadius: 24,
     backgroundColor: colors.talkPanel,
-    borderWidth: 1,
-    borderColor: colors.talkPanelBorder,
     maxHeight: 180,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
-    shadowColor: '#000000',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   emojiGrid: {
     flexDirection: 'row',

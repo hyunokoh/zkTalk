@@ -144,6 +144,12 @@ export function useChannel(channelId: string | undefined): void {
   useEffect(() => {
     if (!channelId) return;
 
+    const scheduleRefresh = (delayMs = 150) => {
+      window.setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: ['messages', channelId] });
+      }, delayMs);
+    };
+
     // Subscribe to this channel on the server
     send({ type: 'subscribe_channel', channelId });
 
@@ -164,6 +170,7 @@ export function useChannel(channelId: string | undefined): void {
           for (const key of getMessageQueryKeys(channelId, row.message)) {
             queryClient.setQueryData<MessagesQueryData>(key, (old) => upsertMessageRow(old, row));
           }
+          scheduleRefresh();
         }
         if (typeof document !== 'undefined' && document.visibilityState === 'visible' && isActiveChannel) {
           void unreadStore.markRead(channelId, newMessage.id);
@@ -190,6 +197,7 @@ export function useChannel(channelId: string | undefined): void {
           for (const key of getMessageQueryKeys(channelId, row.message)) {
             queryClient.setQueryData<MessagesQueryData>(key, (old) => replaceMessageRow(old, row));
           }
+          scheduleRefresh();
         }
         if (typeof document !== 'undefined' && document.visibilityState === 'visible' && isActiveChannel) {
           void unreadStore.markRead(channelId, updated.id);

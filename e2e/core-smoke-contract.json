@@ -1,0 +1,35 @@
+{
+  "id": "web-core-release-readiness",
+  "updatedAt": "2026-04-07T12:05:00Z",
+  "command": "pnpm e2e:smoke:web:core",
+  "suite": "web-core",
+  "specs": [
+    "tests/auth.smoke.spec.ts",
+    "tests/chat.smoke.spec.ts"
+  ],
+  "journeys": [
+    "login",
+    "logout",
+    "session restore",
+    "community open",
+    "channel send message",
+    "channel attachment send",
+    "thin seeded voice join"
+  ],
+  "excludedJourneys": [
+    "attachment open/save",
+    "hosted-media retrieval after upload",
+    "DM",
+    "inbox",
+    "profile",
+    "discover"
+  ],
+  "prerequisites": [
+    "pnpm local:commercial:stack",
+    "PostgreSQL on postgresql://zktalk:zktalk@localhost:5432/zktalk",
+    "Redis on redis://localhost:6379",
+    "MinIO/S3 on http://localhost:9000 with bucket zktalk-uploads",
+    "LiveKit on ws://127.0.0.1:7880 for the thin seeded voice join"
+  ],
+  "failureBoundary": "A failure in this suite should be treated as a regression in a covered core journey or a missing local stack prerequisite. Gaps outside the listed journeys stay in docs/COMMERCIALIZATION_PLAN.md until they have a deterministic repo-local check."
+}

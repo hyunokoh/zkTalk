@@ -3,7 +3,8 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { MessageItem, type MessageReactionGroup } from '@/components/MessageItem';
+import type { AIRuntimeSummary } from '@/lib/ai-runtime';
+import { MessageItem, type MessageAiActionKind, type MessageReactionGroup } from '@/components/MessageItem';
 import type { PollCardData } from '@/components/PollCard';
 import { useChannel } from '@/hooks/useChannel';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
@@ -18,10 +19,20 @@ import {
 } from '@/lib/offline-message-sync';
 import { useOfflineQueueStore } from '@/stores/offline-queue';
 import { useAuthStore } from '@/stores/auth';
-import type { Attachment, Message, User } from '@zktalk/shared';
+import type { Attachment, Message, TranslationDisplayPreference, User } from '@zktalk/shared';
 
 const REACTION_BATCH_SIZE = 100;
 const POLL_BATCH_SIZE = 100;
+const EMPTY_QUEUED_MESSAGES: Array<{
+  id: string;
+  channelId: string;
+  bodyMarkdown: string;
+  createdAt: number;
+  status: 'pending' | 'sending' | 'failed';
+  threadId?: string | null;
+  parentMessageId?: string | null;
+  topic?: string | null;
+}> = [];
 
 type OfflineStatus = 'pending' | 'sending' | 'failed';
 
@@ -72,12 +83,15 @@ interface MessageListProps {
   threadId?: string | null;
   communityId?: string;
   onReplyToMessage?: (message: Message, author?: User | null) => void;
+  onRequestAiAction?: (message: Message, author: User | null | undefined, action: MessageAiActionKind) => void;
+  aiRuntime?: AIRuntimeSummary | null;
+  translationDisplayPreference?: TranslationDisplayPreference;
   requireTopic?: boolean;
   topicFilter?: string;
   onTopicSelect?: (topic: string | null) => void;
 }
 
-export function MessageList({ channelId, threadId, communityId, onReplyToMessage, requireTopic, topicFilter, onTopicSelect }: MessageListProps) {
+export function MessageList({ channelId, threadId, communityId, onReplyToMessage, onRequestAiAction, aiRuntime, translationDisplayPreference, requireTopic, topicFilter, onTopicSelect }: MessageListProps) {
   const { t } = useTranslation();
   const currentUser = useAuthStore((s) => s.user);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -86,7 +100,9 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
   const [hasNewMessages, setHasNewMessages] = useState(false);
   const pendingOfflineCount = useOfflineQueueStore((s) => s.pendingByChannel[channelId] ?? 0);
   const failedOfflineCount = useOfflineQueueStore((s) => s.failedByChannel[channelId] ?? 0);
-  const queuedOfflineMessages = useOfflineQueueStore((s) => s.queuedMessagesByChannel[channelId] ?? []);
+  const queuedOfflineMessages = useOfflineQueueStore(
+    (s) => s.queuedMessagesByChannel[channelId] ?? EMPTY_QUEUED_MESSAGES,
+  );
 
   useChannel(channelId);
   const { typingUsers } = useTypingIndicator(channelId);
@@ -462,6 +478,9 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
                         channelId={channelId}
                         communityId={communityId}
                         onReply={onReplyToMessage}
+                        onRequestAiAction={onRequestAiAction}
+                        aiRuntime={aiRuntime}
+                        translationDisplayPreference={translationDisplayPreference}
                         allMessages={allMessages}
                         userMap={userMap}
                         unreadCount={unreadCounts[msg.id]}
@@ -488,6 +507,9 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
                     channelId={channelId}
                     communityId={communityId}
                     onReply={onReplyToMessage}
+                    onRequestAiAction={onRequestAiAction}
+                    aiRuntime={aiRuntime}
+                    translationDisplayPreference={translationDisplayPreference}
                     allMessages={allMessages}
                     userMap={userMap}
                     unreadCount={unreadCounts[msg.id]}

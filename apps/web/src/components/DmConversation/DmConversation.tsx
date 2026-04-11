@@ -2,6 +2,7 @@
 
 'use client';
 
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
@@ -11,36 +12,48 @@ import {
   useQueryClient,
   useInfiniteQuery,
 } from '@tanstack/react-query';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, assertOkResponse } from '@/lib/api';
+import {
+  fetchAiRuntime,
+  getAiRuntimePresentation,
+  isAiRuntimeUsable,
+  type AIRuntimeSummary,
+} from '@/lib/ai-runtime';
+import { getActionErrorMessage, getAttachmentSendErrorMessage } from '@/lib/error-copy';
 import { useTranslation, t } from '@/lib/i18n';
-import { getApiBaseUrl } from '@/lib/runtime-config';
-import { getSessionToken } from '@/lib/session-token';
+import { useToastStore } from '@/stores/toast';
 import { useAuthStore } from '@/stores/auth';
-import { pickDesktopFiles } from '@/lib/desktop-files';
+import {
+  isDesktopPickedFile,
+  pickDesktopFiles,
+  readDesktopFileChunk,
+  type ComposerPickedFile,
+} from '@/lib/desktop-files';
 import { resolveFileMimeType } from '@/lib/file-mime';
 import { createFilePreviewUrl, revokeFilePreviewUrl } from '@/lib/file-preview';
 import { UserAvatar } from '@/components/UserAvatar';
 import {
   WebSocketEvent,
+  buildSelectedMessageAiContract,
+  getSelectedMessageAiSuccessKey,
   hasOnlyImageAttachments,
   shouldHideAttachmentBody,
+  type SelectedMessageAiAction,
   type Attachment,
   type WSOutgoing,
 } from '@zktalk/shared';
 import { send, subscribe } from '@/hooks/useWebSocket';
 import { useE2EE } from '@/hooks/useE2EE';
 import { AttachmentPreview } from '@/components/AttachmentPreview/AttachmentPreview';
+import { createUploadRequestInit, resolveUploadUrl } from '@/lib/upload-request';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🙏', '🔥', '😊', '👏'];
 const RECENT_ATTACHMENT_PROBE_WINDOW_MS = 60_000;
 const RAW_UPLOAD_CONTENT_TYPE = 'application/octet-stream';
+const REALTIME_FOLLOWUP_REFRESH_MS = 150;
 
 function generateRequestId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-}
-
-function resolveUploadUrl(uploadUrl: string): string {
-  return uploadUrl.startsWith('http') ? uploadUrl : `${getApiBaseUrl()}${uploadUrl}`;
 }
 
 async function wait(ms: number): Promise<void> {
@@ -74,16 +87,13 @@ async function uploadWithRateLimitRetry(
   attempts = 3,
 ): Promise<Response> {
   let lastResponse: Response | null = null;
-  const sessionToken = getSessionToken();
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const response = await fetch(resolveUploadUrl(uploadUrl), {
-      method: 'PUT',
-      body,
-      headers: {
-        ...headers,
-        ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-      },
-      credentials: 'include',
+      ...createUploadRequestInit(uploadUrl, {
+        method: 'PUT',
+        body,
+        headers,
+      }),
     });
     lastResponse = response;
     if (response.status !== 429 || attempt === attempts - 1) {
@@ -100,7 +110,7 @@ function formatPendingFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getPendingAttachmentKindLabel(file: File): string {
+function getPendingAttachmentKindLabel(file: Pick<ComposerPickedFile, 'name' | 'type'>): string {
   const extension = file.name.split('.').pop()?.trim();
   if (extension) {
     return extension.toUpperCase().slice(0, 6);
@@ -142,6 +152,90 @@ function hasDraggedFiles(dataTransfer: DataTransfer | null): boolean {
   }
 
   return dataTransfer.files.length > 0 || Array.from(dataTransfer.types ?? []).includes('Files');
+}
+
+function getMultipartUploadEtag(response: Response): string {
+  const etag = response.headers.get('etag');
+  if (!etag) {
+    throw new Error('Multipart upload did not return an ETag');
+  }
+  return etag;
+}
+
+async function uploadAttachmentWithMultipartSupport({
+  attachment,
+  presign,
+  onProgress,
+}: {
+  attachment: PendingAttachment;
+  presign: UploadPresignResponse;
+  onProgress: (progress: number) => void;
+}): Promise<void> {
+  const mimeType = resolveFileMimeType(attachment.file);
+
+  if (presign.uploadMode === 'single') {
+    const singlePartBody = isDesktopPickedFile(attachment.file)
+      ? await readDesktopFileChunk(attachment.file, 0, attachment.file.size)
+      : attachment.file;
+    const uploadRes = await uploadWithRateLimitRetry(
+      presign.uploadUrl!,
+      singlePartBody,
+      {
+        'Content-Type': mimeType,
+      },
+    );
+    await assertOkResponse(uploadRes, `Attachment upload failed with status ${uploadRes.status}`);
+    onProgress(0.75);
+    await apiWithRateLimitRetry(`/api/upload/sessions/${presign.uploadSessionId}/complete`, {
+      method: 'POST',
+      body: {
+        parts: [{ partNumber: 1, etag: 'single-part' }],
+      },
+    });
+    return;
+  }
+
+  const partSize = presign.partSize;
+  if (!partSize || presign.partCount < 1) {
+    throw new Error('Multipart upload is missing part metadata');
+  }
+
+  const { parts } = await apiWithRateLimitRetry<MultipartUploadPartUrlsResponse>(
+    `/api/upload/sessions/${presign.uploadSessionId}/parts`,
+    {
+      method: 'POST',
+      body: {
+        partNumbers: Array.from({ length: presign.partCount }, (_, index) => index + 1),
+      },
+    },
+  );
+
+  const completedParts: Array<{ partNumber: number; etag: string }> = [];
+  for (const part of parts) {
+    const start = (part.partNumber - 1) * partSize;
+    const end = Math.min(start + partSize, attachment.file.size);
+    const partBody = isDesktopPickedFile(attachment.file)
+      ? await readDesktopFileChunk(attachment.file, start, end)
+      : attachment.file.slice(start, end, mimeType);
+    const uploadRes = await uploadWithRateLimitRetry(
+      part.uploadUrl,
+      partBody,
+      {
+        'Content-Type': mimeType,
+      },
+    );
+    await assertOkResponse(uploadRes, `Attachment upload failed with status ${uploadRes.status}`);
+    completedParts.push({
+      partNumber: part.partNumber,
+      etag: getMultipartUploadEtag(uploadRes),
+    });
+    onProgress(0.15 + (part.partNumber / presign.partCount) * 0.6);
+  }
+
+  await apiWithRateLimitRetry(`/api/upload/sessions/${presign.uploadSessionId}/complete`, {
+    method: 'POST',
+    body: { parts: completedParts },
+  });
 }
 
 interface DmParticipant {
@@ -219,10 +313,34 @@ interface MessagesPage {
   unreadCounts?: Record<string, number>;
 }
 
+type PendingAttachmentStatus = 'queued' | 'uploading' | 'uploaded' | 'failed';
+
 interface PendingAttachment {
   id: string;
-  file: File;
+  file: ComposerPickedFile;
   previewUrl: string | null;
+  uploadSessionId?: string;
+  status: PendingAttachmentStatus;
+  progress: number;
+  errorMessage?: string | null;
+}
+
+interface MultipartUploadPartUrl {
+  partNumber: number;
+  uploadUrl: string;
+}
+
+interface MultipartUploadPartUrlsResponse {
+  sessionId: string;
+  parts: MultipartUploadPartUrl[];
+}
+
+interface UploadPresignResponse {
+  uploadSessionId: string;
+  uploadUrl: string | null;
+  uploadMode: 'single' | 'multipart';
+  partSize?: number | null;
+  partCount: number;
 }
 
 function formatTime(dateStr: string): string {
@@ -243,10 +361,25 @@ interface DmConversationProps {
   conversationId: string;
 }
 
+interface InlineTranslationState {
+  text: string;
+  visible: boolean;
+}
+
+async function requestAiChat(messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>) {
+  const result = await api<{ reply: string }>('/api/ai/chat', {
+    method: 'POST',
+    body: { messages },
+  });
+
+  return result.reply;
+}
+
 export function DmConversation({ conversationId }: DmConversationProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const currentUser = useAuthStore((s) => s.user);
+  const showToast = useToastStore((s) => s.showToast);
   const queryClient = useQueryClient();
   const [body, setBody] = useState('');
   const bodyRef = useRef('');
@@ -278,6 +411,8 @@ export function DmConversation({ conversationId }: DmConversationProps) {
   const submitLockRef = useRef(false);
   const lastMarkedMessageIdRef = useRef<string | null>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [isAiWorkingMessageId, setIsAiWorkingMessageId] = useState<string | null>(null);
+  const [inlineTranslations, setInlineTranslations] = useState<Record<string, InlineTranslationState>>({});
 
   const loadConversationDetail = useCallback(
     () => api<ConversationDetail>(`/api/dm/conversations/${conversationId}`),
@@ -288,6 +423,16 @@ export function DmConversation({ conversationId }: DmConversationProps) {
     queryKey: ['dm-conversation', conversationId],
     queryFn: loadConversationDetail,
   });
+  const { data: aiRuntime } = useQuery<AIRuntimeSummary | null>({
+    queryKey: ['ai-runtime'],
+    queryFn: fetchAiRuntime,
+    staleTime: 60_000,
+  });
+  const aiRuntimePresentation = useMemo(() => getAiRuntimePresentation(t, aiRuntime), [aiRuntime, t]);
+  const aiRuntimeUsable = aiRuntime ? isAiRuntimeUsable(aiRuntime) : true;
+  const selectedMessageAiStatusDescription = [aiRuntimePresentation?.description, t('ai.selectedMessageScopeHint')]
+    .filter(Boolean)
+    .join(' ');
 
   const conv = convData?.conversation;
   const participants = useMemo(() => convData?.participants ?? [], [convData?.participants]);
@@ -399,6 +544,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
 
   const latestMessageId = allMessages[allMessages.length - 1]?.message.id ?? null;
   const hasPendingAttachments = pendingAttachments.length > 0;
+  const hasFailedAttachments = pendingAttachments.some((attachment) => attachment.status === 'failed');
 
   // ── Decrypt encrypted messages ──────────────────────────────────
   useEffect(() => {
@@ -462,7 +608,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
         setTimeout(() => {
           void queryClient.invalidateQueries({ queryKey: ['dm-messages', conversationId] });
           void queryClient.invalidateQueries({ queryKey: ['dm-message-detail', newRow.message.id] });
-        }, 1_200);
+        }, REALTIME_FOLLOWUP_REFRESH_MS);
         setShouldAutoScroll(true);
       },
     );
@@ -488,6 +634,11 @@ export function DmConversation({ conversationId }: DmConversationProps) {
             };
           },
         );
+        void queryClient.invalidateQueries({ queryKey: ['dm-messages', conversationId] });
+        setTimeout(() => {
+          void queryClient.invalidateQueries({ queryKey: ['dm-messages', conversationId] });
+          void queryClient.invalidateQueries({ queryKey: ['dm-message-detail', updated.message.id] });
+        }, REALTIME_FOLLOWUP_REFRESH_MS);
       },
     );
 
@@ -565,12 +716,99 @@ export function DmConversation({ conversationId }: DmConversationProps) {
       let finalBody = bodyMarkdown;
       let isEncrypted = false;
       let encryptedPayload: string | undefined;
+      const uploadedAttachments: Array<PendingAttachment & { uploadSessionId: string }> = [];
 
       // Encrypt if E2EE is ready and this is a 1:1 DM
       if (e2eeReady && isDirect) {
         finalBody = await encrypt(bodyMarkdown);
         isEncrypted = true;
         encryptedPayload = finalBody;
+      }
+
+      for (const attachment of attachments) {
+        let presign: UploadPresignResponse | null = null;
+        try {
+          setPendingAttachments((prev) => prev.map((item) =>
+            item.id === attachment.id
+              ? { ...item, status: 'uploading', progress: 0.1, errorMessage: null }
+              : item,
+          ));
+
+          presign = await apiWithRateLimitRetry<UploadPresignResponse>(
+            '/api/upload/presign',
+            {
+              method: 'POST',
+              body: {
+                conversationId,
+                fileName: attachment.file.name,
+                mimeType: resolveFileMimeType(attachment.file),
+                fileSize: attachment.file.size,
+              },
+            },
+          );
+
+          setPendingAttachments((prev) => prev.map((item) =>
+            item.id === attachment.id
+              ? { ...item, status: 'uploading', progress: 0.45, errorMessage: null }
+              : item,
+          ));
+
+          await uploadAttachmentWithMultipartSupport({
+            attachment,
+            presign,
+            onProgress: (progress) => {
+              setPendingAttachments((prev) => prev.map((item) =>
+                item.id === attachment.id
+                  ? { ...item, status: 'uploading', progress, errorMessage: null }
+                  : item,
+              ));
+            },
+          });
+
+          setPendingAttachments((prev) => prev.map((item) =>
+            item.id === attachment.id
+              ? { ...item, status: 'uploading', progress: 0.75, errorMessage: null }
+              : item,
+          ));
+
+          if (!presign) {
+            throw new Error('Upload session was not created');
+          }
+
+          setPendingAttachments((prev) => prev.map((item) =>
+            item.id === attachment.id
+              ? {
+                  ...item,
+                  status: 'uploaded',
+                  progress: 1,
+                  uploadSessionId: presign.uploadSessionId,
+                  errorMessage: null,
+                }
+              : item,
+          ));
+
+          uploadedAttachments.push({
+            ...attachment,
+            uploadSessionId: presign.uploadSessionId,
+          });
+        } catch (error) {
+          if (presign) {
+            try {
+              await apiWithRateLimitRetry(`/api/upload/sessions/${presign.uploadSessionId}/abort`, {
+                method: 'POST',
+              });
+            } catch {
+              // Best effort cleanup for partially uploaded sessions.
+            }
+          }
+          const uploadErrorMessage = getAttachmentSendErrorMessage(t, error);
+          setPendingAttachments((prev) => prev.map((item) =>
+            item.id === attachment.id
+              ? { ...item, status: 'failed', progress: 0, errorMessage: uploadErrorMessage }
+              : item,
+          ));
+          throw error;
+        }
       }
 
       const message = await apiWithRateLimitRetry<MessageRow>(
@@ -586,41 +824,12 @@ export function DmConversation({ conversationId }: DmConversationProps) {
         },
       );
 
-      const messageId = message.message.id;
-
-      for (const attachment of attachments) {
-        const presign = await apiWithRateLimitRetry<{ uploadUrl: string; storageKey: string }>(
-          '/api/upload/presign',
-          {
-            method: 'POST',
-            body: {
-              conversationId,
-              fileName: attachment.file.name,
-              mimeType: resolveFileMimeType(attachment.file),
-              fileSize: attachment.file.size,
-            },
-          },
-        );
-
-        const sessionToken = getSessionToken();
-        const uploadRes = await uploadWithRateLimitRetry(
-          presign.uploadUrl,
-          attachment.file,
-          {
-            'Content-Type': RAW_UPLOAD_CONTENT_TYPE,
-            ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-          },
-        );
-
-        if (!uploadRes.ok) {
-          throw new Error(`Attachment upload failed with status ${uploadRes.status}`);
-        }
-
+      for (const attachment of uploadedAttachments) {
         await apiWithRateLimitRetry('/api/upload/attachments', {
           method: 'POST',
           body: {
-            dmMessageId: messageId,
-            storageKey: presign.storageKey,
+            dmMessageId: message.message.id,
+            uploadSessionId: attachment.uploadSessionId,
             fileName: attachment.file.name,
             mimeType: resolveFileMimeType(attachment.file),
             fileSize: attachment.file.size,
@@ -628,7 +837,14 @@ export function DmConversation({ conversationId }: DmConversationProps) {
         });
       }
 
-      return { message, attachmentsAttached: attachments.length > 0 };
+      if (attachments.length > 0) {
+        const hydratedMessage = await apiWithRateLimitRetry<MessageRow>(`/api/dm/messages/${message.message.id}`, {
+          method: 'GET',
+        });
+        return { message: hydratedMessage, attachmentsAttached: true };
+      }
+
+      return { message, attachmentsAttached: false };
     },
     onSuccess: ({ message }) => {
       queryClient.setQueriesData<{ pages?: Array<MessagesPage> }>(
@@ -742,7 +958,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
     });
   }, [currentUser, latestMessageId, markRead]);
 
-  const appendPendingFiles = useCallback((files: File[]) => {
+  const appendPendingFiles = useCallback((files: ComposerPickedFile[]) => {
     if (files.length === 0) {
       return;
     }
@@ -751,6 +967,9 @@ export function DmConversation({ conversationId }: DmConversationProps) {
       id: generateRequestId(),
       file,
       previewUrl: null,
+      status: 'queued' as const,
+      progress: 0,
+      errorMessage: null,
     }));
 
     setPendingAttachments((prev) => [
@@ -761,7 +980,9 @@ export function DmConversation({ conversationId }: DmConversationProps) {
     void Promise.all(
       nextAttachments.map(async (attachment) => ({
         id: attachment.id,
-        previewUrl: await createFilePreviewUrl(attachment.file),
+        previewUrl: isDesktopPickedFile(attachment.file)
+          ? null
+          : await createFilePreviewUrl(attachment.file),
       })),
     ).then((resolvedAttachments) => {
       const resolvedPreviewMap = new Map(
@@ -887,7 +1108,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
 
   const handleSend = () => {
     const trimmed = bodyRef.current.trim();
-    if (!(trimmed || hasPendingAttachments) || sendMessage.isPending || submitLockRef.current) return;
+    if (!(trimmed || hasPendingAttachments) || hasFailedAttachments || sendMessage.isPending || submitLockRef.current) return;
     submitLockRef.current = true;
     sendMessage.mutate({ bodyMarkdown: trimmed || getAttachmentFallbackBody(pendingAttachments), attachments: pendingAttachments }, {
       onSuccess: () => {
@@ -927,6 +1148,111 @@ export function DmConversation({ conversationId }: DmConversationProps) {
     });
   }, []);
 
+  const applyAiResult = useCallback((nextBody: string) => {
+    bodyRef.current = nextBody;
+    setBody(nextBody);
+    if (composerRef.current) {
+      composerRef.current.value = nextBody;
+      composerRef.current.focus();
+    }
+  }, []);
+
+  const handleSelectedMessageAiAction = useCallback(async (
+    row: MessageRow,
+    sourceBody: string,
+    action: SelectedMessageAiAction,
+  ) => {
+    const contract = buildSelectedMessageAiContract({
+      action,
+      surface: 'dm',
+      sourceMessage: {
+        authorDisplayName: row.author.displayName,
+        bodyText: sourceBody,
+      },
+      currentDraft: bodyRef.current,
+    });
+
+    if (action === 'translate-inline') {
+      if (contract.errorKey || !contract.sourceText) {
+        showToast({
+          tone: 'info',
+          message: t(contract.errorKey ?? 'ai.selectedMessageUnavailable'),
+        });
+        return;
+      }
+
+      const existing = inlineTranslations[row.message.id];
+      if (existing?.text) {
+        setInlineTranslations((prev) => ({
+          ...prev,
+          [row.message.id]: {
+            text: existing.text,
+            visible: !existing.visible,
+          },
+        }));
+        return;
+      }
+
+      setIsAiWorkingMessageId(row.message.id);
+      try {
+        const response = await api<{ translatedText: string }>('/api/translate', {
+          method: 'POST',
+          body: { text: contract.sourceText, targetLang: 'ko' },
+        });
+        setInlineTranslations((prev) => ({
+          ...prev,
+          [row.message.id]: {
+            text: response.translatedText,
+            visible: true,
+          },
+        }));
+      } catch (error) {
+        setErrorDialogTitle(t('common.error'));
+        setErrorDialogMessage(getActionErrorMessage(t, error, {
+          genericKey: 'ai.requestError',
+        }));
+      } finally {
+        setIsAiWorkingMessageId(null);
+      }
+      return;
+    }
+
+    if (contract.errorKey || !contract.chatMessages) {
+      showToast({
+        tone: 'info',
+        message: t(contract.errorKey ?? 'ai.selectedMessageUnavailable'),
+      });
+      return;
+    }
+
+    if (aiRuntime && !aiRuntimeUsable) {
+      showToast({
+        tone: 'info',
+        message: aiRuntimePresentation?.description ?? t('ai.runtimeUnavailableHint'),
+      });
+      return;
+    }
+
+    setIsAiWorkingMessageId(row.message.id);
+    try {
+      const reply = await requestAiChat(contract.chatMessages);
+      applyAiResult(reply);
+      showToast({
+        tone: aiRuntimePresentation?.mock ? 'info' : 'success',
+        message: t(getSelectedMessageAiSuccessKey(action === 'rewrite-draft' ? 'rewrite-draft' : 'reply-draft', {
+          mock: aiRuntimePresentation?.mock,
+        })),
+      });
+    } catch (error) {
+      setErrorDialogTitle(t('common.error'));
+      setErrorDialogMessage(getActionErrorMessage(t, error, {
+        genericKey: 'ai.requestError',
+      }));
+    } finally {
+      setIsAiWorkingMessageId(null);
+    }
+  }, [aiRuntime, aiRuntimePresentation, aiRuntimeUsable, applyAiResult, inlineTranslations, showToast, t]);
+
   const headerName = useMemo(() => {
     if (!conv) return '';
     if (isGroup && conv.name) return conv.name;
@@ -965,7 +1291,14 @@ export function DmConversation({ conversationId }: DmConversationProps) {
     async (error: unknown) => {
       if (!(error instanceof ApiError) || error.code !== 'DM_PROMOTED_READ_ONLY') {
         setErrorDialogTitle(t('common.error'));
-        setErrorDialogMessage(error instanceof Error ? error.message : t('common.errorOccurred'));
+        setErrorDialogMessage(
+          hasPendingAttachments
+            ? getAttachmentSendErrorMessage(t, error)
+            : getActionErrorMessage(t, error, {
+                genericKey: 'dm.sendError',
+                rateLimitedKey: 'attachment.rateLimited',
+              }),
+        );
         return;
       }
 
@@ -984,14 +1317,14 @@ export function DmConversation({ conversationId }: DmConversationProps) {
           : null;
 
       if (!nextTarget) {
-        setErrorDialogTitle(t('common.error'));
-        setErrorDialogMessage(error.message);
+        setErrorDialogTitle(t('dm.promotedComposerTitle'));
+        setErrorDialogMessage(t('dm.promotedReadOnlyFallback'));
         return;
       }
 
       setPromotedConflictTarget(nextTarget);
     },
-    [conversationId, loadConversationDetail, queryClient, t],
+    [conversationId, hasPendingAttachments, loadConversationDetail, queryClient, t],
   );
 
   const handlePromoteToCommunity = useCallback(async () => {
@@ -1012,7 +1345,9 @@ export function DmConversation({ conversationId }: DmConversationProps) {
       });
     } catch (error) {
       setErrorDialogTitle(t('dm.promoteTitle'));
-      setErrorDialogMessage(error instanceof Error ? error.message : t('dm.promoteFailed'));
+      setErrorDialogMessage(getActionErrorMessage(t, error, {
+        genericKey: 'dm.promoteFailed',
+      }));
     }
   }, [promoteConversation, promotionChannelName, promotionCommunityName, t]);
 
@@ -1025,7 +1360,9 @@ export function DmConversation({ conversationId }: DmConversationProps) {
         );
       } catch (error) {
         setErrorDialogTitle(mode === 'video' ? t('voice.videoCall') : t('voice.join'));
-        setErrorDialogMessage(error instanceof Error ? error.message : t('voice.joinFailed'));
+        setErrorDialogMessage(getActionErrorMessage(t, error, {
+          genericKey: 'voice.joinFailed',
+        }));
       }
     },
     [callTargetMutation, router, t],
@@ -1202,7 +1539,14 @@ export function DmConversation({ conversationId }: DmConversationProps) {
           const messageBody = msg.isEncrypted
             ? (decryptedCache[msg.id] ?? t('e2ee.encrypted'))
             : msg.bodyMarkdown;
+          const inlineTranslation = inlineTranslations[msg.id];
           const hideMessageBody = !msg.isDeleted && shouldHideAttachmentBody(messageBody, messageAttachments);
+          const sideMeta = (
+            <div className={`shrink-0 self-end pb-0.5 text-[11px] leading-tight text-[#b5bac1] ${isOwnMessage ? 'text-left' : 'text-right'}`}>
+              {msgUnreadCount > 0 ? <div>{Math.min(99, msgUnreadCount)}</div> : null}
+              <div>{formatTime(msg.createdAt)}</div>
+            </div>
+          );
 
           return (
             <div
@@ -1234,50 +1578,92 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                     </span>
                   </div>
                 )}
-                <div className="relative">
-                  {endsGroup && (
-                    <span
-                      className={`absolute bottom-2 h-2.5 w-2.5 rotate-45 ${isOwnMessage ? '-right-1 border-b border-r border-[#ebd451] bg-[#fee500]' : '-left-1 border-b border-l border-[#d9e3ea] bg-white'}`}
-                    />
-                  )}
-                  <div
-                    className={`relative rounded-[1.2rem] px-3.5 py-2.5 shadow-sm ${
-                      isOwnMessage
-                        ? 'rounded-tr-[0.45rem] rounded-br-[0.45rem] border border-[#4752c4] bg-[#5865f2]'
-                        : 'rounded-tl-[0.45rem] rounded-bl-[0.45rem] border border-[#4f545c] bg-[#40444b]'
-                    }`}
-                  >
-                    {msg.isDeleted ? (
-                      <p className={`whitespace-pre-wrap break-words text-sm ${isOwnMessage ? 'text-white' : 'text-[#f2f3f5]'}`}>
-                        <span className="italic text-[#b5bac1]">[삭제된 메시지]</span>
-                      </p>
-                    ) : !hideMessageBody ? (
-                      <p className={`whitespace-pre-wrap break-words text-sm ${isOwnMessage ? 'text-white' : 'text-[#f2f3f5]'}`}>
-                        {msg.isEncrypted ? (
-                          <span className="inline-flex items-center gap-1">
-                            <svg className="inline h-3 w-3 shrink-0 text-green-300" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM15.1 8H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z" />
-                            </svg>
-                            <span>{messageBody}</span>
+                <div className="flex items-end gap-1">
+                  {isOwnMessage ? sideMeta : null}
+                  <div className="relative">
+                    {endsGroup && (
+                      <span
+                        className={`absolute bottom-2 h-2.5 w-2.5 rotate-45 ${isOwnMessage ? '-right-1 border-b border-r border-[#ebd451] bg-[#fee500]' : '-left-1 border-b border-l border-[#d9e3ea] bg-white'}`}
+                      />
+                    )}
+                    <div
+                      className={`relative rounded-[1.2rem] px-3.5 py-2.5 shadow-sm ${
+                        isOwnMessage
+                          ? 'rounded-tr-[0.45rem] rounded-br-[0.45rem] border border-[#4752c4] bg-[#5865f2]'
+                          : 'rounded-tl-[0.45rem] rounded-bl-[0.45rem] border border-[#4f545c] bg-[#40444b]'
+                      }`}
+                    >
+                      {msg.isDeleted ? (
+                        <p className={`whitespace-pre-wrap break-words text-sm ${isOwnMessage ? 'text-white' : 'text-[#f2f3f5]'}`}>
+                          <span className="italic text-[#b5bac1]">[삭제된 메시지]</span>
+                        </p>
+                      ) : !hideMessageBody ? (
+                        <p className={`whitespace-pre-wrap break-words text-sm ${isOwnMessage ? 'text-white' : 'text-[#f2f3f5]'}`}>
+                          {msg.isEncrypted ? (
+                            <span className="inline-flex items-center gap-1">
+                              <svg className="inline h-3 w-3 shrink-0 text-green-300" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM15.1 8H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z" />
+                              </svg>
+                              <span>{messageBody}</span>
+                            </span>
+                          ) : (
+                            messageBody
+                          )}
+                        </p>
+                      ) : null}
+                      {messageAttachments.length > 0 ? (
+                        <AttachmentPreview attachments={messageAttachments} />
+                      ) : null}
+                      {!msg.isDeleted ? (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-black/10 pt-2">
+                          <button
+                            type="button"
+                            data-testid="dm-message-ai-reply-button"
+                            onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'reply-draft')}
+                            disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
+                            className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            title={aiRuntimePresentation?.description ?? t('ai.replyDraftFromMessage')}
+                          >
+                            {t('ai.replyDraftFromMessage')}
+                          </button>
+                          <button
+                            type="button"
+                            data-testid="dm-message-ai-rewrite-button"
+                            onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'rewrite-draft')}
+                            disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
+                            className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            title={aiRuntimePresentation?.description ?? t('ai.rewriteDraftFromMessage')}
+                          >
+                            {t('ai.rewriteDraftFromMessage')}
+                          </button>
+                          <button
+                            type="button"
+                            data-testid="dm-message-ai-translate-button"
+                            onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'translate-inline')}
+                            disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
+                            className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            title={aiRuntimePresentation?.description ?? t('translate.translate')}
+                          >
+                            {t('translate.translate')}
+                          </button>
+                          {aiRuntimePresentation ? (
+                            <span className="rounded-full border border-white/10 bg-black/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/55">
+                              {aiRuntimePresentation.label}
+                            </span>
+                          ) : null}
+                          <span className="basis-full text-[11px] leading-4 text-white/46">
+                            {selectedMessageAiStatusDescription}
                           </span>
-                        ) : (
-                          messageBody
-                        )}
-                      </p>
-                    ) : null}
-                    {messageAttachments.length > 0 ? (
-                      <AttachmentPreview attachments={messageAttachments} />
+                        </div>
+                      ) : null}
+                    </div>
+                    {inlineTranslation?.visible ? (
+                      <div className="mt-2 rounded-2xl border border-emerald-300/18 bg-emerald-300/10 px-3 py-2 text-xs text-emerald-50">
+                        {inlineTranslation.text}
+                      </div>
                     ) : null}
                   </div>
-                </div>
-
-                <div className={`mt-1 flex items-center gap-1.5 text-[11px] text-[#b5bac1] ${isOwnMessage ? 'justify-end' : 'pl-1'}`}>
-                  <span>{formatTime(msg.createdAt)}</span>
-                  {!promotedTarget && isOwnMessage && msgUnreadCount > 0 && (
-                    <span className="rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-[#111827]">
-                      {msgUnreadCount}
-                    </span>
-                  )}
+                  {!isOwnMessage ? sideMeta : null}
                 </div>
               </div>
               {isOwnMessage && (
@@ -1378,7 +1764,13 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                           {getPendingAttachmentKindLabel(attachment.file)}
                         </span>
                         <span className="text-[11px] font-medium text-[#b5bac1]">
-                          Ready to send
+                          {attachment.status === 'uploading'
+                            ? `Uploading ${Math.round(attachment.progress * 100)}%`
+                            : attachment.status === 'uploaded'
+                              ? 'Uploaded'
+                              : attachment.status === 'failed'
+                                ? 'Upload failed'
+                                : 'Ready to send'}
                         </span>
                       </div>
                       <p className="max-w-[13rem] truncate text-sm font-medium text-[#f2f3f5]">
@@ -1386,7 +1778,40 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                       </p>
                       <p className="text-xs text-[#b5bac1]">
                         {formatPendingFileSize(attachment.file.size)}
+                        {attachment.errorMessage ? ` · ${attachment.errorMessage}` : ''}
                       </p>
+                      {attachment.status === 'uploading' ? (
+                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                          <div
+                            className="h-full rounded-full bg-sky-300 transition-[width]"
+                            style={{ width: `${Math.max(4, Math.round(attachment.progress * 100))}%` }}
+                          />
+                        </div>
+                      ) : null}
+                      {attachment.status === 'failed' ? (
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPendingAttachments((prev) => prev.map((item) =>
+                                item.id === attachment.id
+                                  ? { ...item, status: 'queued', progress: 0, errorMessage: null }
+                                  : item,
+                              ));
+                            }}
+                            className="rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-[11px] font-semibold text-amber-100 hover:bg-amber-300/20"
+                          >
+                            Retry
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removePendingAttachment(attachment.id)}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold text-white/72 hover:bg-white/[0.08]"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                     <button
                       type="button"
@@ -1463,7 +1888,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
               <button
                 data-testid="dm-send-button"
                 onClick={handleSend}
-                disabled={(!body.trim() && !hasPendingAttachments) || sendMessage.isPending}
+                disabled={(!body.trim() && !hasPendingAttachments) || sendMessage.isPending || hasFailedAttachments}
                 className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-[#4752c4] bg-[#5865f2] text-white transition-colors hover:bg-[#4752c4] disabled:opacity-50"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

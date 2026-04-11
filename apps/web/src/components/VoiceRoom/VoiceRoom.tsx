@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -16,9 +16,8 @@ import {
 import '@livekit/components-styles';
 import { Track } from 'livekit-client';
 import { useTranslation } from '@/lib/i18n';
-import { api } from '@/lib/api';
+import { api, createAuthHeaders } from '@/lib/api';
 import { getApiBaseUrl } from '@/lib/runtime-config';
-import { getSessionToken } from '@/lib/session-token';
 import { useVoiceStore } from '@/stores/voice';
 
 interface VoiceRoomProps {
@@ -142,17 +141,11 @@ export function VoiceRoom({ token, serverUrl, channelId, onDisconnected, isVideo
   const leavePath = `/api/channels/${channelId}/voice/leave`;
 
   const sendLeaveKeepalive = useCallback(() => {
-    const sessionToken = getSessionToken();
-    const headers = new Headers();
-
-    if (sessionToken) {
-      headers.set('Authorization', `Bearer ${sessionToken}`);
-    }
-
-    fetch(`${getApiBaseUrl()}${leavePath}`, {
+    const apiBaseUrl = getApiBaseUrl();
+    fetch(`${apiBaseUrl}${leavePath}`, {
       method: 'POST',
+      headers: createAuthHeaders(apiBaseUrl),
       credentials: 'include',
-      headers,
       keepalive: true,
     }).catch(() => {});
   }, [leavePath]);

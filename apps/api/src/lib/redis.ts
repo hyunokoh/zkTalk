@@ -1,6 +1,9 @@
 import Redis from 'ioredis';
+import { getRedisUrl } from './env.js';
+import { logServerError, logServerInfo, summarizeConnectionTarget } from './server-log.js';
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = getRedisUrl();
+const REDIS_TARGET = summarizeConnectionTarget(REDIS_URL);
 
 function createRedisClient(name: string): Redis {
   const client = new Redis(REDIS_URL, {
@@ -13,15 +16,15 @@ function createRedisClient(name: string): Redis {
   });
 
   client.on('error', (err) => {
-    console.error(`[Redis:${name}] Connection error:`, err.message);
+    logServerError(`Redis:${name}`, 'Connection error', err);
   });
 
   client.on('connect', () => {
-    console.info(`[Redis:${name}] Connected to ${REDIS_URL}`);
+    logServerInfo(`Redis:${name}`, `Connected to ${REDIS_TARGET}`);
   });
 
   client.on('reconnecting', () => {
-    console.info(`[Redis:${name}] Reconnecting...`);
+    logServerInfo(`Redis:${name}`, 'Reconnecting');
   });
 
   return client;

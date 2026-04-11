@@ -5,6 +5,7 @@ export const membershipStatusEnum = pgEnum('membership_status', ['active', 'mute
 export const communityVisibilityEnum = pgEnum('community_visibility', ['public', 'invite_only', 'private']);
 export const channelTypeEnum = pgEnum('channel_type', ['chat', 'announcement', 'forum', 'voice']);
 export const channelVisibilityEnum = pgEnum('channel_visibility', ['public', 'role_restricted']);
+export const channelAccessPolicyEnum = pgEnum('channel_access_policy', ['public', 'members_only', 'invite_only', 'private']);
 export const messageTypeEnum = pgEnum('message_type', ['user', 'system']);
 export const reportStatusEnum = pgEnum('report_status', ['open', 'resolved', 'dismissed']);
 export const dmConversationTypeEnum = pgEnum('dm_conversation_type', ['direct', 'group']);
@@ -35,6 +36,7 @@ export const userSettings = pgTable('user_settings', {
   communityOrder: text('community_order').notNull().default('[]'),
   collapsedSections: text('collapsed_sections').notNull().default('{}'),
   lastVisited: text('last_visited'),
+  translationDisplay: text('translation_display').notNull().default('{"uiLocale":"en","mode":"manual_only","targetLanguage":null,"readableLanguages":[]}'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -98,6 +100,7 @@ export const channels = pgTable('channels', {
   description: text('description'),
   type: channelTypeEnum('type').notNull().default('chat'),
   visibility: channelVisibilityEnum('visibility').notNull().default('public'),
+  accessPolicy: channelAccessPolicyEnum('access_policy').notNull().default('members_only'),
   slowModeSeconds: integer('slow_mode_seconds').notNull().default(0),
   position: integer('position').notNull().default(0),
   isArchived: boolean('is_archived').notNull().default(false),

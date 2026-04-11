@@ -15,13 +15,19 @@ var react_1 = require("react");
 var react_native_1 = require("react-native");
 var theme_1 = require("../theme");
 var Avatar_1 = require("./Avatar");
+function formatUnreadCount(readCount) {
+    return String(Math.min(99, Math.max(0, Math.trunc(readCount))));
+}
 var MessageBubble = (0, react_1.memo)(function MessageBubble(_a) {
     var authorName = _a.authorName, authorAvatarUrl = _a.authorAvatarUrl, body = _a.body, time = _a.time, isOwn = _a.isOwn, topic = _a.topic, replyAuthorName = _a.replyAuthorName, replyBody = _a.replyBody, translatedBody = _a.translatedBody, translatedLabel = _a.translatedLabel, isEncrypted = _a.isEncrypted, isEdited = _a.isEdited, editedLabel = _a.editedLabel, readCount = _a.readCount, reactions = _a.reactions, onPressReaction = _a.onPressReaction, onPressAddReaction = _a.onPressAddReaction, onPressMore = _a.onPressMore, poll = _a.poll, onPressPollOption = _a.onPressPollOption, threadButtonLabel = _a.threadButtonLabel, onPressThread = _a.onPressThread, _b = _a.showAvatar, showAvatar = _b === void 0 ? true : _b, _c = _a.showAuthorName, showAuthorName = _c === void 0 ? true : _c, _d = _a.startsGroup, startsGroup = _d === void 0 ? true : _d, _e = _a.endsGroup, endsGroup = _e === void 0 ? true : _e, _f = _a.showActionChips, showActionChips = _f === void 0 ? false : _f;
     var hasBubbleContent = Boolean(body || replyBody || poll || translatedBody || threadButtonLabel);
+    var hasReactions = Boolean(reactions === null || reactions === void 0 ? void 0 : reactions.length);
     var meta = (<>
-      {isOwn && readCount !== undefined && readCount > 0 ? (<react_native_1.Text style={styles.readCount}>{readCount}</react_native_1.Text>) : null}
-      {isEdited && editedLabel ? <react_native_1.Text style={styles.time}>{editedLabel}</react_native_1.Text> : null}
-      <react_native_1.Text style={styles.time}>{time}</react_native_1.Text>
+      {readCount !== undefined && readCount > 0 ? (<react_native_1.Text style={styles.readCount}>{formatUnreadCount(readCount)}</react_native_1.Text>) : null}
+      {!hasReactions ? (<>
+          {isEdited && editedLabel ? <react_native_1.Text style={styles.time}>{editedLabel}</react_native_1.Text> : null}
+          <react_native_1.Text style={styles.time}>{time}</react_native_1.Text>
+        </>) : null}
     </>);
     return (<react_native_1.View style={[
             styles.row,
@@ -37,106 +43,110 @@ var MessageBubble = (0, react_1.memo)(function MessageBubble(_a) {
         {!isOwn && showAuthorName ? <react_native_1.Text style={styles.authorName}>{authorName}</react_native_1.Text> : null}
         {topic ? <react_native_1.Text style={styles.topicBadge}>{topic}</react_native_1.Text> : null}
 
-        <react_native_1.View style={[styles.bubbleRow, isOwn && styles.bubbleRowOwn]}>
-          {hasBubbleContent ? (<react_native_1.View style={styles.bubbleWrap}>
-              {endsGroup ? (<react_native_1.View style={[
-                    styles.tail,
-                    isOwn ? styles.tailOwn : styles.tailOther,
-                    isOwn ? styles.tailOwnColor : styles.tailOtherColor,
-                ]}/>) : null}
+        <react_native_1.View style={[styles.bubbleStack, isOwn && styles.bubbleStackOwn]}>
+          <react_native_1.View style={[styles.bubbleRow, isOwn && styles.bubbleRowOwn]}>
+            {isOwn ? (<react_native_1.View style={[styles.metaColumn, styles.metaColumnOwn, !hasBubbleContent && styles.metaColumnOnly]}>
+                {meta}
+              </react_native_1.View>) : null}
+            {hasBubbleContent ? (<react_native_1.View style={styles.bubbleWrap}>
+                {endsGroup ? (<react_native_1.View style={[
+                      styles.tail,
+                      isOwn ? styles.tailOwn : styles.tailOther,
+                      isOwn ? styles.tailOwnColor : styles.tailOtherColor,
+                  ]}/>) : null}
 
-              <react_native_1.View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
-                {replyBody ? (<react_native_1.View style={styles.replyPreview}>
-                    {replyAuthorName ? (<react_native_1.Text style={styles.replyAuthor} numberOfLines={1}>
-                        {replyAuthorName}
-                      </react_native_1.Text>) : null}
-                    <react_native_1.Text style={styles.replyBody} numberOfLines={1}>
-                      {replyBody}
-                    </react_native_1.Text>
-                  </react_native_1.View>) : null}
+                <react_native_1.View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
+                  {replyBody ? (<react_native_1.View style={styles.replyPreview}>
+                      {replyAuthorName ? (<react_native_1.Text style={styles.replyAuthor} numberOfLines={1}>
+                          {replyAuthorName}
+                        </react_native_1.Text>) : null}
+                      <react_native_1.Text style={styles.replyBody} numberOfLines={1}>
+                        {replyBody}
+                      </react_native_1.Text>
+                    </react_native_1.View>) : null}
 
-                {body ? (<react_native_1.Text style={styles.body}>
-                    {isEncrypted ? "\uD83D\uDD12 " : ''}
-                    {body}
-                  </react_native_1.Text>) : null}
+                  {body ? (<react_native_1.Text style={styles.body}>
+                      {isEncrypted ? "\uD83D\uDD12 " : ''}
+                      {body}
+                    </react_native_1.Text>) : null}
 
-                {poll ? (<react_native_1.View style={styles.pollCard}>
-                    <react_native_1.View style={styles.pollHeader}>
-                      <react_native_1.Text style={styles.pollBadge}>{"\uD83D\uDDF3"}</react_native_1.Text>
-                      <react_native_1.Text style={styles.pollQuestion}>{poll.question}</react_native_1.Text>
-                    </react_native_1.View>
-                    {poll.options.map(function (option) {
-                    var percentage = poll.totalVotes > 0 ? Math.round((option.voteCount / poll.totalVotes) * 100) : 0;
-                    return (<react_native_1.TouchableOpacity key={option.id} activeOpacity={onPressPollOption ? 0.8 : 1} disabled={!onPressPollOption || poll.closed} onPress={function () { return onPressPollOption === null || onPressPollOption === void 0 ? void 0 : onPressPollOption(option.id, option.voted); }} style={[
-                            styles.pollOption,
-                            option.voted && styles.pollOptionActive,
-                            poll.closed && styles.pollOptionClosed,
-                        ]}>
-                          <react_native_1.View style={[
-                            styles.pollOptionFill,
-                            option.voted ? styles.pollOptionFillActive : styles.pollOptionFillInactive,
-                            { width: "".concat(percentage, "%") },
-                        ]}/>
-                          <react_native_1.View style={styles.pollOptionRow}>
-                            <react_native_1.Text style={[
-                            styles.pollOptionText,
-                            option.voted && styles.pollOptionTextActive,
-                        ]} numberOfLines={1}>
-                              {option.text}
-                            </react_native_1.Text>
-                            <react_native_1.Text style={styles.pollOptionMeta}>
-                              {percentage}% ({option.voteCount})
-                            </react_native_1.Text>
-                          </react_native_1.View>
-                        </react_native_1.TouchableOpacity>);
-                })}
-                    {poll.footerLabel ? <react_native_1.Text style={styles.pollFooter}>{poll.footerLabel}</react_native_1.Text> : null}
-                  </react_native_1.View>) : null}
+                  {poll ? (<react_native_1.View style={styles.pollCard}>
+                      <react_native_1.View style={styles.pollHeader}>
+                        <react_native_1.Text style={styles.pollBadge}>{"\uD83D\uDDF3"}</react_native_1.Text>
+                        <react_native_1.Text style={styles.pollQuestion}>{poll.question}</react_native_1.Text>
+                      </react_native_1.View>
+                      {poll.options.map(function (option) {
+                        var percentage = poll.totalVotes > 0 ? Math.round((option.voteCount / poll.totalVotes) * 100) : 0;
+                        return (<react_native_1.TouchableOpacity key={option.id} activeOpacity={onPressPollOption ? 0.8 : 1} disabled={!onPressPollOption || poll.closed} onPress={function () { return onPressPollOption === null || onPressPollOption === void 0 ? void 0 : onPressPollOption(option.id, option.voted); }} style={[
+                                styles.pollOption,
+                                option.voted && styles.pollOptionActive,
+                                poll.closed && styles.pollOptionClosed,
+                            ]}>
+                            <react_native_1.View style={[
+                                styles.pollOptionFill,
+                                option.voted ? styles.pollOptionFillActive : styles.pollOptionFillInactive,
+                                { width: "".concat(percentage, "%") },
+                            ]}/>
+                            <react_native_1.View style={styles.pollOptionRow}>
+                              <react_native_1.Text style={[
+                                    styles.pollOptionText,
+                                    option.voted && styles.pollOptionTextActive,
+                                ]} numberOfLines={1}>
+                                {option.text}
+                              </react_native_1.Text>
+                              <react_native_1.Text style={styles.pollOptionMeta}>
+                                {percentage}% ({option.voteCount})
+                              </react_native_1.Text>
+                            </react_native_1.View>
+                          </react_native_1.TouchableOpacity>);
+                    })}
+                      {poll.footerLabel ? <react_native_1.Text style={styles.pollFooter}>{poll.footerLabel}</react_native_1.Text> : null}
+                    </react_native_1.View>) : null}
 
-                {translatedBody ? (<react_native_1.View style={styles.translatedWrap}>
-                    {translatedLabel ? (<react_native_1.Text style={styles.translatedLabel}>{translatedLabel}</react_native_1.Text>) : null}
-                    <react_native_1.Text style={styles.translatedBody}>{translatedBody}</react_native_1.Text>
-                  </react_native_1.View>) : null}
+                  {translatedBody ? (<react_native_1.View style={styles.translatedWrap}>
+                      {translatedLabel ? (<react_native_1.Text style={styles.translatedLabel}>{translatedLabel}</react_native_1.Text>) : null}
+                      <react_native_1.Text style={styles.translatedBody}>{translatedBody}</react_native_1.Text>
+                    </react_native_1.View>) : null}
 
-                {threadButtonLabel ? (<react_native_1.TouchableOpacity style={styles.threadButton} activeOpacity={onPressThread ? 0.75 : 1} disabled={!onPressThread} onPress={onPressThread}>
-                    <react_native_1.Text style={styles.threadButtonText}>{threadButtonLabel}</react_native_1.Text>
-                  </react_native_1.TouchableOpacity>) : null}
-              </react_native_1.View>
-            </react_native_1.View>) : null}
-
-          <react_native_1.View style={[styles.meta, isOwn && styles.metaOwn, !hasBubbleContent && styles.metaOnly]}>
-            {meta}
+                  {threadButtonLabel ? (<react_native_1.TouchableOpacity style={styles.threadButton} activeOpacity={onPressThread ? 0.75 : 1} disabled={!onPressThread} onPress={onPressThread}>
+                      <react_native_1.Text style={styles.threadButtonText}>{threadButtonLabel}</react_native_1.Text>
+                    </react_native_1.TouchableOpacity>) : null}
+                </react_native_1.View>
+              </react_native_1.View>) : null}
+            {!isOwn ? (<react_native_1.View style={[styles.metaColumn, styles.metaColumnOther, !hasBubbleContent && styles.metaColumnOnly]}>
+                {meta}
+              </react_native_1.View>) : null}
           </react_native_1.View>
-        </react_native_1.View>
 
-        {reactions && reactions.length > 0 ? (<react_native_1.View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
-            {reactions.map(function (reaction) { return (<react_native_1.TouchableOpacity key={reaction.emoji} activeOpacity={onPressReaction ? 0.7 : 1} disabled={!onPressReaction} onPress={function () { return onPressReaction === null || onPressReaction === void 0 ? void 0 : onPressReaction(reaction.emoji); }} style={[
-                    styles.reactionChip,
-                    reaction.reactedByMe && styles.reactionChipActive,
-                ]}>
-                <react_native_1.Text style={styles.reactionEmoji}>{reaction.emoji}</react_native_1.Text>
-                <react_native_1.Text style={styles.reactionCount}>{reaction.count}</react_native_1.Text>
-              </react_native_1.TouchableOpacity>); })}
-            {showActionChips && onPressAddReaction ? (<react_native_1.TouchableOpacity activeOpacity={0.75} onPress={onPressAddReaction} style={styles.reactionAddChip}>
+          {reactions && reactions.length > 0 ? (<react_native_1.View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
+              {reactions.map(function (reaction) { return (<react_native_1.TouchableOpacity key={reaction.emoji} activeOpacity={onPressReaction ? 0.7 : 1} disabled={!onPressReaction} onPress={function () { return onPressReaction === null || onPressReaction === void 0 ? void 0 : onPressReaction(reaction.emoji); }} style={[
+                      styles.reactionChip,
+                      reaction.reactedByMe && styles.reactionChipActive,
+                  ]}>
+                  <react_native_1.Text style={styles.reactionEmoji}>{reaction.emoji}</react_native_1.Text>
+                  <react_native_1.Text style={styles.reactionCount}>{reaction.count}</react_native_1.Text>
+                </react_native_1.TouchableOpacity>); })}
+              {showActionChips && onPressAddReaction ? (<react_native_1.TouchableOpacity activeOpacity={0.75} onPress={onPressAddReaction} style={styles.reactionAddChip}>
+                  <react_native_1.Text style={styles.reactionAddEmoji}>{"\uD83D\uDE0A"}</react_native_1.Text>
+                  <react_native_1.Text style={styles.reactionAddLabel}>+</react_native_1.Text>
+                </react_native_1.TouchableOpacity>) : null}
+              {showActionChips && onPressMore ? (<react_native_1.TouchableOpacity activeOpacity={0.75} onPress={onPressMore} style={styles.reactionMoreChip}>
+                  <react_native_1.Text style={styles.reactionMoreLabel}>{"\u22EF"}</react_native_1.Text>
+                </react_native_1.TouchableOpacity>) : null}
+            </react_native_1.View>) : showActionChips && onPressAddReaction ? (<react_native_1.View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
+              <react_native_1.TouchableOpacity activeOpacity={0.75} onPress={onPressAddReaction} style={styles.reactionAddChip}>
                 <react_native_1.Text style={styles.reactionAddEmoji}>{"\uD83D\uDE0A"}</react_native_1.Text>
                 <react_native_1.Text style={styles.reactionAddLabel}>+</react_native_1.Text>
-              </react_native_1.TouchableOpacity>) : null}
-            {showActionChips && onPressMore ? (<react_native_1.TouchableOpacity activeOpacity={0.75} onPress={onPressMore} style={styles.reactionMoreChip}>
+              </react_native_1.TouchableOpacity>
+              {onPressMore ? (<react_native_1.TouchableOpacity activeOpacity={0.75} onPress={onPressMore} style={styles.reactionMoreChip}>
+                  <react_native_1.Text style={styles.reactionMoreLabel}>{"\u22EF"}</react_native_1.Text>
+                </react_native_1.TouchableOpacity>) : null}
+            </react_native_1.View>) : showActionChips && onPressMore ? (<react_native_1.View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
+              <react_native_1.TouchableOpacity activeOpacity={0.75} onPress={onPressMore} style={styles.reactionMoreChip}>
                 <react_native_1.Text style={styles.reactionMoreLabel}>{"\u22EF"}</react_native_1.Text>
-              </react_native_1.TouchableOpacity>) : null}
-          </react_native_1.View>) : showActionChips && onPressAddReaction ? (<react_native_1.View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
-            <react_native_1.TouchableOpacity activeOpacity={0.75} onPress={onPressAddReaction} style={styles.reactionAddChip}>
-              <react_native_1.Text style={styles.reactionAddEmoji}>{"\uD83D\uDE0A"}</react_native_1.Text>
-              <react_native_1.Text style={styles.reactionAddLabel}>+</react_native_1.Text>
-            </react_native_1.TouchableOpacity>
-            {onPressMore ? (<react_native_1.TouchableOpacity activeOpacity={0.75} onPress={onPressMore} style={styles.reactionMoreChip}>
-                <react_native_1.Text style={styles.reactionMoreLabel}>{"\u22EF"}</react_native_1.Text>
-              </react_native_1.TouchableOpacity>) : null}
-          </react_native_1.View>) : showActionChips && onPressMore ? (<react_native_1.View style={[styles.reactionsRow, isOwn && styles.reactionsRowOwn]}>
-            <react_native_1.TouchableOpacity activeOpacity={0.75} onPress={onPressMore} style={styles.reactionMoreChip}>
-              <react_native_1.Text style={styles.reactionMoreLabel}>{"\u22EF"}</react_native_1.Text>
-            </react_native_1.TouchableOpacity>
-          </react_native_1.View>) : null}
+              </react_native_1.TouchableOpacity>
+            </react_native_1.View>) : null}
+        </react_native_1.View>
       </react_native_1.View>
     </react_native_1.View>);
 });
@@ -168,6 +178,7 @@ var styles = react_native_1.StyleSheet.create({
     },
     contentOwn: {
         alignItems: 'flex-end',
+        alignSelf: 'flex-end',
     },
     authorName: {
         marginBottom: 3,
@@ -191,9 +202,18 @@ var styles = react_native_1.StyleSheet.create({
     bubbleRow: {
         flexDirection: 'row',
         alignItems: 'flex-end',
+        gap: 1,
     },
     bubbleRowOwn: {
-        flexDirection: 'row-reverse',
+        justifyContent: 'flex-end',
+        alignSelf: 'flex-end',
+    },
+    bubbleStack: {
+        alignItems: 'flex-start',
+    },
+    bubbleStackOwn: {
+        alignItems: 'flex-end',
+        alignSelf: 'flex-end',
     },
     bubbleWrap: {
         position: 'relative',
@@ -452,19 +472,19 @@ var styles = react_native_1.StyleSheet.create({
         fontSize: theme_1.fontSize.sm,
         fontWeight: '600',
     },
-    meta: {
-        flexDirection: 'row',
-        gap: 5,
-        marginTop: 4,
-        marginHorizontal: 6,
+    metaColumn: {
+        minWidth: 14,
+        alignSelf: 'flex-end',
+        gap: 1,
+    },
+    metaColumnOther: {
         alignItems: 'flex-start',
     },
-    metaOwn: {
+    metaColumnOwn: {
         alignItems: 'flex-end',
-        justifyContent: 'flex-end',
     },
-    metaOnly: {
-        marginTop: 0,
+    metaColumnOnly: {
+        paddingBottom: 2,
     },
     time: {
         color: theme_1.colors.talkMeta,
@@ -472,13 +492,8 @@ var styles = react_native_1.StyleSheet.create({
         fontWeight: '500',
     },
     readCount: {
-        color: '#111827',
+        color: theme_1.colors.talkMeta,
         fontSize: 10,
         fontWeight: '800',
-        backgroundColor: '#f59e0b',
-        paddingHorizontal: 6,
-        paddingVertical: 1,
-        borderRadius: theme_1.borderRadius.full,
-        overflow: 'hidden',
     },
 });

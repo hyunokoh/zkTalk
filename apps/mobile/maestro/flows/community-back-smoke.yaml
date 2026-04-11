@@ -1,0 +1,25 @@
+appId: com.zktalk.mobile
+env:
+  FLOW_WAIT_TIMEOUT_MS: 20000
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: home-community-list
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- tapOn:
+    id: "community-row-${COMMUNITY_ID}"
+- extendedWaitUntil:
+    visible:
+      id: home-channel-list
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- tapOn: 커뮤니티 목록
+- extendedWaitUntil:
+    visible:
+      id: home-community-list
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertNotVisible:
+    id: home-channel-list
+- assertVisible:
+    id: "community-row-${COMMUNITY_ID}"

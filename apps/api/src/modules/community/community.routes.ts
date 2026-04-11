@@ -29,11 +29,10 @@ export default async function communityRoutes(app: FastifyInstance) {
   app.get<{ Params: { communityId: string } }>(
     '/api/communities/:communityId',
     async (request, reply) => {
-      const param = request.params.communityId;
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param);
-      const community = isUuid
-        ? await communityService.getCommunityById(param)
-        : await communityService.getCommunity(param);
+      const community = await communityService.getCommunityForUser(
+        request.params.communityId,
+        request.user.id,
+      );
       return reply.send({ community });
     },
   );

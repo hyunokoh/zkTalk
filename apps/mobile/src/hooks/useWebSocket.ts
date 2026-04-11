@@ -155,6 +155,8 @@ export function useDmSubscription(conversationId: string | undefined) {
   useEffect(() => {
     if (!conversationId) return;
 
+    wsManager.subscribeDm(conversationId);
+
     const removeListener = wsManager.addEventListener((event) => {
       if (
         event.type !== 'dm.message_created' &&
@@ -180,6 +182,7 @@ export function useDmSubscription(conversationId: string | undefined) {
     });
 
     return () => {
+      wsManager.unsubscribeDm(conversationId);
       removeListener();
     };
   }, [conversationId]);

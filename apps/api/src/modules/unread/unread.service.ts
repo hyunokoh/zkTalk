@@ -1,7 +1,10 @@
-import { AppError } from '../../lib/errors.js';
 import * as repo from './unread.repository.js';
 import { realtimeService } from '../realtime/realtime.service.js';
 import { WebSocketEvent } from '@zktalk/shared';
+import {
+  assertCanAccessChannel,
+  getAccessibleChannelIdsForCommunity,
+} from '../channel/channel-access.service.js';
 
 // ---------------------------------------------------------------------------
 // Mark a channel as read
@@ -12,10 +15,7 @@ export async function markChannelRead(
   channelId: string,
   lastMessageId?: string,
 ) {
-  const channel = await repo.findChannelById(channelId);
-  if (!channel) {
-    throw AppError.notFound('Channel not found');
-  }
+  const channel = await assertCanAccessChannel(userId, channelId);
 
   const resolvedLastMessageId =
     lastMessageId ?? (await repo.findLatestMessageId(channelId));
@@ -39,7 +39,8 @@ export async function markChannelRead(
 // ---------------------------------------------------------------------------
 
 export async function getUnreadSummary(userId: string, communityId: string) {
-  return repo.getUnreadSummary(communityId, userId);
+  const accessibleChannelIds = await getAccessibleChannelIdsForCommunity(userId, communityId);
+  return repo.getUnreadSummary(communityId, userId, accessibleChannelIds);
 }
 
 // ---------------------------------------------------------------------------

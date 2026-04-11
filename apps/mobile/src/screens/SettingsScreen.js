@@ -47,8 +47,11 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = SettingsScreen;
 var react_1 = require("react");
+var react_query_1 = require("@tanstack/react-query");
 var react_native_1 = require("react-native");
+var shared_1 = require("@zktalk/shared");
 var Notifications = require("expo-notifications");
+var ai_1 = require("../lib/ai");
 var storage_1 = require("../lib/storage");
 var auth_1 = require("../stores/auth");
 var i18n_1 = require("../lib/i18n");
@@ -65,7 +68,26 @@ function SettingsScreen(_a) {
     var _e = (0, react_1.useState)(''), searchQuery = _e[0], setSearchQuery = _e[1];
     var _f = (0, react_1.useState)(false), devActionAttempted = _f[0], setDevActionAttempted = _f[1];
     var _g = (0, react_1.useState)('off'), notificationStatus = _g[0], setNotificationStatus = _g[1];
+    var aiRuntime = (0, react_query_1.useQuery)({
+        queryKey: ['ai-runtime'],
+        queryFn: ai_1.fetchAiRuntime,
+        staleTime: 30000,
+    }).data;
     var normalizedSearchQuery = searchQuery.trim().toLowerCase();
+    var aiRuntimePresentation = (0, ai_1.getAiRuntimePresentation)(t, aiRuntime);
+    var mobileAiCapabilities = (0, shared_1.listAiCapabilities)('mobile');
+    var getAiCapabilityLabel = (0, react_1.useCallback)(function (capability) {
+        switch (capability) {
+            case 'selected-message-reply-draft':
+                return t('settings.aiCapabilitySelectedMessageReplyDraft');
+            case 'selected-message-rewrite-draft':
+                return t('settings.aiCapabilitySelectedMessageRewriteDraft');
+            case 'selected-message-translate-inline':
+                return t('settings.aiCapabilitySelectedMessageTranslateInline');
+            default:
+                return capability;
+        }
+    }, [t]);
     var matchesSearch = (0, react_1.useCallback)(function () {
         var values = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -248,6 +270,7 @@ function SettingsScreen(_a) {
         : notificationStatus === 'off'
             ? t('settings.off')
             : t('settings.unavailable'));
+    var showAi = matchesSearch(t('settings.ai'), t('settings.aiSummary'), t('settings.aiMobileOnly'), t('ai.messageReplyDraft'), t('ai.messageRewriteDraft'), t('ai.messageTranslateInline'), aiRuntimePresentation === null || aiRuntimePresentation === void 0 ? void 0 : aiRuntimePresentation.label, aiRuntimePresentation === null || aiRuntimePresentation === void 0 ? void 0 : aiRuntimePresentation.description);
     var showEditProfile = matchesSearch(t('settings.account'), t('settings.editProfile'));
     var showLinkedAccounts = matchesSearch(t('settings.account'), t('settings.linkedAccounts'));
     var showLogout = matchesSearch(t('settings.account'), t('settings.logout'));
@@ -257,26 +280,15 @@ function SettingsScreen(_a) {
         showTheme ||
         showLanguage ||
         showNotifications ||
+        showAi ||
         showEditProfile ||
         showLinkedAccounts ||
         showLogout;
     var showDataSection = showBackup || showBookmarks;
     var showPreferencesSection = showTheme || showLanguage || showNotifications;
+    var showAiSection = showAi;
     var showAccountSection = showLinkedAccounts || showLogout;
     return (<react_native_1.ScrollView style={styles.container}>
-      <react_native_1.View style={styles.heroCard}>
-        <react_native_1.Text style={styles.heroTitle}>{t('settings.title')}</react_native_1.Text>
-        <react_native_1.Text style={styles.heroBody}>{t('settings.listSubtitle')}</react_native_1.Text>
-      </react_native_1.View>
-
-      <react_native_1.View style={styles.searchWrap}>
-        <react_native_1.TextInput style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} placeholder={t('settings.searchPlaceholder')} placeholderTextColor={theme_1.colors.textDim} autoCapitalize="none" autoCorrect={false} returnKeyType="search"/>
-      </react_native_1.View>
-
-      {!hasResults ? (<react_native_1.View style={styles.emptyState}>
-          <react_native_1.Text style={styles.emptyTitle}>{t('settings.noSearchResults')}</react_native_1.Text>
-          <react_native_1.Text style={styles.emptyBody}>{t('settings.noSearchResultsBody')}</react_native_1.Text>
-        </react_native_1.View>) : null}
 
       {/* Profile Section */}
       {showProfileSection ? (<react_native_1.View style={styles.section}>
@@ -350,6 +362,31 @@ function SettingsScreen(_a) {
                         : t('settings.unavailable')}
               </react_native_1.Text>
             </react_native_1.TouchableOpacity>) : null}
+        </react_native_1.View>) : null}
+
+      {showAiSection ? (<react_native_1.View style={styles.section}>
+          <react_native_1.Text style={styles.sectionTitle}>{t('settings.ai')}</react_native_1.Text>
+          <react_native_1.View style={styles.infoCard}>
+            <react_native_1.View style={styles.infoCardHeader}>
+              <react_native_1.Text style={styles.infoCardTitle}>{t('settings.aiRuntime')}</react_native_1.Text>
+              <react_native_1.View style={styles.infoBadge}>
+                <react_native_1.Text style={styles.infoBadgeText}>
+                  {(aiRuntimePresentation === null || aiRuntimePresentation === void 0 ? void 0 : aiRuntimePresentation.label) || t('settings.aiRuntimeLoading')}
+                </react_native_1.Text>
+              </react_native_1.View>
+            </react_native_1.View>
+            <react_native_1.Text style={styles.infoCardBody}>
+              {(aiRuntimePresentation === null || aiRuntimePresentation === void 0 ? void 0 : aiRuntimePresentation.description) || t('settings.aiRuntimeLoadingBody')}
+            </react_native_1.Text>
+            <react_native_1.Text style={styles.infoCardBody}>{t('settings.aiSummary')}</react_native_1.Text>
+            <react_native_1.View style={styles.infoList}>
+              {mobileAiCapabilities.map(function (capability) { return (<react_native_1.Text key={capability} style={styles.infoListItem}>
+                  {'• '}
+                  {getAiCapabilityLabel(capability)}
+                </react_native_1.Text>); })}
+            </react_native_1.View>
+            <react_native_1.Text style={styles.infoCardHint}>{t('settings.aiMobileOnly')}</react_native_1.Text>
+          </react_native_1.View>
         </react_native_1.View>) : null}
 
       {/* Account Section */}
@@ -433,6 +470,55 @@ var styles = react_native_1.StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 1,
         marginBottom: theme_1.spacing.md,
+    },
+    infoCard: {
+        backgroundColor: theme_1.colors.surface,
+        borderRadius: theme_1.borderRadius.lg,
+        padding: theme_1.spacing.lg,
+        gap: theme_1.spacing.sm,
+    },
+    infoCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: theme_1.spacing.md,
+    },
+    infoCardTitle: {
+        color: theme_1.colors.textPrimary,
+        fontSize: theme_1.fontSize.lg,
+        fontWeight: '700',
+        flex: 1,
+    },
+    infoBadge: {
+        backgroundColor: theme_1.colors.backgroundDark,
+        borderRadius: theme_1.borderRadius.full,
+        borderWidth: 1,
+        borderColor: theme_1.colors.border,
+        paddingHorizontal: theme_1.spacing.md,
+        paddingVertical: theme_1.spacing.xs,
+    },
+    infoBadgeText: {
+        color: theme_1.colors.textSecondary,
+        fontSize: theme_1.fontSize.xs,
+        fontWeight: '700',
+    },
+    infoCardBody: {
+        color: theme_1.colors.textSecondary,
+        fontSize: theme_1.fontSize.sm,
+        lineHeight: 20,
+    },
+    infoList: {
+        gap: theme_1.spacing.xs,
+    },
+    infoListItem: {
+        color: theme_1.colors.textPrimary,
+        fontSize: theme_1.fontSize.sm,
+        lineHeight: 20,
+    },
+    infoCardHint: {
+        color: theme_1.colors.textMuted,
+        fontSize: theme_1.fontSize.sm,
+        lineHeight: 18,
     },
     profileCard: {
         backgroundColor: theme_1.colors.surface,

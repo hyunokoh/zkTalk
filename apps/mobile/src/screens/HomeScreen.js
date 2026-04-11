@@ -72,6 +72,7 @@ var voice_runtime_1 = require("../lib/voice-runtime");
 var simulator_harness_1 = require("../lib/simulator-harness");
 var auth_1 = require("../stores/auth");
 var theme_1 = require("../theme");
+var shared_1 = require("@zktalk/shared");
 var COMMUNITY_COLORS = [
     '#6366f1',
     '#ec4899',
@@ -100,6 +101,10 @@ function getChannelIcon(type) {
         default:
             return '#';
     }
+}
+function getLockedChannelDescription(t, channel) {
+    var lockedCopyKey = (0, shared_1.getChannelBrowsePresentation)(channel).lockedCopyKey;
+    return t(lockedCopyKey !== null && lockedCopyKey !== void 0 ? lockedCopyKey : 'channel.lockedJoinRequired');
 }
 function getSourceDmSearchTerms(channel, directDmLabel, groupDmLabel) {
     var _a;
@@ -163,14 +168,21 @@ var ChannelListItem = (0, react_1.memo)(function ChannelListItem(_a) {
     var _b, _c;
     var item = _a.item, onPress = _a.onPress, voiceLabel = _a.voiceLabel, sourceDmLabel = _a.sourceDmLabel, directDmLabel = _a.directDmLabel, groupDmLabel = _a.groupDmLabel, sourceDmMatchLabel = _a.sourceDmMatchLabel, voiceStatusLabel = _a.voiceStatusLabel, isRecentVoiceChannel = _a.isRecentVoiceChannel, isLiveVoiceChannel = _a.isLiveVoiceChannel;
     var t = (0, i18n_1.useTranslation)().t;
-    return (<react_native_1.TouchableOpacity testID={"channel-row-".concat(item.id)} style={styles.channelItem} onPress={function () { return onPress(item); }} accessibilityRole="button" accessibilityLabel={item.sourceDmConversation
-            ? "".concat(item.name, ", ").concat(item.sourceDmConversation.type === 'direct' ? directDmLabel : groupDmLabel, ", ").concat((_b = item.sourceDmConversation.name) !== null && _b !== void 0 ? _b : sourceDmLabel)
-            : item.name}>
-      <react_native_1.Text style={styles.channelIcon}>{getChannelIcon(item.type)}</react_native_1.Text>
+    var isLockedChannel = (0, shared_1.getChannelBrowsePresentation)(item).isLocked;
+    var lockedDescription = isLockedChannel ? getLockedChannelDescription(t, item) : null;
+    return (<react_native_1.TouchableOpacity testID={"channel-row-".concat(item.id)} style={[styles.channelItem, isLockedChannel && styles.channelItemLocked]} onPress={function () { return onPress(item); }} accessibilityRole="button" accessibilityLabel={isLockedChannel
+            ? "".concat(item.name, ", ").concat(lockedDescription !== null && lockedDescription !== void 0 ? lockedDescription : t('channel.lockedBadge'))
+            : item.sourceDmConversation
+                ? "".concat(item.name, ", ").concat(item.sourceDmConversation.type === 'direct' ? directDmLabel : groupDmLabel, ", ").concat((_b = item.sourceDmConversation.name) !== null && _b !== void 0 ? _b : sourceDmLabel)
+                : item.name}>
+      <react_native_1.Text style={[styles.channelIcon, isLockedChannel && styles.channelIconLocked]}>{isLockedChannel ? '\uD83D\uDD12' : getChannelIcon(item.type)}</react_native_1.Text>
       <react_native_1.View style={styles.channelCopy}>
-        <react_native_1.Text style={styles.channelName}>{item.name}</react_native_1.Text>
+        <react_native_1.Text style={[styles.channelName, isLockedChannel && styles.channelNameLocked]}>{item.name}</react_native_1.Text>
         {sourceDmMatchLabel ? (<react_native_1.Text style={styles.channelSourceMatch} numberOfLines={1}>
             {sourceDmMatchLabel}
+          </react_native_1.Text>) : null}
+        {isLockedChannel && lockedDescription ? (<react_native_1.Text style={styles.channelLockedHint} numberOfLines={2}>
+            {lockedDescription}
           </react_native_1.Text>) : null}
         {item.type === 'voice' && voiceStatusLabel ? (<react_native_1.Text style={styles.channelVoiceStatus} numberOfLines={1}>
             {voiceStatusLabel}
@@ -192,6 +204,9 @@ var ChannelListItem = (0, react_1.memo)(function ChannelListItem(_a) {
       {item.type === 'voice' && isLiveVoiceChannel ? (<react_native_1.View style={styles.voiceLiveListBadge}>
           <react_native_1.Text style={styles.voiceLiveListBadgeText}>{t('voice.liveNow')}</react_native_1.Text>
         </react_native_1.View>) : null}
+      {isLockedChannel ? (<react_native_1.View style={styles.lockedBadge}>
+          <react_native_1.Text style={styles.lockedBadgeText}>{t('channel.lockedBadge')}</react_native_1.Text>
+        </react_native_1.View>) : null}
       {((_c = item.unreadCount) !== null && _c !== void 0 ? _c : 0) > 0 && (<react_native_1.View style={styles.unreadBadge}>
           <react_native_1.Text style={styles.unreadText}>{item.unreadCount}</react_native_1.Text>
         </react_native_1.View>)}
@@ -205,6 +220,20 @@ var ChannelSectionHeader = (0, react_1.memo)(function ChannelSectionHeader(_a) {
 });
 // Approximate row height for getItemLayout (performance optimization)
 var COMMUNITY_ROW_HEIGHT = 64;
+var COMMUNITY_PRESS_GUARD_MS = 400;
+function ChannelAccessSummaryCard(_a) {
+    var labels = _a.labels;
+    var t = (0, i18n_1.useTranslation)().t;
+    return (<react_native_1.View style={styles.channelAccessCard}>
+      <react_native_1.Text style={styles.channelAccessTitle}>{t('community.selectChannel')}</react_native_1.Text>
+      <react_native_1.Text style={styles.channelAccessBody}>{t('community.channelAccessHint')}</react_native_1.Text>
+      <react_native_1.View style={styles.channelAccessChipRow}>
+        {labels.map(function (label) { return (<react_native_1.View key={label} style={styles.channelAccessChip}>
+            <react_native_1.Text style={styles.channelAccessChipText}>{label}</react_native_1.Text>
+          </react_native_1.View>); })}
+      </react_native_1.View>
+    </react_native_1.View>);
+}
 var communityGetItemLayout = function (_data, index) { return ({
     length: COMMUNITY_ROW_HEIGHT,
     offset: COMMUNITY_ROW_HEIGHT * index,
@@ -246,7 +275,14 @@ function HomeScreen(_a) {
     var _o = (0, react_1.useState)('all'), channelFilter = _o[0], setChannelFilter = _o[1];
     var _p = (0, react_1.useState)(null), recentVoiceChannelId = _p[0], setRecentVoiceChannelId = _p[1];
     var _q = (0, react_1.useState)(false), devActionAttempted = _q[0], setDevActionAttempted = _q[1];
+    var _r = (0, react_1.useState)(false), isHomeInteractionBlocked = _r[0], setIsHomeInteractionBlocked = _r[1];
+    var _s = (0, react_1.useState)(false), isCommunityExitPending = _s[0], setIsCommunityExitPending = _s[1];
+    var communityPressBlockedUntilRef = (0, react_1.useRef)(0);
+    var communityBackTimeoutRef = (0, react_1.useRef)(null);
+    var hasRestoredLastVisitedRef = (0, react_1.useRef)(false);
+    var suppressCommunityRestoreUntilRef = (0, react_1.useRef)(0);
     var selectedCommunityId = (_b = route.params) === null || _b === void 0 ? void 0 : _b.selectedCommunityId;
+    var restoreChannelId = (_c = route.params) === null || _c === void 0 ? void 0 : _c.restoreChannelId;
     var queryClient = (0, react_query_1.useQueryClient)();
     var _r = (0, react_query_1.useQuery)({
         queryKey: ['communities'],
@@ -254,7 +290,9 @@ function HomeScreen(_a) {
     }), communities = _r.data, isLoading = _r.isLoading, refetchCommunities = _r.refetch, communitiesRefetching = _r.isRefetching;
     (0, react_1.useEffect)(function () {
         var _a;
-        if (!selectedCommunityId || !((_a = communities === null || communities === void 0 ? void 0 : communities.communities) === null || _a === void 0 ? void 0 : _a.length))
+        if (!selectedCommunityId ||
+            !((_a = communities === null || communities === void 0 ? void 0 : communities.communities) === null || _a === void 0 ? void 0 : _a.length) ||
+            Date.now() < suppressCommunityRestoreUntilRef.current)
             return;
         var nextCommunity = communities.communities.find(function (community) { return community.id === selectedCommunityId; });
         if (!nextCommunity)
@@ -262,6 +300,62 @@ function HomeScreen(_a) {
         setSelectedCommunity(nextCommunity);
         navigation.setParams({ selectedCommunityId: undefined });
     }, [communities === null || communities === void 0 ? void 0 : communities.communities, navigation, selectedCommunityId]);
+    (0, react_1.useEffect)(function () {
+        var communityList = (communities === null || communities === void 0 ? void 0 : communities.communities) || [];
+        if (hasRestoredLastVisitedRef.current ||
+            !communityList.length ||
+            selectedCommunityId ||
+            selectedCommunity ||
+            restoreChannelId ||
+            Date.now() < suppressCommunityRestoreUntilRef.current) {
+            return;
+        }
+        hasRestoredLastVisitedRef.current = true;
+        var cancelled = false;
+        function restoreLastVisited() {
+            return __awaiter(this, void 0, void 0, function () {
+                var settings, nextCommunity;
+                var _a;
+                return __generator(this, function (_b) {
+                    switch (_b.label) {
+                        case 0:
+                            _b.trys.push([0, 2, , 3]);
+                            return [4 /*yield*/, (0, storage_1.fetchUserSettings)()];
+                        case 1:
+                            settings = _b.sent();
+                            if (cancelled || !settings.lastVisited) {
+                                return [2 /*return*/];
+                            }
+                            if (settings.lastVisited.kind === 'community' && settings.lastVisited.communityId) {
+                                nextCommunity = communityList.find(function (community) { var _a; return community.id === ((_a = settings.lastVisited) === null || _a === void 0 ? void 0 : _a.communityId); });
+                                if (nextCommunity) {
+                                    setSelectedCommunity(nextCommunity);
+                                }
+                                return [2 /*return*/];
+                            }
+                            if (settings.lastVisited.kind === 'channel' &&
+                                settings.lastVisited.communityId &&
+                                settings.lastVisited.channelId) {
+                                nextCommunity = communityList.find(function (community) { var _a; return community.id === ((_a = settings.lastVisited) === null || _a === void 0 ? void 0 : _a.communityId); });
+                                if (nextCommunity) {
+                                    setSelectedCommunity(nextCommunity);
+                                    navigation.setParams({ restoreChannelId: (_a = settings.lastVisited) === null || _a === void 0 ? void 0 : _a.channelId });
+                                }
+                            }
+                            return [3 /*break*/, 3];
+                        case 2:
+                            _b.sent();
+                            return [3 /*break*/, 3];
+                        case 3: return [2 /*return*/];
+                    }
+                });
+            });
+        }
+        void restoreLastVisited();
+        return function () {
+            cancelled = true;
+        };
+    }, [communities === null || communities === void 0 ? void 0 : communities.communities, navigation, restoreChannelId, selectedCommunity, selectedCommunityId]);
     (0, react_1.useEffect)(function () {
         var cancelled = false;
         function loadCommunityOrder() {
@@ -285,6 +379,15 @@ function HomeScreen(_a) {
             cancelled = true;
         };
     }, []);
+    (0, react_1.useEffect)(function () {
+        if (!isFocused) {
+            return;
+        }
+        void refetchCommunities();
+        if (selectedCommunity) {
+            void refetchChannels();
+        }
+    }, [isFocused, refetchChannels, refetchCommunities, selectedCommunity]);
     (0, react_1.useEffect)(function () {
         var _a;
         if (!selectedCommunity || !((_a = communities === null || communities === void 0 ? void 0 : communities.communities) === null || _a === void 0 ? void 0 : _a.length))
@@ -385,6 +488,9 @@ function HomeScreen(_a) {
         var groupDmSearchLabel = "".concat(t('dm.filterGroup'), " ").concat(t('dm.historyCompact'));
         if (((_b = (_a = channelsData === null || channelsData === void 0 ? void 0 : channelsData.uncategorized) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0) > 0) {
             var uncategorizedChannels = ((_c = channelsData === null || channelsData === void 0 ? void 0 : channelsData.uncategorized) !== null && _c !== void 0 ? _c : []).filter(function (channel) {
+                if (!(0, shared_1.shouldRenderBrowseChannel)(channel)) {
+                    return false;
+                }
                 if (!matchesUnreadFilter(channel)) {
                     return false;
                 }
@@ -414,6 +520,9 @@ function HomeScreen(_a) {
         }
         var _loop_1 = function (category) {
             var filteredChannels = ((_e = category.channels) !== null && _e !== void 0 ? _e : []).filter(function (channel) {
+                if (!(0, shared_1.shouldRenderBrowseChannel)(channel)) {
+                    return false;
+                }
                 if (!matchesUnreadFilter(channel)) {
                     return false;
                 }
@@ -466,9 +575,9 @@ function HomeScreen(_a) {
     var canDeleteCommunity = (selectedCommunity === null || selectedCommunity === void 0 ? void 0 : selectedCommunity.ownerUserId) === (currentUser === null || currentUser === void 0 ? void 0 : currentUser.id);
     var allCommunityChannels = react_1.default.useMemo(function () {
         var _a, _b;
-        return dedupeById(__spreadArray(__spreadArray([], ((_a = channelsData === null || channelsData === void 0 ? void 0 : channelsData.uncategorized) !== null && _a !== void 0 ? _a : []), true), ((_b = channelsData === null || channelsData === void 0 ? void 0 : channelsData.categories) !== null && _b !== void 0 ? _b : []).flatMap(function (category) { return category.channels; }), true));
+        return dedupeById(__spreadArray(__spreadArray([], ((_a = channelsData === null || channelsData === void 0 ? void 0 : channelsData.uncategorized) !== null && _a !== void 0 ? _a : []), true), ((_b = channelsData === null || channelsData === void 0 ? void 0 : channelsData.categories) !== null && _b !== void 0 ? _b : []).flatMap(function (category) { return category.channels; }), true)).filter(function (channel) { return (0, shared_1.shouldRenderBrowseChannel)(channel); });
     }, [channelsData === null || channelsData === void 0 ? void 0 : channelsData.categories, channelsData === null || channelsData === void 0 ? void 0 : channelsData.uncategorized]);
-    var voiceChannels = react_1.default.useMemo(function () { return allCommunityChannels.filter(function (channel) { return channel.type === 'voice'; }); }, [allCommunityChannels]);
+    var voiceChannels = react_1.default.useMemo(function () { return allCommunityChannels.filter(function (channel) { return channel.canView !== false && channel.type === 'voice'; }); }, [allCommunityChannels]);
     var voiceParticipantQueries = (0, react_query_1.useQueries)({
         queries: voiceChannels.map(function (channel) { return ({
             queryKey: ['voice-participants', channel.id],
@@ -506,6 +615,9 @@ function HomeScreen(_a) {
         });
     }, [recentVoiceChannelId, voiceChannels, voiceParticipantCounts]);
     var singleVoiceChannel = sortedVoiceChannels.length === 1 ? sortedVoiceChannels[0] : null;
+    var accessSummaryLabels = react_1.default.useMemo(function () {
+        return (0, shared_1.getCommunityChannelAccessSummaryKeys)(selectedCommunity === null || selectedCommunity === void 0 ? void 0 : selectedCommunity.visibility).map(function (key) { return t(key); });
+    }, [selectedCommunity === null || selectedCommunity === void 0 ? void 0 : selectedCommunity.visibility, t]);
     var leaveCommunityMutation = (0, react_query_1.useMutation)({
         mutationFn: function (communityId) {
             return (0, api_1.api)("/api/communities/".concat(communityId, "/leave"), { method: 'POST' });
@@ -559,37 +671,137 @@ function HomeScreen(_a) {
             react_native_1.Alert.alert(t('common.error'), error instanceof Error ? error.message : t('community.deleteFailed'));
         },
     });
-    var handleChannelPress = (0, react_1.useCallback)(function (item) {
+    var handleChannelPressAccessible = (0, react_1.useCallback)(function (item) { return __awaiter(_this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            if (!selectedCommunity)
+                return [2 /*return*/];
+            void (0, storage_1.saveLastVisited)({
+                kind: 'channel',
+                communityId: selectedCommunity.id,
+                channelId: item.id,
+            });
+            if (item.type === 'voice') {
+                if (!voice_runtime_1.isNativeVoiceCallingAvailable) {
+                    react_native_1.Alert.alert(t('voice.notAvailableTitle'), t('voice.notAvailableBody'));
+                    return [2 /*return*/];
+                }
+                navigation.navigate('VoiceCallScreen', {
+                    channelId: item.id,
+                    channelName: item.name,
+                    communityId: selectedCommunity.id,
+                });
+            }
+            else if (item.type === 'forum') {
+                navigation.navigate('ForumChannelScreen', {
+                    communityId: selectedCommunity.id,
+                    channelId: item.id,
+                    channelName: item.name,
+                });
+            }
+            else {
+                navigation.navigate('ChannelScreen', {
+                    communityId: selectedCommunity.id,
+                    channelId: item.id,
+                    channelName: item.name,
+                });
+            }
+            return [2 /*return*/];
+        });
+    }); }, [navigation, selectedCommunity, t]);
+    var handleLockedChannelPress = (0, react_1.useCallback)(function (item) {
         if (!selectedCommunity)
             return;
-        if (item.type === 'voice') {
-            if (!voice_runtime_1.isNativeVoiceCallingAvailable) {
-                react_native_1.Alert.alert(t('voice.notAvailableTitle'), t('voice.notAvailableBody'));
-                return;
-            }
-            navigation.navigate('VoiceCallScreen', {
-                channelId: item.id,
-                channelName: item.name,
-                communityId: selectedCommunity.id,
-            });
+        var _d = (0, shared_1.getChannelBrowsePresentation)(item), lockedReason = _d.lockedReason, lockedPromptBodyKey = _d.lockedPromptBodyKey;
+        var promptBodyKey = lockedPromptBodyKey || 'channel.lockedPromptJoinBody';
+        if (lockedReason === 'invite_required') {
+            react_native_1.Alert.alert(t('channel.lockedPromptTitle'), t(promptBodyKey), [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                    text: t('channel.lockedPromptInviteAction'),
+                    onPress: function () { return navigation.navigate('JoinInvite'); },
+                },
+            ]);
+            return;
         }
-        else if (item.type === 'forum') {
-            navigation.navigate('ForumChannelScreen', {
-                communityId: selectedCommunity.id,
-                channelId: item.id,
-                channelName: item.name,
-            });
+        react_native_1.Alert.alert(t('channel.lockedPromptTitle'), t(promptBodyKey), [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+                text: t('channel.lockedPromptJoinAction'),
+                onPress: function () {
+                    return (0, api_1.api)("/api/communities/".concat(selectedCommunity.id, "/join"), { method: 'POST' })
+                        .then(function () { return queryClient.invalidateQueries({ queryKey: ['communities'] }); })
+                        .then(function () { return queryClient.invalidateQueries({ queryKey: ['channels', selectedCommunity.id] }); })
+                        .then(function () { return handleChannelPressAccessible(__assign(__assign({}, item), { canView: true })); })
+                        .catch(function (error) {
+                        react_native_1.Alert.alert(t('common.error'), error instanceof Error ? error.message : t('channel.lockedPromptJoinFailed'));
+                    });
+                },
+            },
+        ]);
+    }, [handleChannelPressAccessible, navigation, queryClient, selectedCommunity, t]);
+    var handleChannelPress = (0, react_1.useCallback)(function (item) {
+        if (Date.now() < communityPressBlockedUntilRef.current)
+            return;
+        if ((0, shared_1.getChannelBrowsePresentation)(item).isLocked) {
+            handleLockedChannelPress(item);
+            return;
         }
-        else {
-            navigation.navigate('ChannelScreen', {
-                communityId: selectedCommunity.id,
-                channelId: item.id,
-                channelName: item.name,
-            });
-        }
-    }, [navigation, selectedCommunity, t]);
+        void handleChannelPressAccessible(item);
+    }, [handleChannelPressAccessible, handleLockedChannelPress]);
     var handleCommunityPress = (0, react_1.useCallback)(function (item) {
+        if (Date.now() < communityPressBlockedUntilRef.current || isCommunityExitPending) {
+            return;
+        }
         setSelectedCommunity(item);
+        void (0, storage_1.saveLastVisited)({
+            kind: 'community',
+            communityId: item.id,
+        });
+    }, [isCommunityExitPending]);
+    var handleCommunityBackPress = (0, react_1.useCallback)(function () {
+        if (communityBackTimeoutRef.current) {
+            clearTimeout(communityBackTimeoutRef.current);
+        }
+        suppressCommunityRestoreUntilRef.current = Date.now() + 2000;
+        communityPressBlockedUntilRef.current = Date.now() + 1200;
+        setIsHomeInteractionBlocked(true);
+        setIsCommunityExitPending(true);
+        void (0, storage_1.saveLastVisited)(null);
+        communityBackTimeoutRef.current = setTimeout(function () {
+            navigation.setParams({ restoreChannelId: undefined, selectedCommunityId: undefined });
+            setSelectedCommunity(null);
+            setIsCommunityExitPending(false);
+            communityBackTimeoutRef.current = null;
+        }, 16);
+    }, [navigation]);
+    var handleCommunityBackPressStart = (0, react_1.useCallback)(function () {
+        suppressCommunityRestoreUntilRef.current = Date.now() + 2000;
+        communityPressBlockedUntilRef.current = Date.now() + 1200;
+        setIsHomeInteractionBlocked(true);
+        setIsCommunityExitPending(true);
+        if (communityBackTimeoutRef.current) {
+            clearTimeout(communityBackTimeoutRef.current);
+            communityBackTimeoutRef.current = null;
+        }
+    }, []);
+    (0, react_1.useEffect)(function () {
+        if (!isHomeInteractionBlocked) {
+            return;
+        }
+        var timeout = setTimeout(function () {
+            setIsHomeInteractionBlocked(false);
+            if (!selectedCommunity) {
+                setIsCommunityExitPending(false);
+            }
+        }, 1200);
+        return function () { return clearTimeout(timeout); };
+    }, [isHomeInteractionBlocked, selectedCommunity]);
+    (0, react_1.useEffect)(function () {
+        return function () {
+            if (communityBackTimeoutRef.current) {
+                clearTimeout(communityBackTimeoutRef.current);
+            }
+        };
     }, []);
     var handleCreateChannelPress = (0, react_1.useCallback)(function () {
         if (!selectedCommunity || !canManageChannels)
@@ -941,10 +1153,11 @@ function HomeScreen(_a) {
     if (selectedCommunity) {
         return (<react_native_safe_area_context_1.SafeAreaView style={styles.safeArea}>
         <react_native_1.StatusBar barStyle="light-content"/>
-        <react_native_1.View style={styles.container}>
+        <react_native_1.View style={styles.container} pointerEvents={isCommunityExitPending ? 'none' : 'auto'}>
+          {isCommunityExitPending ? <react_native_1.View style={styles.communityInteractionBlocker}/> : null}
           <react_native_1.View style={styles.communityHeader}>
             <react_native_1.View style={styles.communityHeaderTop}>
-              <react_native_1.TouchableOpacity style={styles.backButton} onPress={function () { return setSelectedCommunity(null); }}>
+              <react_native_1.TouchableOpacity style={styles.backButton} onPressIn={handleCommunityBackPressStart} onPress={handleCommunityBackPress}>
                 <react_native_1.Text style={styles.backArrow}>{"\u2190"}</react_native_1.Text>
               </react_native_1.TouchableOpacity>
               <react_native_1.TouchableOpacity style={styles.menuButton} onPress={handleCommunityMenuPress} hitSlop={8} disabled={leaveCommunityMutation.isPending}>
@@ -965,42 +1178,22 @@ function HomeScreen(_a) {
                   <react_native_1.Text style={styles.headerTitle} numberOfLines={1}>
                     {selectedCommunity.name}
                   </react_native_1.Text>
-                  <react_native_1.Text style={styles.headerSubtitle} numberOfLines={2}>
-                    {((_e = selectedCommunity.description) === null || _e === void 0 ? void 0 : _e.trim()) || t('community.manageBody')}
+                  <react_native_1.Text style={styles.headerSubtitle} numberOfLines={1}>
+                    {activeMemberCount === 1
+                        ? t('discover.member', { count: activeMemberCount })
+                        : t('discover.members', { count: activeMemberCount })}
                   </react_native_1.Text>
                 </react_native_1.View>
               </react_native_1.View>
               <react_native_1.View style={styles.communityActionRow}>
                 <react_native_1.TouchableOpacity style={styles.communityActionChip} onPress={handleMembersPress} activeOpacity={0.8}>
                   <react_native_1.Text style={styles.communityActionChipText}>
-                    {activeMemberCount === 1
-                ? t('discover.member', { count: activeMemberCount })
-                : t('discover.members', { count: activeMemberCount })}
-                  </react_native_1.Text>
-                </react_native_1.TouchableOpacity>
-                <react_native_1.TouchableOpacity style={styles.communityActionChip} onPress={handleEventsPress} activeOpacity={0.8}>
-                  <react_native_1.Text style={styles.communityActionChipText}>
-                    {t('community.eventsMenu')}
-                  </react_native_1.Text>
-                </react_native_1.TouchableOpacity>
-                <react_native_1.TouchableOpacity style={styles.communityActionChip} onPress={handleShareInvitePress} activeOpacity={0.8}>
-                  <react_native_1.Text style={styles.communityActionChipText}>
-                    {t('invite.inviteMembers')}
+                    {t('members.title')}
                   </react_native_1.Text>
                 </react_native_1.TouchableOpacity>
                 {singleVoiceChannel ? (<react_native_1.TouchableOpacity style={styles.communityActionChip} onPress={function () { return handleVoiceEntryPress(singleVoiceChannel, false); }} activeOpacity={0.8}>
                     <react_native_1.Text style={styles.communityActionChipText}>
-                      {"".concat(t('voice.join'), " \u00B7 #").concat(singleVoiceChannel.name)}
-                    </react_native_1.Text>
-                  </react_native_1.TouchableOpacity>) : null}
-                {singleVoiceChannel ? (<react_native_1.TouchableOpacity style={styles.communityActionChip} onPress={function () { return handleVoiceEntryPress(singleVoiceChannel, true); }} activeOpacity={0.8}>
-                    <react_native_1.Text style={styles.communityActionChipText}>
-                      {"".concat(t('voice.videoCall'), " \u00B7 #").concat(singleVoiceChannel.name)}
-                    </react_native_1.Text>
-                  </react_native_1.TouchableOpacity>) : null}
-                {canManageChannels ? (<react_native_1.TouchableOpacity style={styles.communityActionChipPrimary} onPress={handleCreateChannelPress} activeOpacity={0.8}>
-                    <react_native_1.Text style={styles.communityActionChipPrimaryText}>
-                      {t('channel.create')}
+                      {t('voice.join')}
                     </react_native_1.Text>
                   </react_native_1.TouchableOpacity>) : null}
               </react_native_1.View>
@@ -1082,7 +1275,7 @@ function HomeScreen(_a) {
           {/* Channel list */}
           {channelsLoading ? (<react_native_1.View style={styles.center}>
               <react_native_1.ActivityIndicator size="large" color={theme_1.colors.primary}/>
-            </react_native_1.View>) : (<react_native_1.FlatList testID="home-channel-list" data={channelRows} keyExtractor={function (item) { return item.id; }} refreshControl={<react_native_1.RefreshControl refreshing={isFocused && channelsRefetching} onRefresh={refetchChannels} tintColor={theme_1.colors.primary}/>} renderItem={function (_a) {
+            </react_native_1.View>) : (<react_native_1.FlatList testID="home-channel-list" data={channelRows} scrollEnabled={!isCommunityExitPending} keyExtractor={function (item) { return item.id; }} refreshControl={<react_native_1.RefreshControl refreshing={isFocused && channelsRefetching} onRefresh={refetchChannels} tintColor={theme_1.colors.primary}/>} renderItem={function (_a) {
                     var item = _a.item;
                     return item.type === 'section' ? (<ChannelSectionHeader title={item.title}/>) : ((function () {
                         var _a, _b, _c, _d;
@@ -1148,6 +1341,7 @@ function HomeScreen(_a) {
                         </react_native_1.TouchableOpacity>) : null}
                     </react_native_1.View>)}
                   <react_native_1.TextInput style={styles.searchInput} value={channelSearchQuery} onChangeText={setChannelSearchQuery} placeholder={t('home.channelSearchPlaceholder')} placeholderTextColor={theme_1.colors.textMuted} autoCapitalize="none" autoCorrect={false} returnKeyType="search"/>
+                  {accessSummaryLabels.length > 0 ? <ChannelAccessSummaryCard labels={accessSummaryLabels}/> : null}
                   <react_native_1.View style={styles.filterRow}>
                     <react_native_1.TouchableOpacity style={[
                         styles.filterChip,
@@ -1185,7 +1379,7 @@ function HomeScreen(_a) {
     // Community list view
     return (<react_native_safe_area_context_1.SafeAreaView style={styles.safeArea}>
       <react_native_1.StatusBar barStyle="light-content"/>
-      <react_native_1.View style={styles.container}>
+        <react_native_1.View style={styles.container} pointerEvents={isHomeInteractionBlocked ? 'none' : 'auto'}>
         {/* App header */}
         <react_native_1.View style={styles.appHeader}>
           <react_native_1.Text style={styles.appTitle}>{t('app.name')}</react_native_1.Text>
@@ -1353,6 +1547,44 @@ var styles = react_native_1.StyleSheet.create({
         fontSize: theme_1.fontSize.base,
         paddingHorizontal: theme_1.spacing.lg,
         paddingVertical: theme_1.spacing.md,
+    },
+    channelAccessCard: {
+        backgroundColor: '#111827',
+        borderRadius: theme_1.borderRadius.lg,
+        borderWidth: 1,
+        borderColor: '#1f2937',
+        padding: theme_1.spacing.md,
+        marginTop: theme_1.spacing.md,
+    },
+    channelAccessTitle: {
+        color: theme_1.colors.white,
+        fontSize: theme_1.fontSize.base,
+        fontWeight: '700',
+    },
+    channelAccessBody: {
+        color: theme_1.colors.textSecondary,
+        fontSize: theme_1.fontSize.sm,
+        lineHeight: 20,
+        marginTop: theme_1.spacing.xs,
+    },
+    channelAccessChipRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: theme_1.spacing.xs,
+        marginTop: theme_1.spacing.sm,
+    },
+    channelAccessChip: {
+        backgroundColor: '#1f2937',
+        borderRadius: theme_1.borderRadius.full,
+        borderWidth: 1,
+        borderColor: '#334155',
+        paddingHorizontal: theme_1.spacing.sm,
+        paddingVertical: theme_1.spacing.xs,
+    },
+    channelAccessChipText: {
+        color: '#dbeafe',
+        fontSize: theme_1.fontSize.xs,
+        fontWeight: '700',
     },
     filterRow: {
         flexDirection: 'row',
@@ -1685,6 +1917,11 @@ var styles = react_native_1.StyleSheet.create({
         paddingHorizontal: theme_1.spacing.lg,
         paddingVertical: theme_1.spacing.md,
     },
+    channelItemLocked: {
+        backgroundColor: '#3b2b14',
+        borderWidth: 1,
+        borderColor: '#7c5b23',
+    },
     channelIcon: {
         color: theme_1.colors.textSecondary,
         fontSize: theme_1.fontSize.xl,
@@ -1693,9 +1930,15 @@ var styles = react_native_1.StyleSheet.create({
         textAlign: 'center',
         marginRight: theme_1.spacing.sm,
     },
+    channelIconLocked: {
+        color: '#f7c66d',
+    },
     channelName: {
         color: theme_1.colors.text,
         fontSize: theme_1.fontSize.body,
+    },
+    channelNameLocked: {
+        color: '#f6e2b8',
     },
     channelCopy: {
         flex: 1,
@@ -1704,6 +1947,11 @@ var styles = react_native_1.StyleSheet.create({
         color: theme_1.colors.textMuted,
         fontSize: theme_1.fontSize.xs,
         marginTop: 2,
+    },
+    channelLockedHint: {
+        marginTop: 2,
+        fontSize: theme_1.fontSize.xs,
+        color: '#d7b67b',
     },
     channelVoiceStatus: {
         color: theme_1.colors.textMuted,
@@ -1773,6 +2021,18 @@ var styles = react_native_1.StyleSheet.create({
         fontSize: theme_1.fontSize.xs,
         fontWeight: '700',
     },
+    lockedBadge: {
+        borderRadius: 999,
+        backgroundColor: '#5a431a',
+        paddingHorizontal: theme_1.spacing.sm,
+        paddingVertical: 4,
+        marginLeft: theme_1.spacing.sm,
+    },
+    lockedBadgeText: {
+        color: '#f6e2b8',
+        fontSize: theme_1.fontSize.xs,
+        fontWeight: '700',
+    },
     emptyList: {
         flex: 1,
     },
@@ -1839,6 +2099,15 @@ var styles = react_native_1.StyleSheet.create({
         color: theme_1.colors.textSecondary,
         fontSize: theme_1.fontSize.md,
         fontWeight: '700',
+    },
+    communityInteractionBlocker: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        zIndex: 30,
+        backgroundColor: 'transparent',
     },
     createCommunityText: {
         color: theme_1.colors.white,

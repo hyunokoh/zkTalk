@@ -138,6 +138,7 @@ export default async function channelRoutes(app: FastifyInstance) {
           type?: 'chat' | 'announcement' | 'forum' | 'voice';
           categoryId?: string;
           visibility?: 'public' | 'role_restricted';
+          accessPolicy?: 'public' | 'members_only' | 'invite_only' | 'private';
           slowModeSeconds?: number;
           requireTopic?: boolean;
           allowedViewRoleIds?: string[];
@@ -217,6 +218,7 @@ export default async function channelRoutes(app: FastifyInstance) {
           name?: string;
           description?: string | null;
           visibility?: 'public' | 'role_restricted';
+          accessPolicy?: 'public' | 'members_only' | 'invite_only' | 'private';
           slowModeSeconds?: number;
           categoryId?: string | null;
           position?: number;

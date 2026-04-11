@@ -20,27 +20,20 @@ import {
   ensureUserSettings,
   parseCommunityOrder,
   parseLastVisited,
+  parseTranslationDisplay,
   upsertUserSettings,
 } from './auth.repository.js';
 import { createSessionToken } from '../../middleware/auth.js';
 import { AppError } from '../../lib/errors.js';
 import { redis } from '../../lib/redis.js';
+import { getEmailLinkSecretBytes, getMagicLinkSecretBytes } from '../../lib/env.js';
 import type { AuthMethodType } from '@zktalk/shared';
+import { normalizeTranslationDisplayPreference } from '@zktalk/shared';
+import { assertCanAccessChannel } from '../channel/channel-access.service.js';
+import * as dmRepo from '../dm/dm.repository.js';
+import * as communityRepo from '../community/community.repository.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────
-
-function getMagicLinkSecret(): Uint8Array {
-  const secret = process.env.MAGIC_LINK_SECRET || 'dev-magic-link-secret-change-in-production';
-  return new TextEncoder().encode(secret);
-}
-
-function getEmailLinkSecret(): Uint8Array {
-  const secret =
-    process.env.EMAIL_LINK_SECRET ||
-    process.env.MAGIC_LINK_SECRET ||
-    'dev-email-link-secret-change-in-production';
-  return new TextEncoder().encode(secret);
-}
 
 function generateUsername(base: string): string {
   const clean = base.replace(/[^a-zA-Z0-9_-]/g, '') || 'user';
@@ -57,6 +50,59 @@ function getConfiguredAudiences(...values: Array<string | undefined>): string[] 
     .flatMap((value) => (value ? value.split(',') : []))
     .map((value) => value.trim())
     .filter((value, index, all) => value.length > 0 && all.indexOf(value) === index);
+}
+
+async function sanitizeLastVisited(
+  userId: string,
+  lastVisited: {
+    kind: 'community' | 'channel' | 'thread' | 'dm';
+    communityId?: string;
+    channelId?: string;
+    threadId?: string;
+    conversationId?: string;
+  } | null,
+) {
+  if (!lastVisited) {
+    return null;
+  }
+
+  if ((lastVisited.kind === 'channel' || lastVisited.kind === 'thread') && lastVisited.channelId) {
+    try {
+      await assertCanAccessChannel(userId, lastVisited.channelId);
+      return lastVisited;
+    } catch {
+      return null;
+    }
+  }
+
+  if (lastVisited.kind === 'community' && lastVisited.communityId) {
+    try {
+      const community = await communityRepo.findById(lastVisited.communityId);
+      if (!community) {
+        return null;
+      }
+
+      const membership = await communityRepo.findMembership(lastVisited.communityId, userId);
+      if (membership?.membershipStatus === 'active' || community.visibility === 'public') {
+        return lastVisited;
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  if (lastVisited.kind === 'dm' && lastVisited.conversationId) {
+    try {
+      const isParticipant = await dmRepo.isParticipant(lastVisited.conversationId, userId);
+      return isParticipant ? lastVisited : null;
+    } catch {
+      return null;
+    }
+  }
+
+  return lastVisited;
 }
 
 // ── Find or Create User by Auth ──────────────────────────────────────
@@ -155,7 +201,7 @@ async function createSessionForUser(user: {
 // ── Magic Link (existing) ────────────────────────────────────────────
 
 export async function requestMagicLink(email: string): Promise<string> {
-  const secret = getMagicLinkSecret();
+  const secret = getMagicLinkSecretBytes();
   const jti = crypto.randomUUID();
   const token = await new jose.SignJWT({ email })
     .setProtectedHeader({ alg: 'HS256' })
@@ -176,7 +222,7 @@ export async function verifyMagicLink(token: string): Promise<string> {
   let jti: string | undefined;
 
   try {
-    const { payload } = await jose.jwtVerify(token, getMagicLinkSecret(), {
+    const { payload } = await jose.jwtVerify(token, getMagicLinkSecretBytes(), {
       issuer: 'zktalk',
       audience: 'zktalk-magic-link',
     });
@@ -229,7 +275,7 @@ export async function requestEmailLink(
     .setAudience('zktalk-link-email')
     .setIssuedAt()
     .setExpirationTime('15m')
-    .sign(getEmailLinkSecret());
+    .sign(getEmailLinkSecretBytes());
 
   if (process.env.NODE_ENV !== 'production') {
     return { sent: true, token };
@@ -244,7 +290,7 @@ export async function verifyEmailLink(userId: string, token: string) {
   let jti: string | undefined;
 
   try {
-    const { payload } = await jose.jwtVerify(token, getEmailLinkSecret(), {
+    const { payload } = await jose.jwtVerify(token, getEmailLinkSecretBytes(), {
       issuer: 'zktalk',
       audience: 'zktalk-link-email',
     });
@@ -620,6 +666,7 @@ export async function updateProfile(
 
 export async function getSettings(userId: string) {
   const settings = await ensureUserSettings(userId);
+  const lastVisited = await sanitizeLastVisited(userId, parseLastVisited(settings.lastVisited));
   return {
     communityOrder: parseCommunityOrder(settings.communityOrder),
     collapsedSections: (() => {
@@ -629,7 +676,8 @@ export async function getSettings(userId: string) {
         return {};
       }
     })(),
-    lastVisited: parseLastVisited(settings.lastVisited),
+    lastVisited,
+    translationDisplay: parseTranslationDisplay(settings.translationDisplay),
     updatedAt: settings.updatedAt.toISOString(),
   };
 }
@@ -646,9 +694,26 @@ export async function updateSettings(
       threadId?: string;
       conversationId?: string;
     } | null;
+    translationDisplay?: {
+      uiLocale: string;
+      mode: 'manual_only' | 'target_language_all' | 'target_language_except_readable';
+      targetLanguage: string | null;
+      readableLanguages: string[];
+    };
   },
 ) {
-  const settings = await upsertUserSettings(userId, data);
+  const sanitizedLastVisited = data.lastVisited === undefined
+    ? undefined
+    : await sanitizeLastVisited(userId, data.lastVisited);
+  const translationDisplay = data.translationDisplay === undefined
+    ? undefined
+    : normalizeTranslationDisplayPreference(data.translationDisplay);
+  const settings = await upsertUserSettings(userId, {
+    ...data,
+    lastVisited: sanitizedLastVisited,
+    translationDisplay,
+  });
+  const lastVisited = await sanitizeLastVisited(userId, parseLastVisited(settings.lastVisited));
   return {
     communityOrder: parseCommunityOrder(settings.communityOrder),
     collapsedSections: (() => {
@@ -658,7 +723,8 @@ export async function updateSettings(
         return {};
       }
     })(),
-    lastVisited: parseLastVisited(settings.lastVisited),
+    lastVisited,
+    translationDisplay: parseTranslationDisplay(settings.translationDisplay),
     updatedAt: settings.updatedAt.toISOString(),
   };
 }

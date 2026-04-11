@@ -33,6 +33,18 @@ const defaultDmFlowPath = path.join(
   process.cwd(),
   'apps/mobile/maestro/flows/dm-send-smoke.yaml',
 );
+const defaultSelectedMessageAiFlowPath = path.join(
+  process.cwd(),
+  'apps/mobile/maestro/flows/channel-selected-message-ai-smoke.yaml',
+);
+const defaultDmSelectedMessageAiFlowPath = path.join(
+  process.cwd(),
+  'apps/mobile/maestro/flows/dm-selected-message-ai-smoke.yaml',
+);
+const defaultThreadSelectedMessageAiFlowPath = path.join(
+  process.cwd(),
+  'apps/mobile/maestro/flows/thread-selected-message-ai-smoke.yaml',
+);
 const defaultDmAttachmentSendFlowPath = path.join(
   process.cwd(),
   'apps/mobile/maestro/flows/dm-attachment-send-smoke.yaml',
@@ -267,6 +279,21 @@ function saveCachedE2e(payload) {
 async function loadE2eData({ fresh }) {
   const staleCachedE2e = loadCachedE2e(Number.MAX_SAFE_INTEGER);
   const cachedE2e = fresh ? null : loadCachedE2e(10 * 60 * 1000);
+  const forceCachedE2e = process.env.ZKTALK_E2E_FORCE_CACHE === '1';
+
+  if (forceCachedE2e) {
+    if (!staleCachedE2e) {
+      throw new Error(
+        'ZKTALK_E2E_FORCE_CACHE=1 was set, but no cached mobile harness E2E payload exists.',
+      );
+    }
+
+    return {
+      e2e: staleCachedE2e,
+      usedCached: true,
+      usedStaleFallback: true,
+    };
+  }
 
   if (cachedE2e) {
     return {
@@ -612,6 +639,13 @@ async function waitForDmAttachmentByFileName(conversationId, token, fileName, ti
   }, { timeoutMs, label: 'dm attachment delivery' });
 }
 
+async function waitForThreadMessage(threadId, token, body, timeoutMs) {
+  return waitFor(async () => {
+    const response = await request(`/api/threads/${threadId}/messages?limit=30`, { token });
+    return pickMessageList(response).find((entry) => flattenMessageBody(entry) === body) ?? null;
+  }, { timeoutMs, label: 'thread message delivery' });
+}
+
 async function runLightboxZoomAction(paths, action, timeoutMs) {
   removeIfExists(paths.lightboxResult);
   writeJson(paths.lightboxAction, action);
@@ -720,7 +754,7 @@ async function createChannelImageAttachment({
 
 function printUsage() {
   console.log(`Usage:
-  node scripts/mobile-maestro-smoke.mjs [--app standalone] [--device booted|<udid>] [--mode channel|ime|dm|both|attachment|attachment-send|document-send|camera-send|dm-attachment-send|dm-document-send|dm-camera-send|attachment-zoom] [--fresh] [--launch] [--timeout-ms 90000] [--maestro-timeout-ms 20000]
+  node scripts/mobile-maestro-smoke.mjs [--app standalone] [--device booted|<udid>] [--mode channel|ime|dm|both|selected-message-ai|selected-message-ai-dm|selected-message-ai-thread|attachment|attachment-send|document-send|camera-send|dm-attachment-send|dm-document-send|dm-camera-send|attachment-zoom] [--fresh] [--launch] [--timeout-ms 90000] [--maestro-timeout-ms 20000]
 
 Defaults:
   --app standalone
@@ -788,6 +822,24 @@ async function main() {
   const dmFlowPath = path.resolve(
     args['dm-flow'] ?? (mode === 'dm' ? args.flow ?? defaultDmFlowPath : defaultDmFlowPath),
   );
+  const selectedMessageAiFlowPath = path.resolve(
+    args['selected-message-ai-flow'] ??
+      (mode === 'selected-message-ai'
+        ? args.flow ?? defaultSelectedMessageAiFlowPath
+        : defaultSelectedMessageAiFlowPath),
+  );
+  const dmSelectedMessageAiFlowPath = path.resolve(
+    args['dm-selected-message-ai-flow'] ??
+      (mode === 'selected-message-ai-dm'
+        ? args.flow ?? defaultDmSelectedMessageAiFlowPath
+        : defaultDmSelectedMessageAiFlowPath),
+  );
+  const threadSelectedMessageAiFlowPath = path.resolve(
+    args['thread-selected-message-ai-flow'] ??
+      (mode === 'selected-message-ai-thread'
+        ? args.flow ?? defaultThreadSelectedMessageAiFlowPath
+        : defaultThreadSelectedMessageAiFlowPath),
+  );
   const dmAttachmentSendFlowPath = path.resolve(
     args['dm-attachment-send-flow'] ??
       (mode === 'dm-attachment-send'
@@ -846,6 +898,9 @@ async function main() {
       mode === 'ime' ||
       mode === 'dm' ||
       mode === 'both' ||
+      mode === 'selected-message-ai' ||
+      mode === 'selected-message-ai-dm' ||
+      mode === 'selected-message-ai-thread' ||
       mode === 'attachment' ||
       mode === 'attachment-send' ||
       mode === 'document-send' ||
@@ -854,7 +909,7 @@ async function main() {
       mode === 'dm-document-send' ||
       mode === 'dm-camera-send' ||
       mode === 'attachment-zoom',
-    'mode must be one of: channel, ime, dm, both, attachment, attachment-send, document-send, camera-send, dm-attachment-send, dm-document-send, dm-camera-send, attachment-zoom',
+    'mode must be one of: channel, ime, dm, both, selected-message-ai, selected-message-ai-dm, selected-message-ai-thread, attachment, attachment-send, document-send, camera-send, dm-attachment-send, dm-document-send, dm-camera-send, attachment-zoom',
   );
   if (app !== 'standalone') {
     throw new Error('mobile:maestro:smoke currently supports --app standalone only.');
@@ -867,6 +922,17 @@ async function main() {
   }
   if ((mode === 'dm' || mode === 'both') && !fs.existsSync(dmFlowPath)) {
     throw new Error(`DM Maestro flow not found: ${dmFlowPath}`);
+  }
+  if (mode === 'selected-message-ai-dm' && !fs.existsSync(dmSelectedMessageAiFlowPath)) {
+    throw new Error(`DM selected-message AI Maestro flow not found: ${dmSelectedMessageAiFlowPath}`);
+  }
+  if (
+    mode === 'selected-message-ai-thread' &&
+    !fs.existsSync(threadSelectedMessageAiFlowPath)
+  ) {
+    throw new Error(
+      `Thread selected-message AI Maestro flow not found: ${threadSelectedMessageAiFlowPath}`,
+    );
   }
   if (mode === 'dm-attachment-send' && !fs.existsSync(dmAttachmentSendFlowPath)) {
     throw new Error(`DM attachment send Maestro flow not found: ${dmAttachmentSendFlowPath}`);
@@ -896,11 +962,13 @@ async function main() {
     throw new Error(`Attachment close Maestro flow not found: ${attachmentCloseFlowPath}`);
   }
 
-  const metroAvailable = await isMetroAvailable();
-  if (!metroAvailable) {
-    throw new Error(
-      'Metro dev server is not running on http://127.0.0.1:8081/status. Start it from /Users/hyunokoh/Documents/Projects/zkTalk/apps/mobile with `npm run start` before running mobile:maestro:smoke.',
-    );
+  if (app !== 'standalone') {
+    const metroAvailable = await isMetroAvailable();
+    if (!metroAvailable) {
+      throw new Error(
+        'Metro dev server is not running on http://127.0.0.1:8081/status. Start it from /Users/hyunokoh/Documents/Projects/zkTalk/apps/mobile with `npm run start` before running mobile:maestro:smoke.',
+      );
+    }
   }
   let standalonePrepare = null;
   if (app === 'standalone') {
@@ -944,6 +1012,18 @@ async function main() {
       'home',
       timeoutMs,
     );
+
+  const bringAppToChannel = () =>
+    routeAndWait(
+      harnessPaths,
+      {
+        type: 'channel',
+        communityId: e2e.communityId,
+        channelId: e2e.channelId,
+      },
+      'channel',
+      timeoutMs,
+    );
   const prepareMaestroAttempt = async () => {
     if (shouldLaunch) {
       foregroundMobileApp({ app, device, expoUrl });
@@ -965,75 +1045,282 @@ async function main() {
   };
 
   const steps = [];
-
-  if (mode === 'channel' || mode === 'both') {
-    await bringAppToHome();
-    const outputDir = path.join(maestroOutputRoot, 'channel-send');
+  const runChannelSendStep = async ({ outputKey, flowPath, messageBody, step }) => {
+    await bringAppToChannel();
+    const outputDir = path.join(maestroOutputRoot, outputKey);
     const maestroStdout = await runMaestroFlowWithRetry({
       maestroBin: maestro.binPath,
-      flowPath: channelFlowPath,
+      flowPath,
       outputDir,
       device,
       skipLaunchApp: shouldLaunch,
-      beforeAttempt: prepareMaestroAttempt,
+      beforeAttempt: async () => {
+        if (shouldLaunch) {
+          foregroundMobileApp({ app, device, expoUrl });
+          await sleep(1_000);
+        }
+
+        await bringAppToChannel();
+
+        const attemptErrorBoundary = readJsonIfExists(harnessPaths.errorBoundary);
+        if (attemptErrorBoundary) {
+          throw new Error(
+            `Mobile app hit the error boundary before a Maestro attempt:\n${JSON.stringify(
+              attemptErrorBoundary,
+              null,
+              2,
+            )}`,
+          );
+        }
+      },
       env: {
         COMMUNITY_ID: e2e.communityId,
         CHANNEL_ID: e2e.channelId,
         CHANNEL_NAME: e2e.channelName,
+        MESSAGE_BODY: messageBody,
+        FLOW_WAIT_TIMEOUT_MS: String(maestroTimeoutMs),
+      },
+    });
+
+    const deliveredMessage = await waitForChannelMessage(
+      e2e.channelId,
+      e2e.userB.sessionToken,
+      messageBody,
+      timeoutMs,
+    );
+
+    steps.push({
+      step,
+      flowPath,
+      maestroOutputDir: outputDir,
+      messageBody,
+      deliveredMessageId: deliveredMessage?.message?.id ?? deliveredMessage?.id ?? null,
+      maestroStdout,
+    });
+
+    return deliveredMessage;
+  };
+
+  if (mode === 'channel' || mode === 'both') {
+    await runChannelSendStep({
+      outputKey: 'channel-send',
+      flowPath: channelFlowPath,
+      messageBody: channelMessageBody,
+      step: 'channel-send',
+    });
+  }
+
+  if (mode === 'ime') {
+    await runChannelSendStep({
+      outputKey: 'channel-ime-send',
+      flowPath: imeFlowPath,
+      messageBody: imeMessageBody,
+      step: 'channel-ime-send',
+    });
+  }
+
+  if (mode === 'selected-message-ai') {
+    const deliveredMessage = await runChannelSendStep({
+      outputKey: 'selected-message-ai-seed',
+      flowPath: channelFlowPath,
+      messageBody: channelMessageBody,
+      step: 'selected-message-ai-seed',
+    });
+
+    await bringAppToChannel();
+    const outputDir = path.join(maestroOutputRoot, 'selected-message-ai');
+    const deliveredMessageId = deliveredMessage?.message?.id ?? deliveredMessage?.id ?? null;
+    assert(
+      typeof deliveredMessageId === 'string' && deliveredMessageId.length > 0,
+      'selected-message-ai mode requires a delivered channel message id',
+    );
+    const maestroStdout = await runMaestroFlowWithRetry({
+      maestroBin: maestro.binPath,
+      flowPath: selectedMessageAiFlowPath,
+      outputDir,
+      device,
+      skipLaunchApp: shouldLaunch,
+      beforeAttempt: async () => {
+        if (shouldLaunch) {
+          foregroundMobileApp({ app, device, expoUrl });
+          await sleep(1_000);
+        }
+
+        await bringAppToChannel();
+
+        const attemptErrorBoundary = readJsonIfExists(harnessPaths.errorBoundary);
+        if (attemptErrorBoundary) {
+          throw new Error(
+            `Mobile app hit the error boundary before a Maestro attempt:\n${JSON.stringify(
+              attemptErrorBoundary,
+              null,
+              2,
+            )}`,
+          );
+        }
+      },
+      env: {
+        COMMUNITY_ID: e2e.communityId,
+        CHANNEL_ID: e2e.channelId,
+        CHANNEL_NAME: e2e.channelName,
+        MESSAGE_ID: deliveredMessageId,
         MESSAGE_BODY: channelMessageBody,
         FLOW_WAIT_TIMEOUT_MS: String(maestroTimeoutMs),
       },
     });
 
-    const deliveredMessage = await waitForChannelMessage(
-      e2e.channelId,
-      e2e.userB.sessionToken,
-      channelMessageBody,
-      timeoutMs,
-    );
-
     steps.push({
-      step: 'channel-send',
-      flowPath: channelFlowPath,
+      step: 'selected-message-ai',
+      flowPath: selectedMessageAiFlowPath,
       maestroOutputDir: outputDir,
       messageBody: channelMessageBody,
-      deliveredMessageId: deliveredMessage?.message?.id ?? deliveredMessage?.id ?? null,
+      deliveredMessageId,
       maestroStdout,
     });
   }
 
-  if (mode === 'ime') {
-    await bringAppToHome();
-    const outputDir = path.join(maestroOutputRoot, 'channel-ime-send');
+  if (mode === 'selected-message-ai-dm') {
+    const dmDeliveredMessage = await request(`/api/dm/conversations/${e2e.harnessConversationId}/messages`, {
+      method: 'POST',
+      token: e2e.userB.sessionToken,
+      headers: {
+        'x-request-id': `mobile-maestro-dm-selected-message-ai-${Date.now()}`,
+      },
+      body: {
+        bodyMarkdown: dmMessageBody,
+      },
+    });
+    const deliveredMessageId = flattenMessageId(dmDeliveredMessage);
+    await waitForDmMessage(
+      e2e.harnessConversationId,
+      e2e.userA.sessionToken,
+      dmMessageBody,
+      timeoutMs,
+    );
+    assert(
+      typeof deliveredMessageId === 'string' && deliveredMessageId.length > 0,
+      'selected-message-ai-dm mode requires a delivered DM message id',
+    );
+
+    const outputDir = path.join(maestroOutputRoot, 'selected-message-ai-dm');
     const maestroStdout = await runMaestroFlowWithRetry({
       maestroBin: maestro.binPath,
-      flowPath: imeFlowPath,
+      flowPath: dmSelectedMessageAiFlowPath,
       outputDir,
       device,
       skipLaunchApp: shouldLaunch,
-      beforeAttempt: prepareMaestroAttempt,
+      beforeAttempt: async () => {
+        await prepareMaestroAttempt();
+        await routeAndWait(
+          harnessPaths,
+          {
+            type: 'dm',
+            conversationId: e2e.harnessConversationId,
+          },
+          'dm',
+          timeoutMs,
+        );
+      },
       env: {
-        COMMUNITY_ID: e2e.communityId,
-        CHANNEL_ID: e2e.channelId,
-        CHANNEL_NAME: e2e.channelName,
-        MESSAGE_BODY: imeMessageBody,
+        CONVERSATION_ID: e2e.harnessConversationId,
+        MESSAGE_ID: deliveredMessageId,
+        MESSAGE_BODY: dmMessageBody,
         FLOW_WAIT_TIMEOUT_MS: String(maestroTimeoutMs),
       },
     });
 
-    const deliveredMessage = await waitForChannelMessage(
-      e2e.channelId,
-      e2e.userB.sessionToken,
-      imeMessageBody,
-      timeoutMs,
+    steps.push({
+      step: 'selected-message-ai-dm',
+      flowPath: dmSelectedMessageAiFlowPath,
+      maestroOutputDir: outputDir,
+      messageBody: dmMessageBody,
+      deliveredMessageId,
+      conversationId: e2e.harnessConversationId,
+      maestroStdout,
+    });
+  }
+
+  if (mode === 'selected-message-ai-thread') {
+    const deliveredRootMessage = await request(`/api/channels/${e2e.channelId}/messages`, {
+      method: 'POST',
+      token: e2e.userB.sessionToken,
+      headers: {
+        'x-request-id': `mobile-maestro-thread-selected-message-root-${Date.now()}`,
+      },
+      body: {
+        bodyMarkdown: channelMessageBody,
+      },
+    });
+    const rootMessageId = flattenMessageId(deliveredRootMessage);
+    assert(
+      typeof rootMessageId === 'string' && rootMessageId.length > 0,
+      'selected-message-ai-thread mode requires a delivered thread root message id',
+    );
+    await waitForChannelMessage(e2e.channelId, e2e.userA.sessionToken, channelMessageBody, timeoutMs);
+
+    const createdThread = await request(`/api/messages/${rootMessageId}/thread`, {
+      method: 'POST',
+      token: e2e.userA.sessionToken,
+    });
+    const threadId = createdThread?.id ?? createdThread?.thread?.id ?? null;
+    assert(typeof threadId === 'string' && threadId.length > 0, 'Thread create response did not include a thread id');
+
+    const threadMessageBody = `thread-selected-message-ai-${timestamp}`;
+    const threadMessageResponse = await request(`/api/threads/${threadId}/messages`, {
+      method: 'POST',
+      token: e2e.userB.sessionToken,
+      headers: {
+        'x-request-id': `mobile-maestro-thread-selected-message-reply-${Date.now()}`,
+      },
+      body: {
+        bodyMarkdown: threadMessageBody,
+      },
+    });
+    const deliveredMessageId = flattenMessageId(threadMessageResponse);
+    await waitForThreadMessage(threadId, e2e.userA.sessionToken, threadMessageBody, timeoutMs);
+    assert(
+      typeof deliveredMessageId === 'string' && deliveredMessageId.length > 0,
+      'selected-message-ai-thread mode requires a delivered thread reply message id',
     );
 
+    const outputDir = path.join(maestroOutputRoot, 'selected-message-ai-thread');
+    const maestroStdout = await runMaestroFlowWithRetry({
+      maestroBin: maestro.binPath,
+      flowPath: threadSelectedMessageAiFlowPath,
+      outputDir,
+      device,
+      skipLaunchApp: shouldLaunch,
+      beforeAttempt: async () => {
+        await prepareMaestroAttempt();
+        await routeAndWait(
+          harnessPaths,
+          {
+            type: 'thread',
+            threadId,
+            channelId: e2e.channelId,
+            communityId: e2e.communityId,
+            rootMessageId,
+          },
+          'thread',
+          timeoutMs,
+        );
+      },
+      env: {
+        THREAD_ID: threadId,
+        MESSAGE_ID: deliveredMessageId,
+        MESSAGE_BODY: threadMessageBody,
+        FLOW_WAIT_TIMEOUT_MS: String(maestroTimeoutMs),
+      },
+    });
+
     steps.push({
-      step: 'channel-ime-send',
-      flowPath: imeFlowPath,
+      step: 'selected-message-ai-thread',
+      flowPath: threadSelectedMessageAiFlowPath,
       maestroOutputDir: outputDir,
-      messageBody: imeMessageBody,
-      deliveredMessageId: deliveredMessage?.message?.id ?? deliveredMessage?.id ?? null,
+      messageBody: threadMessageBody,
+      deliveredMessageId,
+      threadId,
+      rootMessageId,
       maestroStdout,
     });
   }

@@ -12,12 +12,13 @@ Use this with:
 - `cd /Users/hyunokoh/Documents/Projects/zkTalk && npm run manual:smoke:brief`
 - `cd /Users/hyunokoh/Documents/Projects/zkTalk && npm run manual:smoke:report`
 - `cd /Users/hyunokoh/Documents/Projects/zkTalk && npm run manual:smoke:capture`
+- `cd /Users/hyunokoh/Documents/Projects/zkTalk && npm run local:commercial:seed`
 
 ## Runtime targets
 
-- Web login: `http://127.0.0.1:3000/login`
-- Web home: `http://127.0.0.1:3000/home`
-- API health: `http://127.0.0.1:4000/api/health`
+- Web login: `http://localhost:3000/login`
+- Web home: `http://localhost:3000/home`
+- API health: `http://localhost:4000/api/health`
 - Desktop app: `/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/dist/mac-arm64/zkTalk.app`
 - Mobile app: booted `iPhone 15` simulator standalone build
 
@@ -31,6 +32,13 @@ npm run manual:smoke:status
 ```
 
 That command also writes `/Users/hyunokoh/Documents/Projects/zkTalk/.tmp/manual-smoke-status-last-result.json`.
+
+If the local stack is up but the signed-in account has no community/channel data yet, seed a chat-ready QA workspace with:
+
+```bash
+cd /Users/hyunokoh/Documents/Projects/zkTalk
+npm run local:commercial:seed
+```
 
 Launch the main QA surfaces with:
 

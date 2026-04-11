@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import DiscoverPage from '../page';
 
@@ -59,6 +59,57 @@ vi.mock('@/lib/i18n', () => ({
 }));
 
 describe('DiscoverPage', () => {
+  it('renders public-community entry actions for anonymous discovery', () => {
+    mockCommunities.splice(
+      0,
+      mockCommunities.length,
+      {
+        id: 'community-1',
+        slug: 'alpha-team',
+        name: 'Alpha Team',
+        description: 'Alpha description',
+        iconUrl: null,
+        visibility: 'public',
+        createdAt: '2026-03-27T00:00:00.000Z',
+        memberCount: 12,
+      },
+    );
+
+    render(<DiscoverPage />);
+
+    expect(screen.getByRole('button', { name: 'discover.join' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'community.open' }).getAttribute('href')).toBe(
+      '/communities/alpha-team',
+    );
+  });
+
+  it('sends the selected public community into the join mutation', () => {
+    mockCommunities.splice(
+      0,
+      mockCommunities.length,
+      {
+        id: 'community-1',
+        slug: 'alpha-team',
+        name: 'Alpha Team',
+        description: 'Alpha description',
+        iconUrl: null,
+        visibility: 'public',
+        createdAt: '2026-03-27T00:00:00.000Z',
+        memberCount: 12,
+      },
+    );
+
+    render(<DiscoverPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'discover.join' }));
+
+    expect(mockMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slug: 'alpha-team',
+        visibility: 'public',
+      }),
+    );
+  });
+
   it('renders first-party community icons through the same-origin proxy', () => {
     mockCommunities.splice(
       0,

@@ -4,13 +4,32 @@ import { useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import type { WSIncoming, WSOutgoing } from '@zktalk/shared';
 import { getWebSocketUrl } from '@/lib/runtime-config';
-import { getSessionToken } from '@/lib/session-token';
+import { devLogError, devLogInfo, devLogWarn } from '@/lib/client-log';
+import {
+  shouldAttachStoredSessionToken,
+  shouldUseCookieFirstTarget,
+} from '@/lib/auth-mode';
+import {
+  clearSessionToken,
+  emitAuthSessionLost,
+  getSessionToken,
+  SESSION_TOKEN_CHANGED_EVENT,
+} from '@/lib/session-token';
 
 // ── Constants ───────────────────────────────────────────────────────
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
+const AUTH_CLOSE_CODES = new Set([4001, 4003]);
+
+function shouldAttachQueryToken(wsUrl: URL): boolean {
+  return shouldAttachStoredSessionToken(wsUrl);
+}
+
+function usesCookieBackedSession(wsUrl: URL): boolean {
+  return shouldUseCookieFirstTarget(wsUrl);
+}
 
 // ── Singleton state (shared across all hook consumers) ──────────────
 
@@ -104,7 +123,7 @@ function emit(event: string, message: WSOutgoing): void {
       try {
         handler(message);
       } catch (err) {
-        console.error('[WS] Handler error:', err);
+        devLogError('[WS] Handler error:', err);
       }
     }
   }
@@ -115,7 +134,7 @@ function emit(event: string, message: WSOutgoing): void {
       try {
         handler(message);
       } catch (err) {
-        console.error('[WS] Wildcard handler error:', err);
+        devLogError('[WS] Wildcard handler error:', err);
       }
     }
   }
@@ -131,16 +150,22 @@ function connect(): void {
 
   // Build URL. Desktop/web can authenticate via query token even when
   // there is no cookie-based session available.
-  const wsUrl = new URL(getWebSocketUrl());
+  const configuredWsUrl = getWebSocketUrl();
+  if (!configuredWsUrl) {
+    setConnectionStatus('offline');
+    devLogWarn('[WS] WebSocket URL is not configured, skipping connect');
+    return;
+  }
+  const wsUrl = new URL(configuredWsUrl);
   const sessionToken = getSessionToken();
-  if (sessionToken) {
+  if (sessionToken && shouldAttachQueryToken(wsUrl)) {
     wsUrl.searchParams.set('token', sessionToken);
   }
 
   ws = new WebSocket(wsUrl.toString());
 
   ws.onopen = () => {
-    console.log('[WS] Connected');
+    devLogInfo('[WS] Connected');
     reconnectAttempt = 0;
     setConnectionStatus('connected');
     startHeartbeat();
@@ -152,14 +177,26 @@ function connect(): void {
       const message: WSOutgoing = JSON.parse(event.data as string);
       emit(message.event, message);
     } catch {
-      console.warn('[WS] Failed to parse message');
+      devLogWarn('[WS] Failed to parse message');
     }
   };
 
   ws.onclose = (event) => {
-    console.log('[WS] Disconnected', event.code, event.reason);
+    devLogInfo('[WS] Disconnected', event.code, event.reason);
     ws = null;
     stopHeartbeat();
+
+    if (AUTH_CLOSE_CODES.has(event.code)) {
+      intentionallyClosed = true;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      clearSessionToken();
+      emitAuthSessionLost(event.code);
+      setConnectionStatus('idle');
+      return;
+    }
 
     if (!intentionallyClosed && refCount > 0) {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -169,7 +206,7 @@ function connect(): void {
       }
       const delay = getReconnectDelay();
       reconnectAttempt++;
-      console.log(`[WS] Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttempt})`);
+      devLogInfo(`[WS] Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttempt})`);
       reconnectTimer = setTimeout(connect, delay);
       return;
     }
@@ -178,7 +215,7 @@ function connect(): void {
   };
 
   ws.onerror = (event) => {
-    console.error('[WS] Error:', event);
+    devLogError('[WS] Error:', event);
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       setConnectionStatus('offline');
     }
@@ -208,9 +245,52 @@ function handleBrowserOffline(): void {
   setConnectionStatus('offline');
 }
 
+function handleSessionTokenChanged(): void {
+  if (refCount <= 0) {
+    return;
+  }
+
+  const currentUser = useAuthStore.getState().user;
+  const configuredWsUrl = getWebSocketUrl();
+
+  if (!configuredWsUrl) {
+    disconnect();
+    return;
+  }
+
+  const wsUrl = new URL(configuredWsUrl);
+  if (usesCookieBackedSession(wsUrl)) {
+    if (!currentUser) {
+      disconnect();
+    }
+    return;
+  }
+
+  const sessionToken = getSessionToken();
+
+  if (!currentUser || !sessionToken) {
+    disconnect();
+    return;
+  }
+
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  if (ws) {
+    ws.close();
+    ws = null;
+  }
+
+  reconnectAttempt = 0;
+  connect();
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('online', handleBrowserOnline);
   window.addEventListener('offline', handleBrowserOffline);
+  window.addEventListener(SESSION_TOKEN_CHANGED_EVENT, handleSessionTokenChanged);
 }
 
 function disconnect(): void {

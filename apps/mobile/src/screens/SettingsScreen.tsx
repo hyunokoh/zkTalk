@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   View,
   Text,
@@ -7,12 +8,13 @@ import {
   Alert,
   ScrollView,
   Linking,
-  TextInput,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { listAiCapabilities, type AiCapabilityId } from '@zktalk/shared';
 import { getToken } from '../lib/storage';
 import { useAuthStore } from '../stores/auth';
 import { useTranslation, useI18nStore, localeNames, type Locale } from '../lib/i18n';
+import { fetchAiRuntime, getAiRuntimePresentation } from '../lib/ai';
 import {
   isSimulatorHarnessEnabled,
   readSimulatorHarnessJson,
@@ -34,7 +36,30 @@ export default function SettingsScreen({ navigation }: Props) {
   const [notificationStatus, setNotificationStatus] = useState<'on' | 'off' | 'unavailable'>(
     'off',
   );
+  const { data: aiRuntime } = useQuery({
+    queryKey: ['ai-runtime'],
+    queryFn: fetchAiRuntime,
+    staleTime: 30_000,
+  });
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const aiRuntimePresentation = getAiRuntimePresentation(t, aiRuntime);
+  const mobileAiCapabilities = listAiCapabilities('mobile');
+
+  const getAiCapabilityLabel = useCallback(
+    (capability: AiCapabilityId) => {
+      switch (capability) {
+        case 'selected-message-reply-draft':
+          return t('settings.aiCapabilitySelectedMessageReplyDraft');
+        case 'selected-message-rewrite-draft':
+          return t('settings.aiCapabilitySelectedMessageRewriteDraft');
+        case 'selected-message-translate-inline':
+          return t('settings.aiCapabilitySelectedMessageTranslateInline');
+        default:
+          return capability;
+      }
+    },
+    [t],
+  );
 
   const matchesSearch = useCallback(
     (...values: Array<string | null | undefined>) => {
@@ -230,6 +255,16 @@ export default function SettingsScreen({ navigation }: Props) {
         ? t('settings.off')
         : t('settings.unavailable'),
   );
+  const showAi = matchesSearch(
+    t('settings.ai'),
+    t('settings.aiSummary'),
+    t('settings.aiMobileOnly'),
+    t('ai.messageReplyDraft'),
+    t('ai.messageRewriteDraft'),
+    t('ai.messageTranslateInline'),
+    aiRuntimePresentation?.label,
+    aiRuntimePresentation?.description,
+  );
   const showEditProfile = matchesSearch(t('settings.account'), t('settings.editProfile'));
   const showLinkedAccounts = matchesSearch(t('settings.account'), t('settings.linkedAccounts'));
   const showLogout = matchesSearch(t('settings.account'), t('settings.logout'));
@@ -241,40 +276,17 @@ export default function SettingsScreen({ navigation }: Props) {
     showTheme ||
     showLanguage ||
     showNotifications ||
+    showAi ||
     showEditProfile ||
     showLinkedAccounts ||
     showLogout;
   const showDataSection = showBackup || showBookmarks;
   const showPreferencesSection = showTheme || showLanguage || showNotifications;
+  const showAiSection = showAi;
   const showAccountSection = showLinkedAccounts || showLogout;
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.heroCard}>
-        <Text style={styles.heroTitle}>{t('settings.title')}</Text>
-        <Text style={styles.heroBody}>{t('settings.listSubtitle')}</Text>
-      </View>
-
-      <View style={styles.searchWrap}>
-        <TextInput
-          style={styles.searchInput}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder={t('settings.searchPlaceholder')}
-          placeholderTextColor={colors.textDim}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-        />
-      </View>
-
-      {!hasResults ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>{t('settings.noSearchResults')}</Text>
-          <Text style={styles.emptyBody}>{t('settings.noSearchResultsBody')}</Text>
-        </View>
-      ) : null}
-
       {/* Profile Section */}
       {showProfileSection ? (
         <View style={styles.section}>
@@ -390,6 +402,35 @@ export default function SettingsScreen({ navigation }: Props) {
         </View>
       ) : null}
 
+      {showAiSection ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('settings.ai')}</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardHeader}>
+              <Text style={styles.infoCardTitle}>{t('settings.aiRuntime')}</Text>
+              <View style={styles.infoBadge}>
+                <Text style={styles.infoBadgeText}>
+                  {aiRuntimePresentation?.label ?? t('settings.aiRuntimeLoading')}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.infoCardBody}>
+              {aiRuntimePresentation?.description ?? t('settings.aiRuntimeLoadingBody')}
+            </Text>
+            <Text style={styles.infoCardBody}>{t('settings.aiSummary')}</Text>
+            <View style={styles.infoList}>
+              {mobileAiCapabilities.map((capability) => (
+                <Text key={capability} style={styles.infoListItem}>
+                  {'• '}
+                  {getAiCapabilityLabel(capability)}
+                </Text>
+              ))}
+            </View>
+            <Text style={styles.infoCardHint}>{t('settings.aiMobileOnly')}</Text>
+          </View>
+        </View>
+      ) : null}
+
       {/* Account Section */}
       {showAccountSection ? (
         <View style={styles.section}>
@@ -485,6 +526,55 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: spacing.md,
+  },
+  infoCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  infoCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  infoCardTitle: {
+    color: colors.textPrimary,
+    fontSize: fs.lg,
+    fontWeight: '700',
+    flex: 1,
+  },
+  infoBadge: {
+    backgroundColor: colors.backgroundDark,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  infoBadgeText: {
+    color: colors.textSecondary,
+    fontSize: fs.xs,
+    fontWeight: '700',
+  },
+  infoCardBody: {
+    color: colors.textSecondary,
+    fontSize: fs.sm,
+    lineHeight: 20,
+  },
+  infoList: {
+    gap: spacing.xs,
+  },
+  infoListItem: {
+    color: colors.textPrimary,
+    fontSize: fs.sm,
+    lineHeight: 20,
+  },
+  infoCardHint: {
+    color: colors.textMuted,
+    fontSize: fs.sm,
+    lineHeight: 18,
   },
   profileCard: {
     backgroundColor: colors.surface,

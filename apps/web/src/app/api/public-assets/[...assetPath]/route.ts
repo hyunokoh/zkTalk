@@ -1,20 +1,106 @@
-const DEFAULT_API_URL = process.env.ZKTALK_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:4000';
-
-function getApiBaseUrl(): string {
-  return DEFAULT_API_URL.replace(/\/$/, '');
+function getConfiguredApiUrl(): string | undefined {
+  const configuredApiUrl = process.env.ZKTALK_API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim();
+  return configuredApiUrl || undefined;
 }
 
-async function handlePublicAsset(context: { params: Promise<{ assetPath: string[] }> }) {
+class PublicAssetProxyConfigError extends Error {
+  constructor(
+    message: string,
+    readonly detail: string,
+  ) {
+    super(message);
+    this.name = 'PublicAssetProxyConfigError';
+  }
+}
+
+function normalizeApiBaseUrl(configuredApiUrl: string): string {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(configuredApiUrl);
+  } catch {
+    throw new PublicAssetProxyConfigError(
+      'Public asset proxy requires ZKTALK_API_URL or NEXT_PUBLIC_API_URL to be an absolute http(s) URL',
+      'invalid_api_url',
+    );
+  }
+
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    throw new PublicAssetProxyConfigError(
+      'Public asset proxy requires ZKTALK_API_URL or NEXT_PUBLIC_API_URL to use http or https',
+      'unsupported_protocol',
+    );
+  }
+
+  return parsedUrl.toString().replace(/\/$/, '');
+}
+
+function getApiBaseUrl(): string {
+  const configuredApiUrl = getConfiguredApiUrl();
+
+  if (configuredApiUrl) {
+    return normalizeApiBaseUrl(configuredApiUrl);
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new PublicAssetProxyConfigError(
+      'Public asset proxy requires ZKTALK_API_URL or NEXT_PUBLIC_API_URL in production',
+      'missing_api_url',
+    );
+  }
+
+  return 'http://127.0.0.1:4000';
+}
+
+function buildProxyErrorHeaders(
+  error: 'misconfigured' | 'upstream_unavailable',
+  detail: string,
+): HeadersInit {
+  return {
+    'cache-control': 'no-store',
+    'content-type': 'text/plain; charset=utf-8',
+    'x-zktalk-proxy-error': error,
+    'x-zktalk-proxy-detail': detail,
+  };
+}
+
+async function handlePublicAsset(
+  request: Request,
+  context: { params: Promise<{ assetPath: string[] }> },
+) {
   const { assetPath } = await context.params;
   if (!Array.isArray(assetPath) || assetPath.length === 0) {
     return new Response('Missing asset path', { status: 400 });
   }
 
-  const upstreamUrl = `${getApiBaseUrl()}/api/upload/assets/${assetPath.map(encodeURIComponent).join('/')}`;
-  const upstream = await fetch(upstreamUrl, {
-    method: 'GET',
-    next: { revalidate: 300 },
-  });
+  let apiBaseUrl: string;
+  try {
+    apiBaseUrl = getApiBaseUrl();
+  } catch (error) {
+    return new Response('Public assets are temporarily unavailable.', {
+      status: 500,
+      headers: buildProxyErrorHeaders(
+        'misconfigured',
+        error instanceof PublicAssetProxyConfigError ? error.detail : 'unknown',
+      ),
+    });
+  }
+
+  const upstreamUrl = `${apiBaseUrl}/api/upload/assets/${assetPath.map(encodeURIComponent).join('/')}`;
+  let upstream: Response;
+  try {
+    upstream = await fetch(upstreamUrl, {
+      method: request.method,
+      next: { revalidate: 300 },
+    });
+  } catch (error) {
+    return new Response('Public asset proxy upstream unavailable', {
+      status: 502,
+      headers: buildProxyErrorHeaders(
+        'upstream_unavailable',
+        error instanceof Error ? error.name : 'UnknownError',
+      ),
+    });
+  }
 
   if (!upstream.ok) {
     return new Response(upstream.body, {
@@ -36,8 +122,15 @@ async function handlePublicAsset(context: { params: Promise<{ assetPath: string[
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ assetPath: string[] }> },
 ) {
-  return handlePublicAsset(context);
+  return handlePublicAsset(request, context);
+}
+
+export async function HEAD(
+  request: Request,
+  context: { params: Promise<{ assetPath: string[] }> },
+) {
+  return handlePublicAsset(request, context);
 }

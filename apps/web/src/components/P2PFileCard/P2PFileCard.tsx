@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getP2PManager } from '@/lib/p2p';
 import { useTranslation } from '@/lib/i18n';
+import { devLogError } from '@/lib/client-log';
 import { useP2PSettingsStore } from '@/stores/p2p-settings';
 
 interface P2PFileCardProps {
@@ -117,7 +118,7 @@ export function P2PFileCard({
         setState('seeding');
       }
     } catch (error) {
-      console.error('[P2P] Download failed:', error);
+      devLogError('[P2P] Download failed:', error);
       setState('error');
     } finally {
       manager.onProgress = prevOnProgress;

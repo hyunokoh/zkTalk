@@ -2,6 +2,11 @@ import { hasPermission, DEFAULT_ROLE_PERMISSIONS } from '@zktalk/shared';
 import { AppError } from '../../lib/errors.js';
 import * as repo from './channel.repository.js';
 import * as dmRepo from '../dm/dm.repository.js';
+import * as communityRepo from '../community/community.repository.js';
+import {
+  getChannelBrowseEntriesForCommunity,
+  type ChannelBrowseEntry,
+} from './channel-access.service.js';
 
 function buildSourceDmDisplayName(
   conversation: NonNullable<Awaited<ReturnType<typeof dmRepo.findConversationById>>>,
@@ -200,6 +205,80 @@ async function syncRoleRestrictedViewPermissions(
   );
 }
 
+function resolveAccessPolicy(input: {
+  visibility?: 'public' | 'role_restricted';
+  accessPolicy?: 'public' | 'members_only' | 'invite_only' | 'private';
+  allowedViewRoleIds?: string[];
+}): 'public' | 'members_only' | 'invite_only' | 'private' {
+  if (input.accessPolicy) {
+    return input.accessPolicy;
+  }
+
+  if (input.visibility === 'public') {
+    return 'public';
+  }
+
+  if (input.visibility === 'role_restricted') {
+    return (input.allowedViewRoleIds?.length ?? 0) > 0 ? 'invite_only' : 'members_only';
+  }
+
+  return 'members_only';
+}
+
+function resolveVisibility(accessPolicy: 'public' | 'members_only' | 'invite_only' | 'private') {
+  return accessPolicy === 'public' ? 'public' : 'role_restricted';
+}
+
+async function validateChannelAccessPolicy(
+  communityId: string,
+  accessPolicy: 'public' | 'members_only' | 'invite_only' | 'private',
+  allowedViewRoleIds?: string[],
+  allowedPostRoleIds?: string[],
+  options: { requireRestrictedRoles: boolean } = { requireRestrictedRoles: true },
+) {
+  const community = await communityRepo.findById(communityId);
+  if (!community) {
+    throw AppError.notFound('Community not found');
+  }
+
+  if (community.visibility !== 'public' && accessPolicy === 'public') {
+    throw AppError.badRequest('Only public communities can expose public channels');
+  }
+
+  if ((accessPolicy === 'public' || accessPolicy === 'members_only') && ((allowedViewRoleIds?.length ?? 0) > 0 || (allowedPostRoleIds?.length ?? 0) > 0)) {
+    throw AppError.badRequest('Open or members-only channels cannot define restricted role lists');
+  }
+
+  if (options.requireRestrictedRoles && (accessPolicy === 'invite_only' || accessPolicy === 'private') && (allowedViewRoleIds?.length ?? 0) === 0) {
+    throw AppError.badRequest('Invite-only and private channels require at least one allowed view role');
+  }
+}
+
+function validateRestrictedRoleUpdateInput(input: {
+  accessPolicy: 'public' | 'members_only' | 'invite_only' | 'private';
+  allowedViewRoleIds?: string[];
+  allowedPostRoleIds?: string[];
+}) {
+  if (
+    (input.accessPolicy === 'invite_only' || input.accessPolicy === 'private') &&
+    input.allowedPostRoleIds !== undefined &&
+    input.allowedViewRoleIds === undefined
+  ) {
+    throw AppError.badRequest(
+      'Restricted channel role updates must include allowedViewRoleIds when allowedPostRoleIds is provided',
+    );
+  }
+}
+
+async function canBrowseChannelWithoutMembership(communityId: string, accessPolicy: string) {
+  if (accessPolicy !== 'public') {
+    return false;
+  }
+
+  const community = await communityRepo.findById(communityId);
+  return community?.visibility === 'public';
+}
+
 export async function getChannelPermissions(channelId: string, userId: string) {
   const channel = await repo.findChannelById(channelId);
   if (!channel) {
@@ -281,6 +360,7 @@ export async function createChannel(
     type?: 'chat' | 'announcement' | 'forum' | 'voice';
     categoryId?: string;
     visibility?: 'public' | 'role_restricted';
+    accessPolicy?: 'public' | 'members_only' | 'invite_only' | 'private';
     slowModeSeconds?: number;
     requireTopic?: boolean;
     allowedViewRoleIds?: string[];
@@ -297,15 +377,42 @@ export async function createChannel(
     }
   }
 
-  const channel = await repo.createChannel({ communityId, ...data });
+  const accessPolicy = resolveAccessPolicy(data);
+  const allowedViewRoleIds = data.allowedViewRoleIds ?? [];
+  const allowedPostRoleIds = data.allowedPostRoleIds ?? [];
 
-  if (data.visibility === 'role_restricted') {
+  validateRestrictedRoleUpdateInput({
+    accessPolicy,
+    allowedViewRoleIds,
+    allowedPostRoleIds,
+  });
+
+  await validateChannelAccessPolicy(
+    communityId,
+    accessPolicy,
+    allowedViewRoleIds,
+    allowedPostRoleIds,
+  );
+
+  const channel = await repo.createChannel({
+    communityId,
+    ...data,
+    visibility: resolveVisibility(accessPolicy),
+    accessPolicy,
+    allowedViewRoleIds,
+    allowedPostRoleIds,
+  });
+
+  if (accessPolicy === 'invite_only' || accessPolicy === 'private') {
     await syncRoleRestrictedViewPermissions(
       channel.id,
       communityId,
-      data.allowedViewRoleIds ?? [],
-      data.allowedPostRoleIds ?? [],
+      allowedViewRoleIds,
+      allowedPostRoleIds,
     );
+  } else {
+    await repo.clearChannelPermissionKey(channel.id, 'view_channel');
+    await repo.clearChannelPermissionKey(channel.id, 'post_message');
   }
 
   return channel;
@@ -318,6 +425,7 @@ export async function updateChannel(
     name?: string;
     description?: string | null;
     visibility?: 'public' | 'role_restricted';
+    accessPolicy?: 'public' | 'members_only' | 'invite_only' | 'private';
     slowModeSeconds?: number;
     categoryId?: string | null;
     position?: number;
@@ -342,21 +450,46 @@ export async function updateChannel(
     }
   }
 
-  const updated = await repo.updateChannel(channelId, data);
-  const nextVisibility = data.visibility ?? channel.visibility;
+  const accessPolicy = resolveAccessPolicy({
+    visibility: data.visibility ?? channel.visibility,
+    accessPolicy: data.accessPolicy ?? channel.accessPolicy,
+    allowedViewRoleIds: data.allowedViewRoleIds,
+  });
+  const allowedViewRoleIds = data.allowedViewRoleIds;
+  const allowedPostRoleIds = data.allowedPostRoleIds;
+  const isRestrictedPolicy = accessPolicy === 'invite_only' || accessPolicy === 'private';
+  const wasRestrictedPolicy = channel.accessPolicy === 'invite_only' || channel.accessPolicy === 'private';
+  const needsRestrictedRoles = isRestrictedPolicy && (!wasRestrictedPolicy || allowedViewRoleIds !== undefined);
 
-  if (nextVisibility === 'public') {
+  validateRestrictedRoleUpdateInput({
+    accessPolicy,
+    allowedViewRoleIds,
+    allowedPostRoleIds,
+  });
+
+  await validateChannelAccessPolicy(
+    channel.communityId,
+    accessPolicy,
+    allowedViewRoleIds,
+    allowedPostRoleIds,
+    { requireRestrictedRoles: needsRestrictedRoles },
+  );
+
+  const updated = await repo.updateChannel(channelId, {
+    ...data,
+    visibility: resolveVisibility(accessPolicy),
+    accessPolicy,
+  });
+
+  if (accessPolicy === 'public' || accessPolicy === 'members_only') {
     await repo.clearChannelPermissionKey(channelId, 'view_channel');
     await repo.clearChannelPermissionKey(channelId, 'post_message');
-  } else if (
-    data.allowedViewRoleIds !== undefined ||
-    data.allowedPostRoleIds !== undefined
-  ) {
+  } else if (!wasRestrictedPolicy || allowedViewRoleIds !== undefined || allowedPostRoleIds !== undefined) {
     await syncRoleRestrictedViewPermissions(
       channelId,
       channel.communityId,
-      data.allowedViewRoleIds ?? [],
-      data.allowedPostRoleIds ?? [],
+      allowedViewRoleIds ?? [],
+      allowedPostRoleIds ?? [],
     );
   }
 
@@ -388,60 +521,54 @@ export async function deleteChannel(channelId: string, userId: string) {
 }
 
 export async function listChannels(communityId: string, userId: string) {
-  // Verify the user is a member
-  const membership = await repo.getUserMembership(userId, communityId);
-  if (!membership || membership.membershipStatus !== 'active') {
-    throw AppError.forbidden('You are not an active member of this community');
-  }
-
-  const userRoles = await repo.getUserRolesInCommunity(userId, communityId);
-
-  const results = await repo.findChannelsByCommunity(communityId);
-
-  // Filter channels by view_channel permission
-  const visibleChannels: typeof results = [];
-  for (const row of results) {
-    const channelPerms = await repo.getChannelPermissions(row.channel.id);
-    const canView = hasPermission(
-      userRoles,
-      channelPerms,
-      'view_channel',
-      DEFAULT_ROLE_PERMISSIONS,
-    );
-    if (canView) {
-      visibleChannels.push(row);
-    }
-  }
+  const visibleChannels = await getChannelBrowseEntriesForCommunity(userId, communityId);
 
   // Group channels by category
-  const uncategorized: typeof results = [];
-  const byCategory: Map<string, { category: typeof results[0]['category']; channels: typeof results }> = new Map();
+  const uncategorized: typeof visibleChannels = [];
+  const byCategory: Map<
+    string,
+    { category: ChannelBrowseEntry['row']['category']; channels: typeof visibleChannels }
+  > = new Map();
 
-  for (const row of visibleChannels) {
-    if (!row.category) {
-      uncategorized.push(row);
+  for (const entry of visibleChannels) {
+    if (!entry.row.category) {
+      uncategorized.push(entry);
     } else {
-      const catId = row.category.id;
+      const catId = entry.row.category.id;
       if (!byCategory.has(catId)) {
-        byCategory.set(catId, { category: row.category, channels: [] });
+        byCategory.set(catId, { category: entry.row.category, channels: [] });
       }
-      byCategory.get(catId)!.channels.push(row);
+      byCategory.get(catId)!.channels.push(entry);
     }
   }
 
-  const decorateChannel = async (channel: typeof results[number]['channel']) => ({
-    ...channel,
-    sourceDmConversation: await buildSourceDmConversationSummary(
-      channel.sourceDmConversationId,
-      userId,
-    ),
-  });
+  const decorateChannel = async (entry: typeof visibleChannels[number]) => {
+    if (!entry.canView) {
+      return {
+        ...entry.row.channel,
+        description: null,
+        sourceDmConversationId: null,
+        sourceDmConversation: null,
+        canView: false,
+        lockedReason: entry.lockedReason,
+      };
+    }
+
+    return {
+      ...entry.row.channel,
+      canView: true,
+      sourceDmConversation: await buildSourceDmConversationSummary(
+        entry.row.channel.sourceDmConversationId,
+        userId,
+      ),
+    };
+  };
 
   return {
-    uncategorized: await Promise.all(uncategorized.map((r) => decorateChannel(r.channel))),
+    uncategorized: await Promise.all(uncategorized.map((entry) => decorateChannel(entry))),
     categories: await Promise.all(Array.from(byCategory.values()).map(async (entry) => ({
       ...entry.category,
-      channels: await Promise.all(entry.channels.map((r) => decorateChannel(r.channel))),
+      channels: await Promise.all(entry.channels.map((channelEntry) => decorateChannel(channelEntry))),
     }))),
   };
 }
@@ -452,7 +579,18 @@ export async function getChannel(channelId: string, userId: string) {
     throw AppError.notFound('Channel not found');
   }
 
-  await checkPermission(userId, channel.communityId, channelId, 'view_channel');
+  const membership = await repo.getUserMembership(userId, channel.communityId);
+  if (!membership || membership.membershipStatus !== 'active') {
+    const canBrowseWithoutMembership = await canBrowseChannelWithoutMembership(
+      channel.communityId,
+      channel.accessPolicy,
+    );
+    if (!canBrowseWithoutMembership) {
+      throw AppError.forbidden('You are not allowed to access this channel');
+    }
+  } else {
+    await checkPermission(userId, channel.communityId, channelId, 'view_channel');
+  }
 
   const sourceDmConversation = await buildSourceDmConversationSummary(
     channel.sourceDmConversationId,

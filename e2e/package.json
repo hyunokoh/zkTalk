@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "playwright test --config playwright.config.ts",
-    "test:smoke": "playwright test --config playwright.config.ts tests/auth.smoke.spec.ts tests/chat.smoke.spec.ts tests/dm.smoke.spec.ts tests/inbox.smoke.spec.ts tests/profile.smoke.spec.ts",
+    "test:smoke": "pnpm run test:smoke:core",
+    "test:smoke:core": "node ../scripts/run-core-smoke.mjs",
     "test:headed": "playwright test --config playwright.config.ts --headed",
     "codegen": "playwright codegen http://127.0.0.1:3000/login"
   },

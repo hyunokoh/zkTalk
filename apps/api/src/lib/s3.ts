@@ -10,6 +10,13 @@ import {
 } from '@aws-sdk/client-s3';
 import { Readable } from 'node:stream';
 import type { Readable as NodeReadable } from 'node:stream';
+import {
+  getS3AccessKey,
+  getS3Bucket,
+  getS3Endpoint,
+  getS3Region,
+  getS3SecretKey,
+} from './env.js';
 
 function toNodeReadable(body: unknown): NodeReadable {
   if (body instanceof Readable) {
@@ -19,17 +26,22 @@ function toNodeReadable(body: unknown): NodeReadable {
 }
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
+const S3_ENDPOINT = getS3Endpoint();
+const S3_REGION = getS3Region();
+const S3_ACCESS_KEY = getS3AccessKey();
+const S3_SECRET_KEY = getS3SecretKey();
+
 export const s3 = new S3Client({
-  endpoint: process.env.S3_ENDPOINT || 'http://localhost:9000',
-  region: process.env.S3_REGION || 'us-east-1',
+  ...(S3_ENDPOINT ? { endpoint: S3_ENDPOINT } : {}),
+  region: S3_REGION,
   credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY || 'minioadmin',
-    secretAccessKey: process.env.S3_SECRET_KEY || 'minioadmin',
+    accessKeyId: S3_ACCESS_KEY,
+    secretAccessKey: S3_SECRET_KEY,
   },
-  forcePathStyle: true,
+  forcePathStyle: Boolean(S3_ENDPOINT),
 });
 
-export const S3_BUCKET = process.env.S3_BUCKET || 'zktalk-uploads';
+export const S3_BUCKET = getS3Bucket();
 export const S3_PRESIGN_TTL_SECONDS = 60 * 60;
 
 export async function createPresignedUploadUrl(options: {

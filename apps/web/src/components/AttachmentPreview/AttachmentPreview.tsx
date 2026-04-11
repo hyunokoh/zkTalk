@@ -5,10 +5,12 @@
 import React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isImageAttachmentMimeType, type Attachment } from '@zktalk/shared';
+import { getAttachmentActionErrorMessage } from '@/lib/error-copy';
 import { getApiBaseUrl } from '@/lib/runtime-config';
-import { getSessionToken } from '@/lib/session-token';
+import { assertOkResponse, createAuthHeaders } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { ImageLightbox } from '@/components/ImageLightbox';
+import { useToastStore } from '@/stores/toast';
 
 interface AttachmentPreviewProps {
   attachments: Attachment[];
@@ -30,16 +32,13 @@ function getAttachmentUrl(attachment: Attachment): string {
 
 async function fetchAttachmentBlobUrl(
   attachment: Attachment,
-  sessionToken: string | null,
 ): Promise<string> {
-  const res = await fetch(getAttachmentUrl(attachment), {
-    headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : undefined,
+  const url = getAttachmentUrl(attachment);
+  const res = await fetch(url, {
     credentials: 'include',
+    headers: createAuthHeaders(url),
   });
-
-  if (!res.ok) {
-    throw new Error(`Attachment fetch failed with status ${res.status}`);
-  }
+  await assertOkResponse(res, `Attachment fetch failed with status ${res.status}`);
 
   const blob = await res.blob();
   return URL.createObjectURL(blob);
@@ -47,16 +46,13 @@ async function fetchAttachmentBlobUrl(
 
 async function fetchAttachmentBytes(
   attachment: Attachment,
-  sessionToken: string | null,
 ): Promise<Uint8Array> {
-  const res = await fetch(getAttachmentUrl(attachment), {
-    headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : undefined,
+  const url = getAttachmentUrl(attachment);
+  const res = await fetch(url, {
     credentials: 'include',
+    headers: createAuthHeaders(url),
   });
-
-  if (!res.ok) {
-    throw new Error(`Attachment fetch failed with status ${res.status}`);
-  }
+  await assertOkResponse(res, `Attachment fetch failed with status ${res.status}`);
 
   return new Uint8Array(await res.arrayBuffer());
 }
@@ -120,23 +116,27 @@ function FileIcon() {
 function ImageAttachment({
   attachment,
   src,
+  previewFailed,
   onOpen,
   onSave,
   saveLabel,
+  previewUnavailableLabel,
   className,
   extraCount,
 }: {
   attachment: Attachment;
   src: string | null;
+  previewFailed: boolean;
   onOpen: () => void;
   onSave: () => void;
   saveLabel: string;
+  previewUnavailableLabel: string;
   className: string;
   extraCount?: number;
 }) {
   return (
     <div
-      className={`${className} ${src ? '' : 'animate-pulse'}`}
+      className={`${className} ${src || previewFailed ? '' : 'animate-pulse'}`}
     >
       <button
         type="button"
@@ -158,8 +158,8 @@ function ImageAttachment({
           className="pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity group-hover:opacity-90"
         />
       ) : (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#2b2d31] text-xs font-semibold text-[#b5bac1]">
-          Loading preview...
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#2b2d31] px-4 text-center text-xs font-semibold text-[#b5bac1]">
+          {previewFailed ? previewUnavailableLabel : 'Loading preview...'}
         </div>
       )}
       <div className="pointer-events-none absolute inset-0 flex items-end justify-start p-3 opacity-0 transition-opacity group-hover:opacity-100">
@@ -248,8 +248,10 @@ function FileAttachment({
 
 export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
   const { t } = useTranslation();
+  const showToast = useToastStore((s) => s.showToast);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [resolvedImageUrls, setResolvedImageUrls] = useState<Record<string, string>>({});
+  const [failedImageIds, setFailedImageIds] = useState<Record<string, true>>({});
   const createdBlobUrlsRef = useRef<Set<string>>(new Set());
   const images = useMemo(
     () => attachments.filter((attachment) => isImageAttachment(attachment)),
@@ -260,7 +262,6 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
     [attachments],
   );
   const visibleImages = useMemo(() => images.slice(0, 4), [images]);
-  const sessionToken = getSessionToken();
   const imageUrls = useMemo(
     () => images.map((attachment) => resolvedImageUrls[attachment.id] ?? ''),
     [images, resolvedImageUrls],
@@ -273,7 +274,7 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
       return existingUrl;
     }
 
-    const blobUrl = await fetchAttachmentBlobUrl(attachment, sessionToken);
+    const blobUrl = await fetchAttachmentBlobUrl(attachment);
     createdBlobUrlsRef.current.add(blobUrl);
     setResolvedImageUrls((prev) => {
       if (prev[attachment.id] === blobUrl) {
@@ -285,8 +286,17 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
         [attachment.id]: blobUrl,
       };
     });
+    setFailedImageIds((prev) => {
+      if (!prev[attachment.id]) {
+        return prev;
+      }
+
+      const next = { ...prev };
+      delete next[attachment.id];
+      return next;
+    });
     return blobUrl;
-  }, [resolvedImageUrls, sessionToken]);
+  }, [resolvedImageUrls]);
 
   useEffect(() => {
     let cancelled = false;
@@ -296,7 +306,7 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
       const entries = await Promise.all(
         images.map(async (attachment) => {
           try {
-            const blobUrl = await fetchAttachmentBlobUrl(attachment, sessionToken);
+            const blobUrl = await fetchAttachmentBlobUrl(attachment);
             createdUrls.push(blobUrl);
             createdBlobUrlsRef.current.add(blobUrl);
             return [attachment.id, blobUrl] as const;
@@ -325,6 +335,15 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
         }
         return next;
       });
+      setFailedImageIds(() => {
+        const next: Record<string, true> = {};
+        for (const [id, url] of entries) {
+          if (!url) {
+            next[id] = true;
+          }
+        }
+        return next;
+      });
     }
 
     void loadImages();
@@ -333,7 +352,7 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
       cancelled = true;
       createdUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [images, sessionToken]);
+  }, [images]);
 
   useEffect(() => {
     const createdBlobUrls = createdBlobUrlsRef.current;
@@ -346,7 +365,7 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
   const handleOpenFile = async (attachment: Attachment) => {
     if (typeof window !== 'undefined' && typeof window.zkTalkDesktop?.openFile === 'function') {
       try {
-        const bytes = await fetchAttachmentBytes(attachment, sessionToken);
+        const bytes = await fetchAttachmentBytes(attachment);
         await window.zkTalkDesktop.openFile({
           name: attachment.fileName,
           type: attachment.mimeType,
@@ -358,22 +377,29 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
       }
     }
 
-    const blobUrl = await fetchAttachmentBlobUrl(attachment, sessionToken);
-    const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer');
-    if (!opened) {
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = attachment.fileName;
-      link.rel = 'noopener noreferrer';
-      link.click();
+    try {
+      const blobUrl = await fetchAttachmentBlobUrl(attachment);
+      const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = attachment.fileName;
+        link.rel = 'noopener noreferrer';
+        link.click();
+      }
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        message: getAttachmentActionErrorMessage(t, error),
+      });
     }
-    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   };
 
   const handleSaveAttachment = useCallback(async (attachment: Attachment) => {
     if (typeof window !== 'undefined' && typeof window.zkTalkDesktop?.saveFile === 'function') {
       try {
-        const bytes = await fetchAttachmentBytes(attachment, sessionToken);
+        const bytes = await fetchAttachmentBytes(attachment);
         const result = await window.zkTalkDesktop.saveFile({
           name: attachment.fileName,
           type: attachment.mimeType,
@@ -387,24 +413,35 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
       }
     }
 
-    const blobUrl = await fetchAttachmentBlobUrl(attachment, sessionToken);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.download = attachment.fileName;
-    link.rel = 'noopener noreferrer';
-    link.click();
-    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
-  }, [sessionToken]);
+    try {
+      const blobUrl = await fetchAttachmentBlobUrl(attachment);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = attachment.fileName;
+      link.rel = 'noopener noreferrer';
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        message: getAttachmentActionErrorMessage(t, error),
+      });
+    }
+  }, [showToast, t]);
 
   const handleOpenImage = useCallback(async (attachment: Attachment, index: number) => {
     try {
       await ensureImageUrl(attachment);
-    } catch {
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        message: getAttachmentActionErrorMessage(t, error),
+      });
       return;
     }
 
     setSelectedImageIndex(index);
-  }, [ensureImageUrl]);
+  }, [ensureImageUrl, showToast, t]);
 
   if (attachments.length === 0) return null;
 
@@ -418,13 +455,19 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
               key={attachment.id}
               attachment={attachment}
               src={resolvedImageUrls[attachment.id] ?? null}
+              previewFailed={Boolean(failedImageIds[attachment.id])}
               onOpen={() => {
+                if (failedImageIds[attachment.id]) {
+                  void handleOpenFile(attachment);
+                  return;
+                }
                 void handleOpenImage(attachment, index);
               }}
               onSave={() => {
                 void handleSaveAttachment(attachment);
               }}
               saveLabel={t('attachment.save')}
+              previewUnavailableLabel={t('attachment.unavailable')}
               className={getImageCardClassName(visibleImages.length, index)}
               extraCount={images.length > 4 && index === 3 ? images.length - 4 : undefined}
             />
@@ -450,6 +493,11 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
         </div>
       )}
       </div>
+      {visibleImages.some((attachment) => failedImageIds[attachment.id]) ? (
+        <p className="text-xs font-medium text-[#b5bac1]">
+          {t('attachment.previewUnavailable')}
+        </p>
+      ) : null}
       {selectedImage && selectedImageIndex != null ? (
         <ImageLightbox
           src={imageUrls[selectedImageIndex] ?? getAttachmentUrl(selectedImage)}

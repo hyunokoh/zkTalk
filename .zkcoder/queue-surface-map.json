@@ -1,0 +1,24 @@
+{
+  "updatedAt": "2026-04-11T13:59:30.000Z",
+  "source": "docs/high-risk-touched-surfaces-2026-04-07.md",
+  "items": [
+    {
+      "id": 220,
+      "riskArea": "web-composer",
+      "surfaceRefs": [
+        "packages/shared/src/utils/ai-selected-message.ts",
+        "apps/mobile/src/components/MessageActionSheet.tsx",
+        "apps/web/src/components/MessageComposer/MessageComposer.tsx",
+        "apps/web/src/components/ThreadPanel/ThreadPanel.tsx",
+        "apps/web/src/app/(app)/settings/ai/page.tsx"
+      ],
+      "verifyRefs": [
+        "packages/shared/src/__tests__/ai-selected-message.test.ts",
+        "apps/web/src/components/MessageComposer/__tests__/MessageComposer.test.tsx",
+        "apps/web/src/components/ThreadPanel/__tests__/ThreadPanel.test.tsx",
+        "apps/web/src/app/(app)/settings/ai/__tests__/page.test.tsx",
+        ".zkcoder/scripts/verify.sh"
+      ]
+    }
+  ]
+}

@@ -15,6 +15,10 @@ vi.mock('../../realtime/realtime.service.js', () => ({
   },
 }));
 
+vi.mock('../../channel/channel-access.service.js', () => ({
+  assertCanAccessChannel: vi.fn(),
+}));
+
 vi.mock('../../unread/unread.repository.js', () => ({
   incrementMentionCount: vi.fn(),
 }));
@@ -38,8 +42,10 @@ vi.mock('../message.repository.js', () => ({
 
 import * as repo from '../message.repository.js';
 import * as service from '../message.service.js';
+import { assertCanAccessChannel } from '../../channel/channel-access.service.js';
 
 const mockedRepo = vi.mocked(repo);
+const mockAssertCanAccessChannel = vi.mocked(assertCanAccessChannel);
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -135,6 +141,16 @@ function mockExistingMessage(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockNoChannelOverrides();
+  mockAssertCanAccessChannel.mockImplementation(async (_userId, channelId) => {
+    if (channelId !== CHANNEL_ID) {
+      throw new Error('forbidden');
+    }
+
+    return {
+      id: CHANNEL_ID,
+      communityId: COMMUNITY_ID,
+    } as any;
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -443,11 +459,7 @@ describe('deleteMessage', () => {
 // ---------------------------------------------------------------------------
 
 describe('getMessages', () => {
-  it('returns messages with hasMore when there are more results', async () => {
-    mockChannel();
-    mockActiveMember();
-    mockMemberRole();
-
+  it('returns messages with hasMore when there are more results through the shared channel access gate', async () => {
     const fakeMessages = Array.from({ length: 3 }, (_, i) => ({
       message: { id: `msg-${i}`, authorUserId: USER_ID },
       author: { id: USER_ID },
@@ -462,6 +474,7 @@ describe('getMessages', () => {
 
     expect(result.hasMore).toBe(true);
     expect(result.messages).toHaveLength(3);
+    expect(mockAssertCanAccessChannel).toHaveBeenCalledWith(USER_ID, CHANNEL_ID);
     expect(mockedRepo.findMessagesByChannel).toHaveBeenCalledWith(CHANNEL_ID, undefined, 3, undefined);
     expect(mockedRepo.getUnreadCountsForMessages).toHaveBeenCalledWith(
       CHANNEL_ID,
@@ -476,10 +489,6 @@ describe('getMessages', () => {
   });
 
   it('returns messages with hasMore false at the end', async () => {
-    mockChannel();
-    mockActiveMember();
-    mockMemberRole();
-
     mockedRepo.findMessagesByChannel.mockResolvedValue({
       messages: [{ message: { id: 'msg-0' }, author: { id: USER_ID } }],
       hasMore: false,
@@ -490,10 +499,6 @@ describe('getMessages', () => {
   });
 
   it('passes cursor to repository', async () => {
-    mockChannel();
-    mockActiveMember();
-    mockMemberRole();
-
     mockedRepo.findMessagesByChannel.mockResolvedValue({
       messages: [],
       hasMore: false,
@@ -504,27 +509,29 @@ describe('getMessages', () => {
   });
 
   it('throws not found for nonexistent channel', async () => {
-    mockedRepo.findChannelById.mockResolvedValue(null as any);
+    mockAssertCanAccessChannel.mockRejectedValueOnce(new Error('Channel not found'));
 
     await expect(
       service.getMessages(USER_ID, 'nonexistent'),
     ).rejects.toThrow('Channel not found');
   });
 
-  it('throws forbidden when user lacks view_channel permission', async () => {
-    mockChannel();
-    mockedRepo.getUserMembership.mockResolvedValue({
-      id: 'membership-1',
-      communityId: COMMUNITY_ID,
-      userId: USER_ID,
-      joinedAt: new Date(),
-      membershipStatus: 'active',
-      lastReadInboxAt: null,
-    } as any);
-    mockedRepo.getUserRolesInCommunity.mockResolvedValue([]);
+  it('throws forbidden when the shared channel access gate denies the channel', async () => {
+    mockAssertCanAccessChannel.mockRejectedValueOnce(new Error('You are not allowed to access this channel'));
 
     await expect(
       service.getMessages(USER_ID, CHANNEL_ID),
-    ).rejects.toThrow('You have no roles in this community');
+    ).rejects.toThrow('You are not allowed to access this channel');
+  });
+});
+
+describe('getMessage', () => {
+  it('uses the shared channel access gate before returning a message', async () => {
+    const existing = mockExistingMessage();
+
+    const result = await service.getMessage(USER_ID, MESSAGE_ID);
+
+    expect(result).toEqual(existing);
+    expect(mockAssertCanAccessChannel).toHaveBeenCalledWith(USER_ID, CHANNEL_ID);
   });
 });

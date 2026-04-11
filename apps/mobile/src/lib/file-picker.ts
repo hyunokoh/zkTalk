@@ -1,9 +1,9 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { File as ExpoFile } from 'expo-file-system';
 import * as LegacyFileSystem from 'expo-file-system/legacy';
 import { api, ApiError } from './api';
 import { API_ORIGIN } from './network-config';
-import { getToken } from './storage';
 import {
   deleteSimulatorHarnessFile,
   getSimulatorHarnessPath,
@@ -187,7 +187,7 @@ export async function pickDocument(): Promise<PickedFile | null> {
   return {
     uri: asset.uri,
     name: asset.name,
-    mimeType: asset.mimeType ?? 'application/octet-stream',
+    mimeType: asset.mimeType ?? guessMimeType(asset.name),
     size: asset.size ?? 0,
   };
 }
@@ -209,6 +209,137 @@ interface AssetPresignResponse extends PresignResponse {
   assetUrl: string;
 }
 
+interface MultipartUploadPartUrl {
+  partNumber: number;
+  uploadUrl: string;
+}
+
+interface MultipartUploadPartUrlsResponse {
+  sessionId: string;
+  parts: MultipartUploadPartUrl[];
+}
+
+function resolveUploadUrl(uploadUrl: string): string {
+  return uploadUrl.startsWith('http')
+    ? uploadUrl
+    : `${API_ORIGIN}${uploadUrl}`;
+}
+
+function getMultipartUploadEtag(response: Response): string {
+  const etag = response.headers.get('etag');
+  if (!etag) {
+    throw new Error('Multipart upload did not return an ETag');
+  }
+  return etag;
+}
+
+function getMultipartUploadEtagFromHeaders(headers: Record<string, string>): string {
+  const etag = headers.etag ?? headers.ETag;
+  if (!etag) {
+    throw new Error('Multipart upload did not return an ETag');
+  }
+  return etag;
+}
+
+async function uploadSinglePartFile(
+  file: PickedFile,
+  uploadUrl: string,
+  onProgress?: (progress: number) => void,
+): Promise<void> {
+  const uploadTask = LegacyFileSystem.createUploadTask(
+    uploadUrl,
+    file.uri,
+    {
+      httpMethod: 'PUT',
+      uploadType: LegacyFileSystem.FileSystemUploadType.BINARY_CONTENT,
+      headers: {
+        'Content-Type': file.mimeType || RAW_UPLOAD_CONTENT_TYPE,
+      },
+    },
+    (progressEvent) => {
+      if (!onProgress || !progressEvent.totalBytesExpectedToSend) {
+        return;
+      }
+      onProgress(progressEvent.totalBytesSent / progressEvent.totalBytesExpectedToSend);
+    },
+  );
+
+  const result = await uploadTask.uploadAsync();
+  if (!result) {
+    throw new Error('Upload failed');
+  }
+  if (result.status === 429) {
+    throw new ApiError(429, 'Too many requests', 'RATE_LIMITED');
+  }
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(`Upload failed with status ${result.status}`);
+  }
+}
+
+async function uploadMultipartFile(
+  file: PickedFile,
+  presign: PresignResponse,
+  onProgress?: (progress: number) => void,
+): Promise<void> {
+  if (!presign.partSize || !presign.partCount || presign.partCount < 1) {
+    throw new Error('Multipart upload is missing part metadata');
+  }
+
+  const { parts } = await api<MultipartUploadPartUrlsResponse>(
+    `/api/upload/sessions/${presign.uploadSessionId}/parts`,
+    {
+      method: 'POST',
+      body: {
+        partNumbers: Array.from({ length: presign.partCount }, (_, index) => index + 1),
+      },
+    },
+  );
+
+  const nativeFile = new ExpoFile(file.uri);
+  const completedParts: Array<{ partNumber: number; etag: string }> = [];
+  for (const part of parts) {
+    const start = (part.partNumber - 1) * presign.partSize;
+    const end = Math.min(start + presign.partSize, file.size);
+    const chunkFile = nativeFile.slice(start, end, file.mimeType || RAW_UPLOAD_CONTENT_TYPE);
+    const chunkBase64 = await chunkFile.base64();
+    const chunkUri = `${LegacyFileSystem.cacheDirectory}multipart-${presign.uploadSessionId}-${part.partNumber}`;
+
+    await LegacyFileSystem.writeAsStringAsync(chunkUri, chunkBase64, {
+      encoding: LegacyFileSystem.EncodingType.Base64,
+    });
+
+    let uploadResult: Awaited<ReturnType<typeof LegacyFileSystem.uploadAsync>>;
+    try {
+      uploadResult = await LegacyFileSystem.uploadAsync(resolveUploadUrl(part.uploadUrl), chunkUri, {
+        httpMethod: 'PUT',
+        uploadType: LegacyFileSystem.FileSystemUploadType.BINARY_CONTENT,
+        headers: {
+          'Content-Type': file.mimeType || RAW_UPLOAD_CONTENT_TYPE,
+        },
+      });
+    } finally {
+      await LegacyFileSystem.deleteAsync(chunkUri, { idempotent: true }).catch(() => undefined);
+    }
+
+    if (uploadResult.status < 200 || uploadResult.status >= 300) {
+      throw new Error(`Upload failed with status ${uploadResult.status}`);
+    }
+
+    completedParts.push({
+      partNumber: part.partNumber,
+      etag: getMultipartUploadEtagFromHeaders(uploadResult.headers),
+    });
+    onProgress?.(part.partNumber / presign.partCount);
+  }
+
+  await api(`/api/upload/sessions/${presign.uploadSessionId}/complete`, {
+    method: 'POST',
+    body: {
+      parts: completedParts,
+    },
+  });
+}
+
 /**
  * Upload a picked file using the presign flow.
  * 1. Get a presigned upload URL from the server
@@ -220,7 +351,6 @@ export async function uploadFile(
   target: { channelId?: string; conversationId?: string },
   onProgress?: (progress: number) => void,
 ): Promise<{ uploadSessionId: string; storageKey: string; fileName: string; mimeType: string; fileSize: number }> {
-  // Step 1: Get presigned URL
   const presign = await api<PresignResponse>('/api/upload/presign', {
     method: 'POST',
     body: {
@@ -231,57 +361,28 @@ export async function uploadFile(
     },
   });
 
-  // Step 2: Upload file to presigned URL
-  // The server may return a relative or absolute URL. Ensure we have a full URL.
-  const uploadUrl = presign.uploadUrl.startsWith('http')
-    ? presign.uploadUrl
-    : `${API_ORIGIN}${presign.uploadUrl}`;
-
-  // Use XMLHttpRequest with FormData for React Native file upload compatibility.
-  // Plain object { uri, type, name } only works as a FormData part in RN.
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-
-    if (onProgress) {
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          onProgress(event.loaded / event.total);
-        }
+  try {
+    if (presign.uploadMode === 'multipart') {
+      await uploadMultipartFile(file, presign, onProgress);
+    } else {
+      await uploadSinglePartFile(file, resolveUploadUrl(presign.uploadUrl), onProgress);
+      await api(`/api/upload/sessions/${presign.uploadSessionId}/complete`, {
+        method: 'POST',
+        body: {
+          parts: [{ partNumber: 1, etag: 'single-part' }],
+        },
       });
     }
-
-    xhr.addEventListener('load', () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
-      } else {
-        if (xhr.status === 429) {
-          reject(new ApiError(429, 'Too many requests', 'RATE_LIMITED'));
-          return;
-        }
-
-        reject(new Error(`Upload failed with status ${xhr.status}`));
-      }
-    });
-
-    xhr.addEventListener('error', () => {
-      reject(new Error('Upload failed'));
-    });
-
-    xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', RAW_UPLOAD_CONTENT_TYPE);
-
-    // React Native XHR supports sending a { uri, type, name } blob-like object
-    // directly without FormData for PUT requests.
-    const body = { uri: file.uri, type: file.mimeType, name: file.name };
-    xhr.send(body as unknown as BodyInit);
-  });
-
-  await api(`/api/upload/sessions/${presign.uploadSessionId}/complete`, {
-    method: 'POST',
-    body: {
-      parts: [{ partNumber: 1, etag: 'single-part' }],
-    },
-  });
+  } catch (error) {
+    try {
+      await api(`/api/upload/sessions/${presign.uploadSessionId}/abort`, {
+        method: 'POST',
+      });
+    } catch {
+      // Best effort cleanup for partially uploaded sessions.
+    }
+    throw error;
+  }
 
   return {
     uploadSessionId: presign.uploadSessionId,
@@ -312,31 +413,20 @@ export async function uploadImageAsset(
     ? presign.uploadUrl
     : `${API_ORIGIN}${presign.uploadUrl}`;
 
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-
-    xhr.addEventListener('load', () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
-      } else {
-        if (xhr.status === 429) {
-          reject(new ApiError(429, 'Too many requests', 'RATE_LIMITED'));
-          return;
-        }
-
-        reject(new Error(`Upload failed with status ${xhr.status}`));
-      }
-    });
-
-    xhr.addEventListener('error', () => {
-      reject(new Error('Upload failed'));
-    });
-
-    xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', file.mimeType);
-
-    xhr.send({ uri: file.uri, type: file.mimeType, name: file.name } as unknown as BodyInit);
+  const uploadResult = await LegacyFileSystem.uploadAsync(uploadUrl, file.uri, {
+    httpMethod: 'PUT',
+    uploadType: LegacyFileSystem.FileSystemUploadType.BINARY_CONTENT,
+    headers: {
+      'Content-Type': file.mimeType,
+    },
   });
+
+  if (uploadResult.status === 429) {
+    throw new ApiError(429, 'Too many requests', 'RATE_LIMITED');
+  }
+  if (uploadResult.status < 200 || uploadResult.status >= 300) {
+    throw new Error(`Upload failed with status ${uploadResult.status}`);
+  }
 
   return presign.assetUrl.startsWith('http')
     ? presign.assetUrl
@@ -407,10 +497,31 @@ function guessMimeType(fileName: string): string {
     heic: 'image/heic',
     mp4: 'video/mp4',
     mov: 'video/quicktime',
+    txt: 'text/plain',
+    md: 'text/markdown',
+    csv: 'text/csv',
+    json: 'application/json',
     pdf: 'application/pdf',
+    dmg: 'application/x-apple-diskimage',
+    iso: 'application/x-iso9660-image',
+    pkg: 'application/vnd.apple.installer+xml',
+    tar: 'application/x-tar',
+    gz: 'application/gzip',
+    tgz: 'application/gzip',
+    bz2: 'application/x-bzip2',
+    xz: 'application/x-xz',
     doc: 'application/msword',
     docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     zip: 'application/zip',
+    rar: 'application/vnd.rar',
+    '7z': 'application/x-7z-compressed',
+    exe: 'application/vnd.microsoft.portable-executable',
+    msi: 'application/x-msi',
+    apk: 'application/vnd.android.package-archive',
   };
   return mimeMap[ext ?? ''] ?? 'application/octet-stream';
 }

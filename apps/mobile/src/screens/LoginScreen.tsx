@@ -163,6 +163,7 @@ export default function LoginScreen() {
   const fullPhoneNumber = `${countryCode}${subscriberNumber}`;
   const isSocialLoading = socialLoadingProvider !== null;
   const showPrimaryAuthTabs = step === 'phone' || step === 'email';
+  const hasDirectMagicLinkToken = emailToken.trim().length > 0;
 
   useEffect(() => {
     if (!isSimulatorHarnessEnabled || devActionAttempted || loading) return;
@@ -376,9 +377,8 @@ export default function LoginScreen() {
         method: 'POST',
         body: { email: trimmedEmail },
       });
-      if (__DEV__ && res.token) {
+      if (res.token) {
         setEmailToken(res.token);
-        Alert.alert(t('auth.devMagicLinkTitle'), t('auth.devMagicLinkBody', { token: res.token }));
       }
       setStep('emailVerify');
     } catch (err) {
@@ -682,6 +682,15 @@ export default function LoginScreen() {
               <Text style={styles.label}>{t('auth.magicLinkToken')}</Text>
               <Text style={styles.hint}>{t('auth.magicLinkSentTo', { email: email.trim() })}</Text>
 
+              {hasDirectMagicLinkToken ? (
+                <View style={styles.devTokenCard}>
+                  <Text style={styles.devTokenLabel}>{t('auth.magicLinkTokenReady')}</Text>
+                  <Text selectable style={styles.devTokenValue}>
+                    {emailToken}
+                  </Text>
+                </View>
+              ) : null}
+
               <TextInput
                 style={styles.emailInput}
                 placeholder={t('auth.magicLinkTokenPlaceholder')}
@@ -705,7 +714,11 @@ export default function LoginScreen() {
                 )}
               </TouchableOpacity>
 
-              <Text style={styles.inlineHint}>{t('auth.magicLinkOpenHint')}</Text>
+              <Text style={styles.inlineHint}>
+                {hasDirectMagicLinkToken
+                  ? t('auth.magicLinkDirectTokenHint')
+                  : t('auth.magicLinkOpenHint')}
+              </Text>
 
               <TouchableOpacity
                 style={styles.backLink}
@@ -806,6 +819,25 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     lineHeight: 18,
     marginTop: spacing.md,
+  },
+  devTokenCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.borderLight,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    marginBottom: spacing.lg,
+    padding: spacing.lg,
+  },
+  devTokenLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+  },
+  devTokenValue: {
+    color: colors.white,
+    fontSize: fontSize.sm,
+    lineHeight: 20,
   },
   phoneRow: {
     flexDirection: 'row',

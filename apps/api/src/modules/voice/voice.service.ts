@@ -5,10 +5,9 @@ import { redis } from '../../lib/redis.js';
 import { realtimeService } from '../realtime/realtime.service.js';
 import { db } from '../../lib/db/index.js';
 import { messages } from '../../lib/db/schema.js';
+import { getLivekitApiKey, getLivekitApiSecret } from '../../lib/env.js';
+import { logServerError } from '../../lib/server-log.js';
 import { WebSocketEvent } from '@zktalk/shared';
-
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || 'devkey';
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || 'secret';
 
 // Redis key for voice participants: hash of { [userId]: JSON({ displayName, joinedAt }) }
 const voiceKey = (channelId: string) => `voice:channel:${channelId}`;
@@ -22,13 +21,18 @@ export async function generateVoiceToken(
   userId: string,
   displayName: string,
 ): Promise<string> {
-  if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
+  let livekitApiKey: string;
+  let livekitApiSecret: string;
+  try {
+    livekitApiKey = getLivekitApiKey();
+    livekitApiSecret = getLivekitApiSecret();
+  } catch {
     throw new AppError(500, 'LIVEKIT_NOT_CONFIGURED', 'LiveKit is not configured');
   }
 
   const roomName = `channel-${channelId}`;
 
-  const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+  const at = new AccessToken(livekitApiKey, livekitApiSecret, {
     identity: userId,
     name: displayName,
     ttl: '4h',
@@ -185,6 +189,10 @@ async function saveCallHistory(
     // Cleanup
     await redis.del(callStartKey(channelId));
   } catch (err) {
-    console.error('[Voice] Failed to save call history:', (err as Error).message);
+    logServerError('Voice', 'Failed to save call history', err, {
+      channelId,
+      communityId,
+      lastUserId,
+    });
   }
 }

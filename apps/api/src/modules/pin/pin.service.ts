@@ -2,6 +2,7 @@ import { hasPermission, DEFAULT_ROLE_PERMISSIONS } from '@zktalk/shared';
 import { uuidv7 } from 'uuidv7';
 import { AppError } from '../../lib/errors.js';
 import * as repo from './pin.repository.js';
+import { assertCanAccessChannel } from '../channel/channel-access.service.js';
 
 // ---------------------------------------------------------------------------
 // Permission helper
@@ -88,12 +89,7 @@ export async function getPinnedMessages(
   userId: string,
   channelId: string,
 ) {
-  const channel = await repo.findChannelById(channelId);
-  if (!channel) {
-    throw AppError.notFound('Channel not found');
-  }
-
-  await checkPermission(userId, channel.communityId, channelId, 'view_channel');
+  await assertCanAccessChannel(userId, channelId);
 
   return repo.findPinnedMessages(channelId);
 }

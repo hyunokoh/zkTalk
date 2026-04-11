@@ -1,12 +1,16 @@
 'use client';
 
+import React, { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { fetchAiRuntime } from '@/lib/ai-runtime';
 import { useTranslation } from '@/lib/i18n';
+import { buildComposerSelectedMessageAiState } from '@/lib/selected-message-ai';
 import { MessageList } from '@/components/MessageList';
-import { MessageComposer } from '@/components/MessageComposer';
+import { MessageComposer, type ComposerAiActionRequest } from '@/components/MessageComposer';
+import type { MessageAiActionKind } from '@/components/MessageItem';
 import { useThreadStore } from '@/stores/thread';
-import type { Thread } from '@zktalk/shared';
+import type { Message, Thread, User } from '@zktalk/shared';
 
 interface ThreadPanelProps {
   channelId: string;
@@ -26,12 +30,21 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
   const queryClient = useQueryClient();
   const activeThreadId = useThreadStore((s) => s.activeThreadId);
   const closeThread = useThreadStore((s) => s.closeThread);
+  const [replyTo, setReplyTo] = useState<{ message: Message; author?: User | null } | null>(null);
+  const [aiActionRequest, setAiActionRequest] = useState<ComposerAiActionRequest | null>(null);
 
   const { data: threadData } = useQuery({
     queryKey: ['thread', activeThreadId],
     queryFn: async () => {
       return api<ThreadDetailsResponse>(`/api/channels/${channelId}/threads/${activeThreadId}`);
     },
+    enabled: !!activeThreadId,
+  });
+
+  const { data: aiRuntime } = useQuery({
+    queryKey: ['ai-runtime'],
+    queryFn: fetchAiRuntime,
+    staleTime: 60_000,
     enabled: !!activeThreadId,
   });
 
@@ -62,6 +75,28 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
   const isFollowing = threadData?.isFollowing ?? false;
   const canPostReply = threadData?.permissions.canPostReply ?? true;
   const thread = threadData?.thread;
+
+  const handleReply = useCallback((message: Message, author?: User | null) => {
+    setReplyTo({ message, author });
+  }, []);
+
+  const handleAiAction = useCallback((message: Message, author: User | null | undefined, action: MessageAiActionKind) => {
+    const composerState = buildComposerSelectedMessageAiState({
+      action,
+      surface: 'thread',
+      message,
+      author,
+    });
+
+    if (!composerState) {
+      setReplyTo(null);
+      setAiActionRequest(null);
+      return;
+    }
+
+    setReplyTo(composerState.replyTo);
+    setAiActionRequest(composerState.aiActionRequest);
+  }, []);
 
   return (
     <aside data-testid="thread-panel" className="flex w-96 flex-col border-l border-gray-800 bg-gray-900">
@@ -106,7 +141,13 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
       </div>
 
       {/* Thread messages */}
-      <MessageList channelId={channelId} threadId={activeThreadId} />
+      <MessageList
+        channelId={channelId}
+        threadId={activeThreadId}
+        onReplyToMessage={handleReply}
+        onRequestAiAction={handleAiAction}
+        aiRuntime={aiRuntime}
+      />
 
       {/* Thread composer */}
       {canPostReply ? (
@@ -114,6 +155,11 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
           channelId={channelId}
           threadId={activeThreadId}
           placeholder={t('thread.replyToThread')}
+          replyTo={replyTo}
+          onCancelReply={() => setReplyTo(null)}
+          aiActionRequest={aiActionRequest}
+          onAiActionRequestHandled={() => setAiActionRequest(null)}
+          aiRuntime={aiRuntime}
         />
       ) : (
         <div className="border-t border-gray-800 px-4 py-3 text-sm text-gray-400">

@@ -12,9 +12,10 @@ try {
 }
 
 const { app, BrowserWindow, Menu, clipboard, dialog, ipcMain, shell, screen } = require('electron');
-const TEST_USER_DATA_DIR = typeof process.env.ZKTALK_USER_DATA_DIR === 'string'
-  ? process.env.ZKTALK_USER_DATA_DIR.trim()
-  : '';
+const TEST_USER_DATA_DIR =
+  typeof process.env.ZKTALK_USER_DATA_DIR === 'string'
+    ? process.env.ZKTALK_USER_DATA_DIR.trim()
+    : '';
 const IS_DESKTOP_TEST_INSTANCE = process.env.ZKTALK_DESKTOP_TEST === '1';
 
 if (TEST_USER_DATA_DIR) {
@@ -120,6 +121,19 @@ const FILE_MIME_MAP = {
   mp3: 'audio/mpeg',
   wav: 'audio/wav',
   pdf: 'application/pdf',
+  dmg: 'application/x-apple-diskimage',
+  iso: 'application/x-iso9660-image',
+  pkg: 'application/vnd.apple.installer+xml',
+  tar: 'application/x-tar',
+  gz: 'application/gzip',
+  tgz: 'application/gzip',
+  bz2: 'application/x-bzip2',
+  xz: 'application/x-xz',
+  rar: 'application/vnd.rar',
+  '7z': 'application/x-7z-compressed',
+  exe: 'application/vnd.microsoft.portable-executable',
+  msi: 'application/x-msi',
+  apk: 'application/vnd.android.package-archive',
   doc: 'application/msword',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   xls: 'application/vnd.ms-excel',
@@ -163,11 +177,28 @@ const LOCAL_RELEASE_HANDOFF_PATH = path.join(__dirname, 'dist', 'release-handoff
 const LOCAL_RELEASE_HANDOFF_JSON_PATH = path.join(__dirname, 'dist', 'release-handoff.json');
 const LOCAL_RELEASE_HANDOFF_HTML_PATH = path.join(__dirname, 'dist', 'release-handoff.html');
 const LOCAL_RELEASE_VERIFICATION_PATH = path.join(__dirname, 'dist', 'release-verification.md');
-const LOCAL_RELEASE_VERIFICATION_JSON_PATH = path.join(__dirname, 'dist', 'release-verification.json');
-const LOCAL_RELEASE_VERIFICATION_HTML_PATH = path.join(__dirname, 'dist', 'release-verification.html');
+const LOCAL_RELEASE_VERIFICATION_JSON_PATH = path.join(
+  __dirname,
+  'dist',
+  'release-verification.json',
+);
+const LOCAL_RELEASE_VERIFICATION_HTML_PATH = path.join(
+  __dirname,
+  'dist',
+  'release-verification.html',
+);
 const LOCAL_RELEASE_BUNDLE_DIR = path.join(__dirname, 'dist', 'release-bundle');
-const LOCAL_RELEASE_ARCHIVE_PATH = path.join(__dirname, 'dist', 'zkTalk-desktop-release-bundle.tar.gz');
+const LOCAL_RELEASE_ARCHIVE_PATH = path.join(
+  __dirname,
+  'dist',
+  'zkTalk-desktop-release-bundle.tar.gz',
+);
 const BOOT_DEBUG_LOG_PATH = '/tmp/zktalk-desktop-boot.log';
+const LOCAL_AGENT_LANGUAGE_PRESET_IDS = new Set([
+  'english_only',
+  'korean_preferred_english_readable',
+  'manual_only',
+]);
 
 let mainWindow = null;
 let webServerProcess = null;
@@ -246,7 +277,9 @@ function consumeStartupRoute() {
     } catch (_) {
       // Ignore cleanup failures.
     }
-    appendDesktopLog(`Failed to consume startup route: ${error instanceof Error ? error.message : String(error)}`);
+    appendDesktopLog(
+      `Failed to consume startup route: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return null;
   }
 }
@@ -295,7 +328,9 @@ function guessMimeTypeFromPath(filePath) {
 }
 
 function sanitizeTempFileName(fileName) {
-  const baseName = path.basename(typeof fileName === 'string' && fileName.trim() ? fileName : 'attachment');
+  const baseName = path.basename(
+    typeof fileName === 'string' && fileName.trim() ? fileName : 'attachment',
+  );
   const sanitized = baseName.replace(/[^A-Za-z0-9._-]/g, '_');
   return sanitized.length > 0 ? sanitized : 'attachment';
 }
@@ -425,20 +460,18 @@ function getPreferredDesktopWorkArea() {
   const preferredDisplay =
     displays.find((display) => {
       const area = display.workArea ?? display.bounds;
-      return area.x <= 0
-        && area.y <= 0
-        && area.x + area.width > 0
-        && area.y + area.height > 0;
-    })
-    || displays
-      .slice()
-      .sort((left, right) => {
-        const leftArea = left.workArea ?? left.bounds;
-        const rightArea = right.workArea ?? right.bounds;
-        return (Math.abs(leftArea.x) + Math.abs(leftArea.y))
-          - (Math.abs(rightArea.x) + Math.abs(rightArea.y));
-      })[0]
-    || screen.getPrimaryDisplay();
+      return area.x <= 0 && area.y <= 0 && area.x + area.width > 0 && area.y + area.height > 0;
+    }) ||
+    displays.slice().sort((left, right) => {
+      const leftArea = left.workArea ?? left.bounds;
+      const rightArea = right.workArea ?? right.bounds;
+      return (
+        Math.abs(leftArea.x) +
+        Math.abs(leftArea.y) -
+        (Math.abs(rightArea.x) + Math.abs(rightArea.y))
+      );
+    })[0] ||
+    screen.getPrimaryDisplay();
   return preferredDisplay.workArea ?? preferredDisplay.bounds;
 }
 
@@ -453,10 +486,10 @@ function ensureMainWindowOnScreen() {
     `Window visibility check bounds=${JSON.stringify(bounds)} preferredWorkArea=${JSON.stringify(preferredWorkArea)}`,
   );
   const intersectsPreferredWorkArea =
-    bounds.x < preferredWorkArea.x + preferredWorkArea.width
-    && bounds.x + bounds.width > preferredWorkArea.x
-    && bounds.y < preferredWorkArea.y + preferredWorkArea.height
-    && bounds.y + bounds.height > preferredWorkArea.y;
+    bounds.x < preferredWorkArea.x + preferredWorkArea.width &&
+    bounds.x + bounds.width > preferredWorkArea.x &&
+    bounds.y < preferredWorkArea.y + preferredWorkArea.height &&
+    bounds.y + bounds.height > preferredWorkArea.y;
 
   if (intersectsPreferredWorkArea) {
     writeWindowHealth({ reason: 'ensureMainWindowOnScreen:visible' });
@@ -465,7 +498,8 @@ function ensureMainWindowOnScreen() {
 
   const nextBounds = {
     x: preferredWorkArea.x + Math.max(0, Math.round((preferredWorkArea.width - bounds.width) / 2)),
-    y: preferredWorkArea.y + Math.max(0, Math.round((preferredWorkArea.height - bounds.height) / 2)),
+    y:
+      preferredWorkArea.y + Math.max(0, Math.round((preferredWorkArea.height - bounds.height) / 2)),
     width: bounds.width,
     height: bounds.height,
   };
@@ -676,10 +710,7 @@ function getRecentLogLines(limit = 200) {
     return [];
   }
 
-  return content
-    .split('\n')
-    .filter(Boolean)
-    .slice(-limit);
+  return content.split('\n').filter(Boolean).slice(-limit);
 }
 
 function buildSupportBundlePayload() {
@@ -1364,7 +1395,12 @@ async function loadMainWindowUrl(url, reason) {
 }
 
 function isLoopbackHostname(hostname) {
-  return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1' || hostname === '[::1]';
+  return (
+    hostname === '127.0.0.1' ||
+    hostname === 'localhost' ||
+    hostname === '::1' ||
+    hostname === '[::1]'
+  );
 }
 
 function getReroutedAppUrl(url) {
@@ -1427,7 +1463,14 @@ function getDefaultDesktopConfig() {
     wsUrl: 'ws://127.0.0.1:4000/api/ws',
     livekitUrl: 'ws://127.0.0.1:7880',
     webUrl: '',
+    localAgentLanguagePreset: 'manual_only',
   };
+}
+
+function normalizeLocalAgentLanguagePreset(value) {
+  return LOCAL_AGENT_LANGUAGE_PRESET_IDS.has(value)
+    ? value
+    : getDefaultDesktopConfig().localAgentLanguagePreset;
 }
 
 function getDesktopConfigSnapshot() {
@@ -1439,6 +1482,7 @@ function getDesktopConfigSnapshot() {
     return {
       ...getDefaultDesktopConfig(),
       ...parsed,
+      localAgentLanguagePreset: normalizeLocalAgentLanguagePreset(parsed.localAgentLanguagePreset),
       path: configPath,
     };
   } catch (_) {
@@ -1465,10 +1509,7 @@ function ensureDesktopConfigFile() {
   }
 
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
-  fs.writeFileSync(
-    configPath,
-    JSON.stringify(getDefaultDesktopConfig(), null, 2),
-  );
+  fs.writeFileSync(configPath, JSON.stringify(getDefaultDesktopConfig(), null, 2));
   loadedDesktopConfigPath = configPath;
   return configPath;
 }
@@ -1477,14 +1518,19 @@ function writeDesktopConfig(nextConfig) {
   const configPath = ensureDesktopConfigFile();
   const apiUrl = normalizeOptionalUrl(nextConfig.apiUrl) || getDefaultDesktopConfig().apiUrl;
   const wsUrl = normalizeOptionalUrl(nextConfig.wsUrl) || deriveWebSocketUrl(apiUrl);
-  const livekitUrl = normalizeOptionalUrl(nextConfig.livekitUrl) || getDefaultDesktopConfig().livekitUrl;
+  const livekitUrl =
+    normalizeOptionalUrl(nextConfig.livekitUrl) || getDefaultDesktopConfig().livekitUrl;
   const webUrl = normalizeOptionalUrl(nextConfig.webUrl);
+  const localAgentLanguagePreset = normalizeLocalAgentLanguagePreset(
+    nextConfig.localAgentLanguagePreset,
+  );
 
   const payload = {
     apiUrl,
     wsUrl,
     livekitUrl,
     webUrl,
+    localAgentLanguagePreset,
   };
 
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
@@ -1520,20 +1566,27 @@ function loadDesktopConfig() {
       const raw = fs.readFileSync(candidatePath, 'utf8');
       const config = JSON.parse(raw);
       loadedDesktopConfigPath = candidatePath;
-      const apiUrl = normalizeOptionalUrl(process.env.ZKTALK_API_URL)
-        || normalizeOptionalUrl(config.apiUrl)
-        || getDefaultDesktopConfig().apiUrl;
-      const wsUrl = normalizeOptionalUrl(process.env.ZKTALK_WS_URL)
-        || (typeof config.wsUrl === 'string' && config.wsUrl.length > 0
+      const apiUrl =
+        normalizeOptionalUrl(process.env.ZKTALK_API_URL) ||
+        normalizeOptionalUrl(config.apiUrl) ||
+        getDefaultDesktopConfig().apiUrl;
+      const wsUrl =
+        normalizeOptionalUrl(process.env.ZKTALK_WS_URL) ||
+        (typeof config.wsUrl === 'string' && config.wsUrl.length > 0
           ? normalizeOptionalUrl(config.wsUrl)
           : deriveWebSocketUrl(apiUrl));
-      const livekitUrl = normalizeOptionalUrl(process.env.ZKTALK_LIVEKIT_URL)
-        || normalizeOptionalUrl(config.livekitUrl);
-      const webUrl = normalizeOptionalUrl(process.env.ZKTALK_WEB_URL)
-        || normalizeOptionalUrl(config.webUrl);
-      const openRouterApiKey = typeof process.env.OPENROUTER_API_KEY === 'string'
-        ? process.env.OPENROUTER_API_KEY.trim()
-        : '';
+      const livekitUrl =
+        normalizeOptionalUrl(process.env.ZKTALK_LIVEKIT_URL) ||
+        normalizeOptionalUrl(config.livekitUrl);
+      const webUrl =
+        normalizeOptionalUrl(process.env.ZKTALK_WEB_URL) || normalizeOptionalUrl(config.webUrl);
+      const localAgentLanguagePreset = normalizeLocalAgentLanguagePreset(
+        config.localAgentLanguagePreset,
+      );
+      const openRouterApiKey =
+        typeof process.env.OPENROUTER_API_KEY === 'string'
+          ? process.env.OPENROUTER_API_KEY.trim()
+          : '';
 
       setOptionalEnv('ZKTALK_API_URL', apiUrl);
       setOptionalEnv('NEXT_PUBLIC_API_URL', apiUrl);
@@ -1542,12 +1595,15 @@ function loadDesktopConfig() {
       setOptionalEnv('ZKTALK_LIVEKIT_URL', livekitUrl);
       setOptionalEnv('NEXT_PUBLIC_LIVEKIT_URL', livekitUrl);
       setOptionalEnv('ZKTALK_WEB_URL', webUrl);
+      setOptionalEnv('ZKTALK_LOCAL_AGENT_LANGUAGE_PRESET', localAgentLanguagePreset);
       setOptionalEnv('OPENROUTER_API_KEY', openRouterApiKey);
       appendDesktopLog(`Loaded desktop config from ${candidatePath}`);
 
       return;
     } catch (error) {
-      appendDesktopLog(`Failed to load desktop config from ${candidatePath}: ${error instanceof Error ? error.message : String(error)}`);
+      appendDesktopLog(
+        `Failed to load desktop config from ${candidatePath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
       console.error(`[desktop-config] Failed to load ${candidatePath}`, error);
     }
   }
@@ -1559,6 +1615,7 @@ function loadDesktopConfig() {
   setOptionalEnv('NEXT_PUBLIC_WS_URL', defaults.wsUrl);
   setOptionalEnv('ZKTALK_LIVEKIT_URL', defaults.livekitUrl);
   setOptionalEnv('NEXT_PUBLIC_LIVEKIT_URL', defaults.livekitUrl);
+  setOptionalEnv('ZKTALK_LOCAL_AGENT_LANGUAGE_PRESET', defaults.localAgentLanguagePreset);
   if (typeof process.env.OPENROUTER_API_KEY === 'string') {
     setOptionalEnv('OPENROUTER_API_KEY', process.env.OPENROUTER_API_KEY.trim());
   }
@@ -1566,7 +1623,9 @@ function loadDesktopConfig() {
 }
 
 function getConfiguredApiUrl() {
-  return normalizeBaseUrl(process.env.ZKTALK_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000');
+  return normalizeBaseUrl(
+    process.env.ZKTALK_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000',
+  );
 }
 
 function getConfiguredWebUrl() {
@@ -1589,6 +1648,7 @@ function getDiagnosticsLines() {
     `API URL: ${getConfiguredApiUrl()}`,
     `Health URL: ${getApiHealthUrl()}`,
     `External web URL: ${getConfiguredWebUrl() || '(none)'}`,
+    `Local bridge language preset: ${config.localAgentLanguagePreset}`,
     `Desktop config: ${config.path}`,
     `Desktop logs: ${getDesktopLogPath()}`,
     `Support bundles: ${getSupportBundleDir()}`,
@@ -1624,9 +1684,10 @@ function getReleaseStatusSummaryLines() {
     const raw = fs.readFileSync(LOCAL_RELEASE_STATUS_PATH, 'utf8');
     const parsed = JSON.parse(raw);
     const summary = parsed && typeof parsed === 'object' ? parsed.summary : null;
-    const nextSteps = parsed && typeof parsed === 'object' && Array.isArray(parsed.nextSteps)
-      ? parsed.nextSteps
-      : [];
+    const nextSteps =
+      parsed && typeof parsed === 'object' && Array.isArray(parsed.nextSteps)
+        ? parsed.nextSteps
+        : [];
 
     const lines = [
       `Release readiness (macOS): ${summary && typeof summary.macos === 'string' ? summary.macos : 'unknown'}`,
@@ -1702,33 +1763,38 @@ function findReleaseArtifactPath(predicate) {
   }
 
   const artifacts = Array.isArray(releaseManifest.artifacts) ? releaseManifest.artifacts : [];
-  const artifact = artifacts.find((entry) => entry && typeof entry === 'object' && predicate(entry));
+  const artifact = artifacts.find(
+    (entry) => entry && typeof entry === 'object' && predicate(entry),
+  );
   return artifact && typeof artifact.path === 'string' ? artifact.path : '';
 }
 
 function getMacDmgPath() {
-  return findReleaseArtifactPath((artifact) =>
-    typeof artifact.name === 'string'
-    && artifact.name.endsWith('.dmg')
-    && !artifact.name.endsWith('.dmg.blockmap')
+  return findReleaseArtifactPath(
+    (artifact) =>
+      typeof artifact.name === 'string' &&
+      artifact.name.endsWith('.dmg') &&
+      !artifact.name.endsWith('.dmg.blockmap'),
   );
 }
 
 function getWindowsX64InstallerPath() {
-  return findReleaseArtifactPath((artifact) =>
-    typeof artifact.name === 'string'
-    && artifact.name.includes('win-x64')
-    && artifact.name.endsWith('.exe')
-    && !artifact.name.endsWith('.exe.blockmap')
+  return findReleaseArtifactPath(
+    (artifact) =>
+      typeof artifact.name === 'string' &&
+      artifact.name.includes('win-x64') &&
+      artifact.name.endsWith('.exe') &&
+      !artifact.name.endsWith('.exe.blockmap'),
   );
 }
 
 function getWindowsArm64InstallerPath() {
-  return findReleaseArtifactPath((artifact) =>
-    typeof artifact.name === 'string'
-    && artifact.name.includes('win-arm64')
-    && artifact.name.endsWith('.exe')
-    && !artifact.name.endsWith('.exe.blockmap')
+  return findReleaseArtifactPath(
+    (artifact) =>
+      typeof artifact.name === 'string' &&
+      artifact.name.includes('win-arm64') &&
+      artifact.name.endsWith('.exe') &&
+      !artifact.name.endsWith('.exe.blockmap'),
   );
 }
 
@@ -1793,12 +1859,10 @@ function getAvailableSignedReleaseCommandsLines() {
   }
 
   const releaseStatus = readReleaseStatusSnapshot();
-  const targets = releaseStatus && typeof releaseStatus.targets === 'object'
-    ? releaseStatus.targets
-    : null;
-  const summary = releaseStatus && typeof releaseStatus.summary === 'object'
-    ? releaseStatus.summary
-    : {};
+  const targets =
+    releaseStatus && typeof releaseStatus.targets === 'object' ? releaseStatus.targets : null;
+  const summary =
+    releaseStatus && typeof releaseStatus.summary === 'object' ? releaseStatus.summary : {};
 
   const lines = [];
 
@@ -1864,16 +1928,18 @@ function getReleaseStatusPageText() {
     lines.push(`Generated at: ${releaseStatus.generatedAt}`);
   }
 
-  const summary = releaseStatus.summary && typeof releaseStatus.summary === 'object'
-    ? releaseStatus.summary
-    : {};
+  const summary =
+    releaseStatus.summary && typeof releaseStatus.summary === 'object' ? releaseStatus.summary : {};
   lines.push(`macOS readiness: ${typeof summary.macos === 'string' ? summary.macos : 'unknown'}`);
-  lines.push(`Windows readiness: ${typeof summary.windows === 'string' ? summary.windows : 'unknown'}`);
+  lines.push(
+    `Windows readiness: ${typeof summary.windows === 'string' ? summary.windows : 'unknown'}`,
+  );
   lines.push(getPrimaryRecommendedReleaseCommandText());
 
-  const sections = releaseStatus.sections && typeof releaseStatus.sections === 'object'
-    ? releaseStatus.sections
-    : {};
+  const sections =
+    releaseStatus.sections && typeof releaseStatus.sections === 'object'
+      ? releaseStatus.sections
+      : {};
 
   for (const [sectionName, sectionItems] of Object.entries(sections)) {
     if (!Array.isArray(sectionItems) || sectionItems.length === 0) {
@@ -2055,23 +2121,39 @@ function getReleaseSummaryText() {
 
     const targets = summary && typeof summary.targets === 'object' ? summary.targets : {};
     const availableTargetCommands = Object.entries(targets)
-      .filter(([, entry]) => entry && typeof entry === 'object' && entry.ready === true && typeof entry.command === 'string')
+      .filter(
+        ([, entry]) =>
+          entry &&
+          typeof entry === 'object' &&
+          entry.ready === true &&
+          typeof entry.command === 'string',
+      )
       .map(([key, entry]) => `- ${key}: ${entry.command}`);
 
     lines.push('', 'Available signed release commands:');
     lines.push(...(availableTargetCommands.length > 0 ? availableTargetCommands : ['- None']));
 
     lines.push('', 'Signing blockers:');
-    lines.push(...(blockers.length > 0
-      ? blockers.map((item) => `- ${item.platform || 'Unknown'}: ${item.label || 'Unknown'} = ${item.value || 'unknown'}`)
-      : ['- None']));
+    lines.push(
+      ...(blockers.length > 0
+        ? blockers.map(
+            (item) =>
+              `- ${item.platform || 'Unknown'}: ${item.label || 'Unknown'} = ${item.value || 'unknown'}`,
+          )
+        : ['- None']),
+    );
 
     lines.push('', 'Next steps:');
     lines.push(...(nextSteps.length > 0 ? nextSteps.map((step) => `- ${step}`) : ['- None']));
 
     lines.push('', `Artifacts: ${artifacts.length}`);
     if (artifacts.length > 0) {
-      lines.push(...artifacts.map((artifact) => `- ${artifact.name || 'Unknown artifact'} (${formatBytes(artifact.sizeBytes)})`));
+      lines.push(
+        ...artifacts.map(
+          (artifact) =>
+            `- ${artifact.name || 'Unknown artifact'} (${formatBytes(artifact.sizeBytes)})`,
+        ),
+      );
     }
 
     return lines.join('\n');
@@ -2151,12 +2233,10 @@ function getReleaseVerificationSummaryLines() {
     return ['Verification: (not generated)'];
   }
 
-  const summary = verification.summary && typeof verification.summary === 'object'
-    ? verification.summary
-    : {};
-  const checks = verification.checks && typeof verification.checks === 'object'
-    ? verification.checks
-    : {};
+  const summary =
+    verification.summary && typeof verification.summary === 'object' ? verification.summary : {};
+  const checks =
+    verification.checks && typeof verification.checks === 'object' ? verification.checks : {};
 
   const lines = [
     `Verification passed: ${typeof summary.passedChecks === 'number' ? summary.passedChecks : 'unknown'}`,
@@ -2186,13 +2266,10 @@ function getReleaseBundleText() {
     ].join('\n');
   }
 
-  const lines = [
-    `Bundle directory: ${LOCAL_RELEASE_BUNDLE_DIR}`,
-    '',
-    'Bundle contents:',
-  ];
+  const lines = [`Bundle directory: ${LOCAL_RELEASE_BUNDLE_DIR}`, '', 'Bundle contents:'];
 
-  const entries = fs.readdirSync(LOCAL_RELEASE_BUNDLE_DIR, { withFileTypes: true })
+  const entries = fs
+    .readdirSync(LOCAL_RELEASE_BUNDLE_DIR, { withFileTypes: true })
     .sort((a, b) => a.name.localeCompare(b.name));
 
   for (const entry of entries) {
@@ -2217,10 +2294,9 @@ function getReleaseArchiveText() {
   }
 
   const stats = fs.statSync(LOCAL_RELEASE_ARCHIVE_PATH);
-  return [
-    `Archive file: ${LOCAL_RELEASE_ARCHIVE_PATH}`,
-    `Size: ${formatBytes(stats.size)}`,
-  ].join('\n');
+  return [`Archive file: ${LOCAL_RELEASE_ARCHIVE_PATH}`, `Size: ${formatBytes(stats.size)}`].join(
+    '\n',
+  );
 }
 
 function getReleaseIndexText() {
@@ -2280,14 +2356,13 @@ function getInstallerArtifacts() {
   }
 
   const artifacts = Array.isArray(releaseManifest.artifacts) ? releaseManifest.artifacts : [];
-  return artifacts.filter((artifact) =>
-    artifact
-    && typeof artifact === 'object'
-    && typeof artifact.name === 'string'
-    && (
-      (artifact.name.endsWith('.dmg') && !artifact.name.endsWith('.dmg.blockmap'))
-      || (artifact.name.endsWith('.exe') && !artifact.name.endsWith('.exe.blockmap'))
-    )
+  return artifacts.filter(
+    (artifact) =>
+      artifact &&
+      typeof artifact === 'object' &&
+      typeof artifact.name === 'string' &&
+      ((artifact.name.endsWith('.dmg') && !artifact.name.endsWith('.dmg.blockmap')) ||
+        (artifact.name.endsWith('.exe') && !artifact.name.endsWith('.exe.blockmap'))),
   );
 }
 
@@ -2402,11 +2477,15 @@ function getReleaseHandoffMarkdownText() {
     '',
     '## Signing Blockers',
     '',
-    ...(getSigningBlockingLines().length > 0 ? getSigningBlockingLines().map((line) => `- ${line}`) : ['- None']),
+    ...(getSigningBlockingLines().length > 0
+      ? getSigningBlockingLines().map((line) => `- ${line}`)
+      : ['- None']),
     '',
     '## Verification',
     '',
-    ...getReleaseVerificationSummaryLines().map((line) => (line.startsWith('- ') ? line : `- ${line}`)),
+    ...getReleaseVerificationSummaryLines().map((line) =>
+      line.startsWith('- ') ? line : `- ${line}`,
+    ),
     '',
     '## Installers',
     '',
@@ -2414,7 +2493,10 @@ function getReleaseHandoffMarkdownText() {
     '',
     '## Paths',
     '',
-    ...getReleasePathsText().split('\n').filter(Boolean).map((line) => `- ${line}`),
+    ...getReleasePathsText()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => `- ${line}`),
   ].join('\n');
 }
 
@@ -2462,9 +2544,8 @@ function getReleaseCommandsText() {
 
 function getRecommendedReleaseCommandsLines() {
   const releaseStatus = readReleaseStatusSnapshot();
-  const summary = releaseStatus && typeof releaseStatus.summary === 'object'
-    ? releaseStatus.summary
-    : {};
+  const summary =
+    releaseStatus && typeof releaseStatus.summary === 'object' ? releaseStatus.summary : {};
   const macosReadiness = typeof summary.macos === 'string' ? summary.macos : 'unknown';
   const windowsReadiness = typeof summary.windows === 'string' ? summary.windows : 'unknown';
 
@@ -2477,14 +2558,12 @@ function getRecommendedReleaseCommandsLines() {
     ];
   }
 
-  const availableSignedCommands = getAvailableSignedReleaseCommandsLines()
-    .map((line) => line.replace(/^- [^:]+:\s*/, '- '));
+  const availableSignedCommands = getAvailableSignedReleaseCommandsLines().map((line) =>
+    line.replace(/^- [^:]+:\s*/, '- '),
+  );
 
   if (availableSignedCommands.length > 0) {
-    return [
-      'Recommended now:',
-      ...availableSignedCommands,
-    ];
+    return ['Recommended now:', ...availableSignedCommands];
   }
 
   return [
@@ -2500,8 +2579,9 @@ function getRecommendedReleaseCommandsText() {
 }
 
 function getPrimaryRecommendedReleaseCommand() {
-  const commandLine = getRecommendedReleaseCommandsLines()
-    .find((line) => typeof line === 'string' && line.startsWith('- npm run '));
+  const commandLine = getRecommendedReleaseCommandsLines().find(
+    (line) => typeof line === 'string' && line.startsWith('- npm run '),
+  );
 
   if (!commandLine) {
     return 'No recommended release command available.';
@@ -2533,9 +2613,13 @@ function getSigningSetupText() {
     lines.push(...blockingItems.map((item) => `- ${item}`));
   }
 
-  const sections = releaseStatus && typeof releaseStatus === 'object' && releaseStatus.sections && typeof releaseStatus.sections === 'object'
-    ? releaseStatus.sections
-    : {};
+  const sections =
+    releaseStatus &&
+    typeof releaseStatus === 'object' &&
+    releaseStatus.sections &&
+    typeof releaseStatus.sections === 'object'
+      ? releaseStatus.sections
+      : {};
 
   const signingSections = [
     ['macOS signing checklist', Array.isArray(sections.macos) ? sections.macos : []],
@@ -2567,18 +2651,18 @@ function getSigningSetupText() {
 }
 
 function getSigningSetupCopyText() {
-  return [
-    getSigningSetupText(),
-    '',
-    getReleasePathsText(),
-  ].join('\n');
+  return [getSigningSetupText(), '', getReleasePathsText()].join('\n');
 }
 
 function getSigningBlockingLines() {
   const releaseStatus = readReleaseStatusSnapshot();
-  const sections = releaseStatus && typeof releaseStatus === 'object' && releaseStatus.sections && typeof releaseStatus.sections === 'object'
-    ? releaseStatus.sections
-    : {};
+  const sections =
+    releaseStatus &&
+    typeof releaseStatus === 'object' &&
+    releaseStatus.sections &&
+    typeof releaseStatus.sections === 'object'
+      ? releaseStatus.sections
+      : {};
 
   const blockingLines = [];
   const signingSections = [
@@ -2646,9 +2730,15 @@ function getSigningBlockersPageText() {
   }
 
   lines.push('', `Signing env: ${hasSigningEnv() ? getSigningEnvPath() : '(not generated)'}`);
-  lines.push(`Signing env example: ${hasSigningEnvExample() ? LOCAL_SIGNING_ENV_EXAMPLE_PATH : '(not bundled)'}`);
-  lines.push(`Signing blockers file: ${hasSigningBlockersFile() ? LOCAL_SIGNING_BLOCKERS_PATH : '(not generated)'}`);
-  lines.push(`Signing blockers JSON: ${hasSigningBlockersJsonFile() ? LOCAL_SIGNING_BLOCKERS_JSON_PATH : '(not generated)'}`);
+  lines.push(
+    `Signing env example: ${hasSigningEnvExample() ? LOCAL_SIGNING_ENV_EXAMPLE_PATH : '(not bundled)'}`,
+  );
+  lines.push(
+    `Signing blockers file: ${hasSigningBlockersFile() ? LOCAL_SIGNING_BLOCKERS_PATH : '(not generated)'}`,
+  );
+  lines.push(
+    `Signing blockers JSON: ${hasSigningBlockersJsonFile() ? LOCAL_SIGNING_BLOCKERS_JSON_PATH : '(not generated)'}`,
+  );
 
   return lines.join('\n');
 }
@@ -2687,59 +2777,115 @@ function getReleaseHubActions(currentPage) {
   const actions = [];
 
   if (currentPage !== 'dashboard') {
-    actions.push({ label: 'Open release dashboard', href: 'zktalk://open-release-dashboard', variant: 'secondary' });
+    actions.push({
+      label: 'Open release dashboard',
+      href: 'zktalk://open-release-dashboard',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'handoff') {
-    actions.push({ label: 'Open release handoff', href: 'zktalk://open-release-handoff', variant: 'secondary' });
+    actions.push({
+      label: 'Open release handoff',
+      href: 'zktalk://open-release-handoff',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'handoff-json' && hasReleaseHandoffJsonFile()) {
-    actions.push({ label: 'Open release handoff JSON', href: 'zktalk://open-release-handoff-json', variant: 'secondary' });
+    actions.push({
+      label: 'Open release handoff JSON',
+      href: 'zktalk://open-release-handoff-json',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'status') {
-    actions.push({ label: 'Open release readiness', href: 'zktalk://open-release-status', variant: 'secondary' });
+    actions.push({
+      label: 'Open release readiness',
+      href: 'zktalk://open-release-status',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'artifacts') {
-    actions.push({ label: 'Open release artifacts', href: 'zktalk://open-release-artifacts', variant: 'secondary' });
+    actions.push({
+      label: 'Open release artifacts',
+      href: 'zktalk://open-release-artifacts',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'checksums') {
-    actions.push({ label: 'Open release checksums', href: 'zktalk://open-release-checksums', variant: 'secondary' });
+    actions.push({
+      label: 'Open release checksums',
+      href: 'zktalk://open-release-checksums',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'index') {
-    actions.push({ label: 'Open release index', href: 'zktalk://open-release-index', variant: 'secondary' });
+    actions.push({
+      label: 'Open release index',
+      href: 'zktalk://open-release-index',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'commands') {
-    actions.push({ label: 'Open release commands', href: 'zktalk://open-release-commands', variant: 'secondary' });
+    actions.push({
+      label: 'Open release commands',
+      href: 'zktalk://open-release-commands',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'report') {
-    actions.push({ label: 'Open release report', href: 'zktalk://open-release-report', variant: 'secondary' });
+    actions.push({
+      label: 'Open release report',
+      href: 'zktalk://open-release-report',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'verification' && hasReleaseVerification()) {
-    actions.push({ label: 'Open release verification', href: 'zktalk://open-release-verification', variant: 'secondary' });
+    actions.push({
+      label: 'Open release verification',
+      href: 'zktalk://open-release-verification',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'bundle') {
-    actions.push({ label: 'Open release bundle', href: 'zktalk://open-release-bundle', variant: 'secondary' });
+    actions.push({
+      label: 'Open release bundle',
+      href: 'zktalk://open-release-bundle',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'archive') {
-    actions.push({ label: 'Open release archive', href: 'zktalk://open-release-archive', variant: 'secondary' });
+    actions.push({
+      label: 'Open release archive',
+      href: 'zktalk://open-release-archive',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'signing') {
-    actions.push({ label: 'Open signing setup', href: 'zktalk://open-signing-setup', variant: 'secondary' });
+    actions.push({
+      label: 'Open signing setup',
+      href: 'zktalk://open-signing-setup',
+      variant: 'secondary',
+    });
   }
 
   if (currentPage !== 'signing-blockers') {
-    actions.push({ label: 'Open signing blockers', href: 'zktalk://open-signing-blockers', variant: 'secondary' });
+    actions.push({
+      label: 'Open signing blockers',
+      href: 'zktalk://open-signing-blockers',
+      variant: 'secondary',
+    });
   }
 
   return actions;
@@ -2753,23 +2899,103 @@ function renderReleaseDashboardPage() {
   renderStatusPage('Desktop release dashboard', getReleaseDashboardText(), {
     actions: [
       { label: 'Copy release dashboard', href: 'zktalk://copy-release-dashboard' },
-      { label: 'Copy release handoff markdown', href: 'zktalk://copy-release-handoff-markdown', variant: 'secondary' },
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Copy release handoff JSON', href: 'zktalk://copy-release-handoff-json', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffHtmlFile() ? [{ label: 'Open release handoff HTML file', href: 'zktalk://open-release-handoff-html-file', variant: 'secondary' }] : []),
-      { label: 'Copy primary release command', href: 'zktalk://copy-primary-release-command', variant: 'secondary' },
-      { label: 'Copy recommended release commands', href: 'zktalk://copy-recommended-release-commands', variant: 'secondary' },
-      { label: 'Copy available signed release commands', href: 'zktalk://copy-available-signed-release-commands', variant: 'secondary' },
-      { label: 'Copy release next steps', href: 'zktalk://copy-release-next-steps', variant: 'secondary' },
-      { label: 'Copy release commands', href: 'zktalk://copy-release-commands', variant: 'secondary' },
+      {
+        label: 'Copy release handoff markdown',
+        href: 'zktalk://copy-release-handoff-markdown',
+        variant: 'secondary',
+      },
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Copy release handoff JSON',
+              href: 'zktalk://copy-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffHtmlFile()
+        ? [
+            {
+              label: 'Open release handoff HTML file',
+              href: 'zktalk://open-release-handoff-html-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      {
+        label: 'Copy primary release command',
+        href: 'zktalk://copy-primary-release-command',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy recommended release commands',
+        href: 'zktalk://copy-recommended-release-commands',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy available signed release commands',
+        href: 'zktalk://copy-available-signed-release-commands',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release next steps',
+        href: 'zktalk://copy-release-next-steps',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release commands',
+        href: 'zktalk://copy-release-commands',
+        variant: 'secondary',
+      },
       { label: 'Copy installers', href: 'zktalk://copy-installers' },
-      ...(macDmgPath ? [{ label: 'Open macOS installer', href: 'zktalk://open-mac-dmg', variant: 'secondary' }] : []),
-      ...(windowsX64InstallerPath ? [{ label: 'Open Windows x64 installer', href: 'zktalk://open-win-x64-installer', variant: 'secondary' }] : []),
-      ...(windowsArm64InstallerPath ? [{ label: 'Open Windows ARM64 installer', href: 'zktalk://open-win-arm64-installer', variant: 'secondary' }] : []),
+      ...(macDmgPath
+        ? [{ label: 'Open macOS installer', href: 'zktalk://open-mac-dmg', variant: 'secondary' }]
+        : []),
+      ...(windowsX64InstallerPath
+        ? [
+            {
+              label: 'Open Windows x64 installer',
+              href: 'zktalk://open-win-x64-installer',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(windowsArm64InstallerPath
+        ? [
+            {
+              label: 'Open Windows ARM64 installer',
+              href: 'zktalk://open-win-arm64-installer',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       ...getReleaseHubActions('dashboard'),
-      { label: hasSigningEnv() ? 'Open signing env' : 'Initialize signing env', href: hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env', variant: 'secondary' },
-      ...(hasSigningEnvExample() ? [{ label: 'Open signing env example', href: 'zktalk://open-signing-env-example', variant: 'secondary' }] : []),
-      ...(fs.existsSync(LOCAL_RELEASE_DIST_DIR) ? [{ label: 'Open release dist folder', href: 'zktalk://open-release-dist', variant: 'secondary' }] : []),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      {
+        label: hasSigningEnv() ? 'Open signing env' : 'Initialize signing env',
+        href: hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env',
+        variant: 'secondary',
+      },
+      ...(hasSigningEnvExample()
+        ? [
+            {
+              label: 'Open signing env example',
+              href: 'zktalk://open-signing-env-example',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(fs.existsSync(LOCAL_RELEASE_DIST_DIR)
+        ? [
+            {
+              label: 'Open release dist folder',
+              href: 'zktalk://open-release-dist',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2779,15 +3005,53 @@ function renderReleaseHandoffPage() {
   renderStatusPage('Desktop release handoff', getReleaseHandoffText(), {
     actions: [
       { label: 'Copy release handoff', href: 'zktalk://copy-release-handoff' },
-      { label: 'Open release handoff markdown', href: 'zktalk://open-release-handoff-markdown', variant: 'secondary' },
-      { label: 'Copy release handoff markdown', href: 'zktalk://copy-release-handoff-markdown', variant: 'secondary' },
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Open release handoff JSON', href: 'zktalk://open-release-handoff-json', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffHtmlFile() ? [{ label: 'Open release handoff HTML file', href: 'zktalk://open-release-handoff-html-file', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Copy release handoff JSON', href: 'zktalk://copy-release-handoff-json', variant: 'secondary' }] : []),
-      { label: 'Copy primary release command', href: 'zktalk://copy-primary-release-command', variant: 'secondary' },
+      {
+        label: 'Open release handoff markdown',
+        href: 'zktalk://open-release-handoff-markdown',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release handoff markdown',
+        href: 'zktalk://copy-release-handoff-markdown',
+        variant: 'secondary',
+      },
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Open release handoff JSON',
+              href: 'zktalk://open-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffHtmlFile()
+        ? [
+            {
+              label: 'Open release handoff HTML file',
+              href: 'zktalk://open-release-handoff-html-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Copy release handoff JSON',
+              href: 'zktalk://copy-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      {
+        label: 'Copy primary release command',
+        href: 'zktalk://copy-primary-release-command',
+        variant: 'secondary',
+      },
       { label: 'Copy installers', href: 'zktalk://copy-installers', variant: 'secondary' },
       ...getReleaseHubActions('handoff'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2797,12 +3061,38 @@ function renderReleaseHandoffMarkdownPage() {
   renderStatusPage('Desktop release handoff markdown', getReleaseHandoffMarkdownText(), {
     actions: [
       { label: 'Copy release handoff markdown', href: 'zktalk://copy-release-handoff-markdown' },
-      { label: 'Copy release handoff', href: 'zktalk://copy-release-handoff', variant: 'secondary' },
-      { label: 'Open release handoff', href: 'zktalk://open-release-handoff', variant: 'secondary' },
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Open release handoff JSON', href: 'zktalk://open-release-handoff-json', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffHtmlFile() ? [{ label: 'Open release handoff HTML file', href: 'zktalk://open-release-handoff-html-file', variant: 'secondary' }] : []),
+      {
+        label: 'Copy release handoff',
+        href: 'zktalk://copy-release-handoff',
+        variant: 'secondary',
+      },
+      {
+        label: 'Open release handoff',
+        href: 'zktalk://open-release-handoff',
+        variant: 'secondary',
+      },
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Open release handoff JSON',
+              href: 'zktalk://open-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffHtmlFile()
+        ? [
+            {
+              label: 'Open release handoff HTML file',
+              href: 'zktalk://open-release-handoff-html-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       ...getReleaseHubActions('handoff-markdown'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2812,12 +3102,42 @@ function renderReleaseHandoffJsonPage() {
   renderStatusPage('Desktop release handoff JSON', getReleaseHandoffJsonText(), {
     actions: [
       { label: 'Copy release handoff JSON', href: 'zktalk://copy-release-handoff-json' },
-      { label: 'Open release handoff', href: 'zktalk://open-release-handoff', variant: 'secondary' },
-      ...(hasReleaseHandoff() ? [{ label: 'Open release handoff file', href: 'zktalk://open-release-handoff-file', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Open release handoff JSON file', href: 'zktalk://open-release-handoff-json-file', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffHtmlFile() ? [{ label: 'Open release handoff HTML file', href: 'zktalk://open-release-handoff-html-file', variant: 'secondary' }] : []),
+      {
+        label: 'Open release handoff',
+        href: 'zktalk://open-release-handoff',
+        variant: 'secondary',
+      },
+      ...(hasReleaseHandoff()
+        ? [
+            {
+              label: 'Open release handoff file',
+              href: 'zktalk://open-release-handoff-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Open release handoff JSON file',
+              href: 'zktalk://open-release-handoff-json-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffHtmlFile()
+        ? [
+            {
+              label: 'Open release handoff HTML file',
+              href: 'zktalk://open-release-handoff-html-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       ...getReleaseHubActions('handoff-json'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2828,24 +3148,122 @@ function renderSigningSetupPage() {
     actions: [
       { label: 'Copy signing setup', href: 'zktalk://copy-signing-setup' },
       { label: 'Copy signing blockers', href: 'zktalk://copy-signing-blockers' },
-      { label: 'Open signing blockers', href: 'zktalk://open-signing-blockers', variant: 'secondary' },
-      ...(hasSigningBlockersFile() ? [{ label: 'Open signing blockers file', href: 'zktalk://open-signing-blockers-file', variant: 'secondary' }] : []),
-      ...(hasSigningBlockersJsonFile() ? [{ label: 'Open signing blockers JSON', href: 'zktalk://open-signing-blockers-json', variant: 'secondary' }] : []),
-      { label: 'Copy release handoff markdown', href: 'zktalk://copy-release-handoff-markdown', variant: 'secondary' },
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Open release handoff JSON', href: 'zktalk://open-release-handoff-json', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffHtmlFile() ? [{ label: 'Open release handoff HTML file', href: 'zktalk://open-release-handoff-html-file', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Copy release handoff JSON', href: 'zktalk://copy-release-handoff-json', variant: 'secondary' }] : []),
-      { label: 'Copy primary release command', href: 'zktalk://copy-primary-release-command', variant: 'secondary' },
-      { label: 'Copy recommended release commands', href: 'zktalk://copy-recommended-release-commands', variant: 'secondary' },
-      { label: 'Copy available signed release commands', href: 'zktalk://copy-available-signed-release-commands', variant: 'secondary' },
-      { label: 'Copy release next steps', href: 'zktalk://copy-release-next-steps', variant: 'secondary' },
-      { label: 'Copy release commands', href: 'zktalk://copy-release-commands', variant: 'secondary' },
-      { label: hasSigningEnv() ? 'Open signing env' : 'Initialize signing env', href: hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env', variant: 'secondary' },
-      ...(hasSigningEnvExample() ? [{ label: 'Open signing env example', href: 'zktalk://open-signing-env-example', variant: 'secondary' }] : []),
+      {
+        label: 'Open signing blockers',
+        href: 'zktalk://open-signing-blockers',
+        variant: 'secondary',
+      },
+      ...(hasSigningBlockersFile()
+        ? [
+            {
+              label: 'Open signing blockers file',
+              href: 'zktalk://open-signing-blockers-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasSigningBlockersJsonFile()
+        ? [
+            {
+              label: 'Open signing blockers JSON',
+              href: 'zktalk://open-signing-blockers-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      {
+        label: 'Copy release handoff markdown',
+        href: 'zktalk://copy-release-handoff-markdown',
+        variant: 'secondary',
+      },
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Open release handoff JSON',
+              href: 'zktalk://open-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffHtmlFile()
+        ? [
+            {
+              label: 'Open release handoff HTML file',
+              href: 'zktalk://open-release-handoff-html-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Copy release handoff JSON',
+              href: 'zktalk://copy-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      {
+        label: 'Copy primary release command',
+        href: 'zktalk://copy-primary-release-command',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy recommended release commands',
+        href: 'zktalk://copy-recommended-release-commands',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy available signed release commands',
+        href: 'zktalk://copy-available-signed-release-commands',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release next steps',
+        href: 'zktalk://copy-release-next-steps',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release commands',
+        href: 'zktalk://copy-release-commands',
+        variant: 'secondary',
+      },
+      {
+        label: hasSigningEnv() ? 'Open signing env' : 'Initialize signing env',
+        href: hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env',
+        variant: 'secondary',
+      },
+      ...(hasSigningEnvExample()
+        ? [
+            {
+              label: 'Open signing env example',
+              href: 'zktalk://open-signing-env-example',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       ...getReleaseHubActions('signing'),
-      ...(hasReleaseNotes() ? [{ label: 'Open release notes', href: 'zktalk://open-release-notes', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoff() ? [{ label: 'Open release handoff file', href: 'zktalk://open-release-handoff-file', variant: 'secondary' }] : []),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(hasReleaseNotes()
+        ? [
+            {
+              label: 'Open release notes',
+              href: 'zktalk://open-release-notes',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoff()
+        ? [
+            {
+              label: 'Open release handoff file',
+              href: 'zktalk://open-release-handoff-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2855,20 +3273,94 @@ function renderSigningBlockersPage() {
   renderStatusPage('Desktop signing blockers', getSigningBlockersPageText(), {
     actions: [
       { label: 'Copy signing blockers', href: 'zktalk://copy-signing-blockers' },
-      ...(hasSigningBlockersFile() ? [{ label: 'Open signing blockers report', href: 'zktalk://open-signing-blockers-report', variant: 'secondary' }] : []),
-      ...(hasSigningBlockersFile() ? [{ label: 'Open signing blockers file', href: 'zktalk://open-signing-blockers-file', variant: 'secondary' }] : []),
-      ...(hasSigningBlockersJsonFile() ? [{ label: 'Open signing blockers JSON', href: 'zktalk://open-signing-blockers-json', variant: 'secondary' }] : []),
+      ...(hasSigningBlockersFile()
+        ? [
+            {
+              label: 'Open signing blockers report',
+              href: 'zktalk://open-signing-blockers-report',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasSigningBlockersFile()
+        ? [
+            {
+              label: 'Open signing blockers file',
+              href: 'zktalk://open-signing-blockers-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasSigningBlockersJsonFile()
+        ? [
+            {
+              label: 'Open signing blockers JSON',
+              href: 'zktalk://open-signing-blockers-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       { label: 'Open signing setup', href: 'zktalk://open-signing-setup', variant: 'secondary' },
-      { label: hasSigningEnv() ? 'Open signing env' : 'Initialize signing env', href: hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env', variant: 'secondary' },
-      ...(hasSigningEnvExample() ? [{ label: 'Open signing env example', href: 'zktalk://open-signing-env-example', variant: 'secondary' }] : []),
-      { label: 'Copy release handoff markdown', href: 'zktalk://copy-release-handoff-markdown', variant: 'secondary' },
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Open release handoff JSON', href: 'zktalk://open-release-handoff-json', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffHtmlFile() ? [{ label: 'Open release handoff HTML file', href: 'zktalk://open-release-handoff-html-file', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Copy release handoff JSON', href: 'zktalk://copy-release-handoff-json', variant: 'secondary' }] : []),
-      { label: 'Copy primary release command', href: 'zktalk://copy-primary-release-command', variant: 'secondary' },
-      { label: 'Copy release next steps', href: 'zktalk://copy-release-next-steps', variant: 'secondary' },
+      {
+        label: hasSigningEnv() ? 'Open signing env' : 'Initialize signing env',
+        href: hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env',
+        variant: 'secondary',
+      },
+      ...(hasSigningEnvExample()
+        ? [
+            {
+              label: 'Open signing env example',
+              href: 'zktalk://open-signing-env-example',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      {
+        label: 'Copy release handoff markdown',
+        href: 'zktalk://copy-release-handoff-markdown',
+        variant: 'secondary',
+      },
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Open release handoff JSON',
+              href: 'zktalk://open-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffHtmlFile()
+        ? [
+            {
+              label: 'Open release handoff HTML file',
+              href: 'zktalk://open-release-handoff-html-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Copy release handoff JSON',
+              href: 'zktalk://copy-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      {
+        label: 'Copy primary release command',
+        href: 'zktalk://copy-primary-release-command',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release next steps',
+        href: 'zktalk://copy-release-next-steps',
+        variant: 'secondary',
+      },
       ...getReleaseHubActions('signing-blockers'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2878,12 +3370,38 @@ function renderSigningBlockersReportPage() {
   renderStatusPage('Desktop signing blockers report', getSigningBlockersReportText(), {
     actions: [
       { label: 'Copy signing blockers report', href: 'zktalk://copy-signing-blockers-report' },
-      { label: 'Copy signing blockers', href: 'zktalk://copy-signing-blockers', variant: 'secondary' },
-      { label: 'Open signing blockers', href: 'zktalk://open-signing-blockers', variant: 'secondary' },
-      ...(hasSigningBlockersFile() ? [{ label: 'Open signing blockers file', href: 'zktalk://open-signing-blockers-file', variant: 'secondary' }] : []),
-      ...(hasSigningBlockersJsonFile() ? [{ label: 'Open signing blockers JSON', href: 'zktalk://open-signing-blockers-json', variant: 'secondary' }] : []),
+      {
+        label: 'Copy signing blockers',
+        href: 'zktalk://copy-signing-blockers',
+        variant: 'secondary',
+      },
+      {
+        label: 'Open signing blockers',
+        href: 'zktalk://open-signing-blockers',
+        variant: 'secondary',
+      },
+      ...(hasSigningBlockersFile()
+        ? [
+            {
+              label: 'Open signing blockers file',
+              href: 'zktalk://open-signing-blockers-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasSigningBlockersJsonFile()
+        ? [
+            {
+              label: 'Open signing blockers JSON',
+              href: 'zktalk://open-signing-blockers-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       ...getReleaseHubActions('signing-blockers-report'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2893,11 +3411,33 @@ function renderSigningBlockersJsonPage() {
   renderStatusPage('Desktop signing blockers JSON', getSigningBlockersJsonText(), {
     actions: [
       { label: 'Copy signing blockers JSON', href: 'zktalk://copy-signing-blockers-json' },
-      { label: 'Open signing blockers', href: 'zktalk://open-signing-blockers', variant: 'secondary' },
-      ...(hasSigningBlockersFile() ? [{ label: 'Open signing blockers report', href: 'zktalk://open-signing-blockers-report', variant: 'secondary' }] : []),
-      ...(hasSigningBlockersJsonFile() ? [{ label: 'Open signing blockers JSON file', href: 'zktalk://open-signing-blockers-json-file', variant: 'secondary' }] : []),
+      {
+        label: 'Open signing blockers',
+        href: 'zktalk://open-signing-blockers',
+        variant: 'secondary',
+      },
+      ...(hasSigningBlockersFile()
+        ? [
+            {
+              label: 'Open signing blockers report',
+              href: 'zktalk://open-signing-blockers-report',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasSigningBlockersJsonFile()
+        ? [
+            {
+              label: 'Open signing blockers JSON file',
+              href: 'zktalk://open-signing-blockers-json-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       ...getReleaseHubActions('signing-blockers-json'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2907,19 +3447,81 @@ function renderReleaseStatusPage() {
   renderStatusPage('Desktop release readiness', getReleaseStatusPageText(), {
     actions: [
       { label: 'Copy release readiness', href: 'zktalk://copy-release-status-summary' },
-      ...(hasReleaseSummaryJsonFile() ? [{ label: 'Open release summary', href: 'zktalk://open-release-summary', variant: 'secondary' }] : []),
-      { label: 'Copy release handoff markdown', href: 'zktalk://copy-release-handoff-markdown', variant: 'secondary' },
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Open release handoff JSON', href: 'zktalk://open-release-handoff-json', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffHtmlFile() ? [{ label: 'Open release handoff HTML file', href: 'zktalk://open-release-handoff-html-file', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Copy release handoff JSON', href: 'zktalk://copy-release-handoff-json', variant: 'secondary' }] : []),
-      { label: 'Copy primary release command', href: 'zktalk://copy-primary-release-command', variant: 'secondary' },
-      { label: 'Copy recommended release commands', href: 'zktalk://copy-recommended-release-commands', variant: 'secondary' },
-      { label: 'Copy release next steps', href: 'zktalk://copy-release-next-steps', variant: 'secondary' },
-      { label: 'Copy release commands', href: 'zktalk://copy-release-commands', variant: 'secondary' },
+      ...(hasReleaseSummaryJsonFile()
+        ? [
+            {
+              label: 'Open release summary',
+              href: 'zktalk://open-release-summary',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      {
+        label: 'Copy release handoff markdown',
+        href: 'zktalk://copy-release-handoff-markdown',
+        variant: 'secondary',
+      },
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Open release handoff JSON',
+              href: 'zktalk://open-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffHtmlFile()
+        ? [
+            {
+              label: 'Open release handoff HTML file',
+              href: 'zktalk://open-release-handoff-html-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Copy release handoff JSON',
+              href: 'zktalk://copy-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      {
+        label: 'Copy primary release command',
+        href: 'zktalk://copy-primary-release-command',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy recommended release commands',
+        href: 'zktalk://copy-recommended-release-commands',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release next steps',
+        href: 'zktalk://copy-release-next-steps',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release commands',
+        href: 'zktalk://copy-release-commands',
+        variant: 'secondary',
+      },
       ...getReleaseHubActions('status'),
-      { label: 'Open release status JSON', href: 'zktalk://open-release-status-json', variant: 'secondary' },
-      { label: 'Open signing env', href: hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env', variant: 'secondary' },
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      {
+        label: 'Open release status JSON',
+        href: 'zktalk://open-release-status-json',
+        variant: 'secondary',
+      },
+      {
+        label: 'Open signing env',
+        href: hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env',
+        variant: 'secondary',
+      },
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2929,10 +3531,28 @@ function renderReleaseSummaryPage() {
   renderStatusPage('Desktop release summary', getReleaseSummaryText(), {
     actions: [
       { label: 'Copy release summary', href: 'zktalk://copy-release-summary' },
-      ...(hasReleaseSummaryJsonFile() ? [{ label: 'Open release summary JSON', href: 'zktalk://open-release-summary-json', variant: 'secondary' }] : []),
-      ...(hasReleaseSummaryJsonFile() ? [{ label: 'Open release summary JSON file', href: 'zktalk://open-release-summary-json-file', variant: 'secondary' }] : []),
+      ...(hasReleaseSummaryJsonFile()
+        ? [
+            {
+              label: 'Open release summary JSON',
+              href: 'zktalk://open-release-summary-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseSummaryJsonFile()
+        ? [
+            {
+              label: 'Open release summary JSON file',
+              href: 'zktalk://open-release-summary-json-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       ...getReleaseHubActions('release-summary'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2941,10 +3561,24 @@ function renderReleaseSummaryPage() {
 function renderReleaseSummaryJsonPage() {
   renderStatusPage('Desktop release summary JSON', getReleaseSummaryJsonText(), {
     actions: [
-      { label: 'Open release summary', href: 'zktalk://open-release-summary', variant: 'secondary' },
-      ...(hasReleaseSummaryJsonFile() ? [{ label: 'Open release summary JSON file', href: 'zktalk://open-release-summary-json-file', variant: 'secondary' }] : []),
+      {
+        label: 'Open release summary',
+        href: 'zktalk://open-release-summary',
+        variant: 'secondary',
+      },
+      ...(hasReleaseSummaryJsonFile()
+        ? [
+            {
+              label: 'Open release summary JSON file',
+              href: 'zktalk://open-release-summary-json-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       ...getReleaseHubActions('release-summary-json'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2959,11 +3593,31 @@ function renderReleaseArtifactsPage() {
     actions: [
       { label: 'Copy release artifacts', href: 'zktalk://copy-release-artifacts' },
       { label: 'Open release manifest JSON', href: 'zktalk://open-release-manifest-json' },
-      ...(macDmgPath ? [{ label: 'Open macOS installer', href: 'zktalk://open-mac-dmg', variant: 'secondary' }] : []),
-      ...(windowsX64InstallerPath ? [{ label: 'Open Windows x64 installer', href: 'zktalk://open-win-x64-installer', variant: 'secondary' }] : []),
-      ...(windowsArm64InstallerPath ? [{ label: 'Open Windows ARM64 installer', href: 'zktalk://open-win-arm64-installer', variant: 'secondary' }] : []),
+      ...(macDmgPath
+        ? [{ label: 'Open macOS installer', href: 'zktalk://open-mac-dmg', variant: 'secondary' }]
+        : []),
+      ...(windowsX64InstallerPath
+        ? [
+            {
+              label: 'Open Windows x64 installer',
+              href: 'zktalk://open-win-x64-installer',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(windowsArm64InstallerPath
+        ? [
+            {
+              label: 'Open Windows ARM64 installer',
+              href: 'zktalk://open-win-arm64-installer',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       ...getReleaseHubActions('artifacts'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2973,9 +3627,15 @@ function renderReleaseChecksumsPage() {
   renderStatusPage('Desktop release checksums', getReleaseChecksumsText(), {
     actions: [
       { label: 'Copy release checksums', href: 'zktalk://copy-release-checksums' },
-      { label: 'Open release checksums file', href: 'zktalk://open-release-checksums-file', variant: 'secondary' },
+      {
+        label: 'Open release checksums file',
+        href: 'zktalk://open-release-checksums-file',
+        variant: 'secondary',
+      },
       ...getReleaseHubActions('checksums'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2984,9 +3644,15 @@ function renderReleaseChecksumsPage() {
 function renderReleaseIndexPage() {
   renderStatusPage('Desktop release index', getReleaseIndexText(), {
     actions: [
-      { label: 'Open release index file', href: 'zktalk://open-release-index-file', variant: 'secondary' },
+      {
+        label: 'Open release index file',
+        href: 'zktalk://open-release-index-file',
+        variant: 'secondary',
+      },
       ...getReleaseHubActions('index'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -2995,16 +3661,58 @@ function renderReleaseIndexPage() {
 function renderReleaseCommandsPage() {
   renderStatusPage('Desktop release commands', getReleaseCommandsText(), {
     actions: [
-      { label: 'Copy release handoff markdown', href: 'zktalk://copy-release-handoff-markdown', variant: 'secondary' },
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Open release handoff JSON', href: 'zktalk://open-release-handoff-json', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffHtmlFile() ? [{ label: 'Open release handoff HTML file', href: 'zktalk://open-release-handoff-html-file', variant: 'secondary' }] : []),
-      ...(hasReleaseHandoffJsonFile() ? [{ label: 'Copy release handoff JSON', href: 'zktalk://copy-release-handoff-json', variant: 'secondary' }] : []),
-      { label: 'Copy primary release command', href: 'zktalk://copy-primary-release-command', variant: 'secondary' },
-      { label: 'Copy recommended release commands', href: 'zktalk://copy-recommended-release-commands', variant: 'secondary' },
-      { label: 'Copy available signed release commands', href: 'zktalk://copy-available-signed-release-commands', variant: 'secondary' },
+      {
+        label: 'Copy release handoff markdown',
+        href: 'zktalk://copy-release-handoff-markdown',
+        variant: 'secondary',
+      },
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Open release handoff JSON',
+              href: 'zktalk://open-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffHtmlFile()
+        ? [
+            {
+              label: 'Open release handoff HTML file',
+              href: 'zktalk://open-release-handoff-html-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Copy release handoff JSON',
+              href: 'zktalk://copy-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      {
+        label: 'Copy primary release command',
+        href: 'zktalk://copy-primary-release-command',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy recommended release commands',
+        href: 'zktalk://copy-recommended-release-commands',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy available signed release commands',
+        href: 'zktalk://copy-available-signed-release-commands',
+        variant: 'secondary',
+      },
       { label: 'Copy release commands', href: 'zktalk://copy-release-commands' },
       ...getReleaseHubActions('commands'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -3014,9 +3722,15 @@ function renderReleaseReportPage() {
   renderStatusPage('Desktop release report', getReleaseReportText(), {
     actions: [
       { label: 'Copy release report', href: 'zktalk://copy-release-report' },
-      { label: 'Open release report file', href: 'zktalk://open-release-report-file', variant: 'secondary' },
+      {
+        label: 'Open release report file',
+        href: 'zktalk://open-release-report-file',
+        variant: 'secondary',
+      },
       ...getReleaseHubActions('report'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -3026,11 +3740,37 @@ function renderReleaseVerificationPage() {
   renderStatusPage('Desktop release verification', getReleaseVerificationText(), {
     actions: [
       { label: 'Copy release verification', href: 'zktalk://copy-release-verification' },
-      ...(hasReleaseVerification() ? [{ label: 'Open release verification file', href: 'zktalk://open-release-verification-file', variant: 'secondary' }] : []),
-      ...(hasReleaseVerificationJsonFile() ? [{ label: 'Open release verification JSON', href: 'zktalk://open-release-verification-json', variant: 'secondary' }] : []),
-      ...(hasReleaseVerificationHtmlFile() ? [{ label: 'Open release verification HTML file', href: 'zktalk://open-release-verification-html-file', variant: 'secondary' }] : []),
+      ...(hasReleaseVerification()
+        ? [
+            {
+              label: 'Open release verification file',
+              href: 'zktalk://open-release-verification-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseVerificationJsonFile()
+        ? [
+            {
+              label: 'Open release verification JSON',
+              href: 'zktalk://open-release-verification-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseVerificationHtmlFile()
+        ? [
+            {
+              label: 'Open release verification HTML file',
+              href: 'zktalk://open-release-verification-html-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       ...getReleaseHubActions('verification'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -3040,11 +3780,37 @@ function renderReleaseVerificationJsonPage() {
   renderStatusPage('Desktop release verification JSON', getReleaseVerificationJsonText(), {
     actions: [
       { label: 'Copy release verification JSON', href: 'zktalk://copy-release-verification-json' },
-      ...(hasReleaseVerification() ? [{ label: 'Open release verification', href: 'zktalk://open-release-verification', variant: 'secondary' }] : []),
-      ...(hasReleaseVerificationJsonFile() ? [{ label: 'Open release verification JSON file', href: 'zktalk://open-release-verification-json-file', variant: 'secondary' }] : []),
-      ...(hasReleaseVerificationHtmlFile() ? [{ label: 'Open release verification HTML file', href: 'zktalk://open-release-verification-html-file', variant: 'secondary' }] : []),
+      ...(hasReleaseVerification()
+        ? [
+            {
+              label: 'Open release verification',
+              href: 'zktalk://open-release-verification',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseVerificationJsonFile()
+        ? [
+            {
+              label: 'Open release verification JSON file',
+              href: 'zktalk://open-release-verification-json-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseVerificationHtmlFile()
+        ? [
+            {
+              label: 'Open release verification HTML file',
+              href: 'zktalk://open-release-verification-html-file',
+              variant: 'secondary',
+            },
+          ]
+        : []),
       ...getReleaseHubActions('verification-json'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -3054,9 +3820,15 @@ function renderReleaseBundlePage() {
   renderStatusPage('Desktop release bundle', getReleaseBundleText(), {
     actions: [
       { label: 'Copy release bundle', href: 'zktalk://copy-release-bundle' },
-      { label: 'Open release bundle folder', href: 'zktalk://open-release-bundle-folder', variant: 'secondary' },
+      {
+        label: 'Open release bundle folder',
+        href: 'zktalk://open-release-bundle-folder',
+        variant: 'secondary',
+      },
       ...getReleaseHubActions('bundle'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -3066,9 +3838,15 @@ function renderReleaseArchivePage() {
   renderStatusPage('Desktop release archive', getReleaseArchiveText(), {
     actions: [
       { label: 'Copy release archive', href: 'zktalk://copy-release-archive' },
-      { label: 'Open release archive file', href: 'zktalk://open-release-archive-file', variant: 'secondary' },
+      {
+        label: 'Open release archive file',
+        href: 'zktalk://open-release-archive-file',
+        variant: 'secondary',
+      },
       ...getReleaseHubActions('archive'),
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -3092,7 +3870,9 @@ function renderReleaseNotesPage() {
   renderStatusPage('Desktop release notes', notes, {
     actions: [
       { label: 'Copy diagnostics', href: 'zktalk://copy-diagnostics' },
-      ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
     ],
     config: getDesktopConfigSnapshot(),
   });
@@ -3391,9 +4171,7 @@ function installApplicationMenu() {
       submenu: [
         { role: 'minimize' },
         { role: 'close' },
-        ...(process.platform === 'darwin'
-          ? [{ type: 'separator' }, { role: 'front' }]
-          : []),
+        ...(process.platform === 'darwin' ? [{ type: 'separator' }, { role: 'front' }] : []),
       ],
     },
     {
@@ -3565,7 +4343,9 @@ function installApplicationMenu() {
               {
                 label: 'Open release verification HTML file',
                 click: () => {
-                  handleDesktopAction('zktalk://open-release-verification-html-file').catch(() => {});
+                  handleDesktopAction('zktalk://open-release-verification-html-file').catch(
+                    () => {},
+                  );
                 },
               },
             ]
@@ -3591,7 +4371,9 @@ function installApplicationMenu() {
               {
                 label: hasSigningEnv() ? 'Open signing env' : 'Initialize signing env',
                 click: () => {
-                  handleDesktopAction(hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env').catch(() => {});
+                  handleDesktopAction(
+                    hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env',
+                  ).catch(() => {});
                 },
               },
             ]
@@ -3627,9 +4409,7 @@ function registerProtocolClient() {
   }
 
   if (process.defaultApp && process.argv[1]) {
-    app.setAsDefaultProtocolClient('zktalk', process.execPath, [
-      path.resolve(process.argv[1]),
-    ]);
+    app.setAsDefaultProtocolClient('zktalk', process.execPath, [path.resolve(process.argv[1])]);
   }
 }
 
@@ -3640,8 +4420,12 @@ function createWindow() {
     !Number.isFinite(windowState.x) || !Number.isFinite(windowState.y);
   const preferredWorkArea = getPreferredDesktopWorkArea();
   const centeredBounds = {
-    x: preferredWorkArea.x + Math.max(0, Math.round((preferredWorkArea.width - windowState.width) / 2)),
-    y: preferredWorkArea.y + Math.max(0, Math.round((preferredWorkArea.height - windowState.height) / 2)),
+    x:
+      preferredWorkArea.x +
+      Math.max(0, Math.round((preferredWorkArea.width - windowState.width) / 2)),
+    y:
+      preferredWorkArea.y +
+      Math.max(0, Math.round((preferredWorkArea.height - windowState.height) / 2)),
     width: windowState.width,
     height: windowState.height,
   };
@@ -3694,11 +4478,13 @@ function createWindow() {
   const desktopSession = mainWindow.webContents.session;
   desktopSession.webRequest.onCompleted((details) => {
     if (
-      details.resourceType === 'script'
-      || details.resourceType === 'xhr'
-      || details.resourceType === 'fetch'
+      details.resourceType === 'script' ||
+      details.resourceType === 'xhr' ||
+      details.resourceType === 'fetch'
     ) {
-      appendDesktopLog(`Request completed: ${details.statusCode} ${details.resourceType} ${details.url}`);
+      appendDesktopLog(
+        `Request completed: ${details.statusCode} ${details.resourceType} ${details.url}`,
+      );
     }
   });
 
@@ -3780,7 +4566,9 @@ function createWindow() {
   });
 
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
-    appendDesktopLog(`Renderer process gone: reason=${details.reason} exitCode=${details.exitCode}`);
+    appendDesktopLog(
+      `Renderer process gone: reason=${details.reason} exitCode=${details.exitCode}`,
+    );
     if (!isQuitting) {
       renderFailurePage(
         'zkTalk renderer stopped',
@@ -3805,43 +4593,54 @@ function createWindow() {
     clearRevealTimeouts();
     ensureMainWindowOnScreen();
     writeWindowHealth({ reason: 'did-finish-load' });
-    appendDesktopLog(`Main frame finished loading: ${mainWindow.webContents.getURL() || '(empty)'}`);
+    appendDesktopLog(
+      `Main frame finished loading: ${mainWindow.webContents.getURL() || '(empty)'}`,
+    );
   });
 
   mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
     appendDesktopLog(`Renderer console[level=${level}] ${sourceId}:${line} ${message}`);
   });
 
-  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
-    if (!isMainFrame) {
-      return;
-    }
+  mainWindow.webContents.on(
+    'did-fail-load',
+    (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
+      if (!isMainFrame) {
+        return;
+      }
 
-    if (errorCode === -3 || errorDescription === 'ERR_ABORTED') {
-      appendDesktopLog(`Ignoring expected main-frame abort: code=${errorCode} description=${errorDescription} url=${validatedUrl}`);
-      return;
-    }
+      if (errorCode === -3 || errorDescription === 'ERR_ABORTED') {
+        appendDesktopLog(
+          `Ignoring expected main-frame abort: code=${errorCode} description=${errorDescription} url=${validatedUrl}`,
+        );
+        return;
+      }
 
-    const targetUrl = getReroutedAppUrl(validatedUrl);
-    if (targetUrl && targetUrl !== validatedUrl) {
-      appendDesktopLog(`Retrying failed main-frame load with rewritten URL ${targetUrl} (from ${validatedUrl})`);
-      mainWindow.loadURL(targetUrl).catch(() => {});
-      return;
-    }
+      const targetUrl = getReroutedAppUrl(validatedUrl);
+      if (targetUrl && targetUrl !== validatedUrl) {
+        appendDesktopLog(
+          `Retrying failed main-frame load with rewritten URL ${targetUrl} (from ${validatedUrl})`,
+        );
+        mainWindow.loadURL(targetUrl).catch(() => {});
+        return;
+      }
 
-    appendDesktopLog(`Main frame load failed: code=${errorCode} description=${errorDescription} url=${validatedUrl}`);
-    if (!isQuitting) {
-      renderFailurePage(
-        'zkTalk could not load',
-        [
-          `URL: ${validatedUrl || '(unknown)'}`,
-          `Error: ${errorDescription} (${errorCode})`,
-          '',
-          'Check diagnostics or logs, then retry the app.',
-        ].join('\n'),
+      appendDesktopLog(
+        `Main frame load failed: code=${errorCode} description=${errorDescription} url=${validatedUrl}`,
       );
-    }
-  });
+      if (!isQuitting) {
+        renderFailurePage(
+          'zkTalk could not load',
+          [
+            `URL: ${validatedUrl || '(unknown)'}`,
+            `Error: ${errorDescription} (${errorCode})`,
+            '',
+            'Check diagnostics or logs, then retry the app.',
+          ].join('\n'),
+        );
+      }
+    },
+  );
 }
 
 function renderStatusPage(title, body, options = {}) {
@@ -3851,14 +4650,15 @@ function renderStatusPage(title, body, options = {}) {
 
   const config = options.config;
   const actions = options.actions ?? [];
-  const actionsHtml = actions.length > 0
-    ? `<div class="actions">${actions
-        .map(
-          (action) =>
-            `<a class="button ${action.variant === 'secondary' ? 'secondary' : ''}" href="${action.href}">${action.label}</a>`,
-        )
-        .join('')}</div>`
-    : '';
+  const actionsHtml =
+    actions.length > 0
+      ? `<div class="actions">${actions
+          .map(
+            (action) =>
+              `<a class="button ${action.variant === 'secondary' ? 'secondary' : ''}" href="${action.href}">${action.label}</a>`,
+          )
+          .join('')}</div>`
+      : '';
   const configEditorHtml = config
     ? `<form id="desktop-config-form" class="config-form">
         <div class="field">
@@ -3877,6 +4677,15 @@ function renderStatusPage(title, body, options = {}) {
           <label for="webUrl">Optional external web URL</label>
           <input id="webUrl" name="webUrl" type="url" value="${escapeHtml(config.webUrl || '')}" placeholder="https://app.example.com" />
         </div>
+        <div class="field">
+          <label for="localAgentLanguagePreset">Local agent language preset</label>
+          <select id="localAgentLanguagePreset" name="localAgentLanguagePreset">
+            <option value="manual_only"${config.localAgentLanguagePreset === 'manual_only' ? ' selected' : ''}>manual_only</option>
+            <option value="english_only"${config.localAgentLanguagePreset === 'english_only' ? ' selected' : ''}>english_only</option>
+            <option value="korean_preferred_english_readable"${config.localAgentLanguagePreset === 'korean_preferred_english_readable' ? ' selected' : ''}>korean_preferred_english_readable</option>
+          </select>
+        </div>
+        <p class="hint">This preset is reserved for the desktop-first local Codex bridge so host and worker machines render predictable language output.</p>
         <p class="hint">Desktop config: ${escapeHtml(config.path || '')}</p>
         <div class="actions">
           <button type="submit" class="button">Save and retry</button>
@@ -3986,6 +4795,16 @@ function renderStatusPage(title, body, options = {}) {
           padding: 12px 14px;
           font-size: 14px;
         }
+        select {
+          width: 100%;
+          box-sizing: border-box;
+          border-radius: 12px;
+          border: 1px solid rgba(148, 163, 184, 0.24);
+          background: rgba(15, 23, 42, 0.9);
+          color: #f8fafc;
+          padding: 12px 14px;
+          font-size: 14px;
+        }
         .hint, .status {
           font-size: 13px;
           color: #94a3b8;
@@ -4061,6 +4880,7 @@ function renderStatusPage(title, body, options = {}) {
                 wsUrl: formData.get('wsUrl'),
                 livekitUrl: formData.get('livekitUrl'),
                 webUrl: formData.get('webUrl'),
+                localAgentLanguagePreset: formData.get('localAgentLanguagePreset'),
               });
               setStatus('Saved. Reconnecting to zkTalk...', 'success');
               await desktopApi.retryLoad();
@@ -4106,172 +4926,462 @@ function renderConnectionSettingsPage() {
 
 function renderDiagnosticsPage() {
   const releaseActions = [
-    { label: 'Open release dashboard', href: 'zktalk://open-release-dashboard', variant: 'secondary' },
+    {
+      label: 'Open release dashboard',
+      href: 'zktalk://open-release-dashboard',
+      variant: 'secondary',
+    },
     { label: 'Open release handoff', href: 'zktalk://open-release-handoff', variant: 'secondary' },
-    { label: 'Open release handoff markdown', href: 'zktalk://open-release-handoff-markdown', variant: 'secondary' },
+    {
+      label: 'Open release handoff markdown',
+      href: 'zktalk://open-release-handoff-markdown',
+      variant: 'secondary',
+    },
     ...(hasReleaseHandoffJsonFile()
-      ? [{ label: 'Open release handoff JSON', href: 'zktalk://open-release-handoff-json', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release handoff JSON',
+            href: 'zktalk://open-release-handoff-json',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseHandoffHtmlFile()
-      ? [{ label: 'Open release handoff HTML file', href: 'zktalk://open-release-handoff-html-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release handoff HTML file',
+            href: 'zktalk://open-release-handoff-html-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
     { label: 'Open signing setup', href: 'zktalk://open-signing-setup', variant: 'secondary' },
-    { label: 'Open signing blockers', href: 'zktalk://open-signing-blockers', variant: 'secondary' },
+    {
+      label: 'Open signing blockers',
+      href: 'zktalk://open-signing-blockers',
+      variant: 'secondary',
+    },
     ...(hasSigningBlockersFile()
-      ? [{ label: 'Open signing blockers report', href: 'zktalk://open-signing-blockers-report', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open signing blockers report',
+            href: 'zktalk://open-signing-blockers-report',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasSigningBlockersJsonFile()
-      ? [{ label: 'Open signing blockers JSON', href: 'zktalk://open-signing-blockers-json', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open signing blockers JSON',
+            href: 'zktalk://open-signing-blockers-json',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasSigningBlockersJsonFile()
-      ? [{ label: 'Open signing blockers JSON file', href: 'zktalk://open-signing-blockers-json-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open signing blockers JSON file',
+            href: 'zktalk://open-signing-blockers-json-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
     { label: 'Open release notes', href: 'zktalk://open-release-notes', variant: 'secondary' },
     ...(hasSigningEnvExample()
-      ? [{
-          label: hasSigningEnv() ? 'Open signing env' : 'Initialize signing env',
-          href: hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env',
-          variant: 'secondary',
-        }]
+      ? [
+          {
+            label: hasSigningEnv() ? 'Open signing env' : 'Initialize signing env',
+            href: hasSigningEnv() ? 'zktalk://open-signing-env' : 'zktalk://init-signing-env',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasSigningEnvExample()
-      ? [{ label: 'Open signing env example', href: 'zktalk://open-signing-env-example', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open signing env example',
+            href: 'zktalk://open-signing-env-example',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(fs.existsSync(LOCAL_RELEASE_DIST_DIR)
-      ? [{ label: 'Open release dist folder', href: 'zktalk://open-release-dist', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release dist folder',
+            href: 'zktalk://open-release-dist',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseManifest()
-      ? [{ label: 'Open release artifacts', href: 'zktalk://open-release-manifest', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release artifacts',
+            href: 'zktalk://open-release-manifest',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseManifest()
-      ? [{ label: 'Open release manifest JSON', href: 'zktalk://open-release-manifest-json', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release manifest JSON',
+            href: 'zktalk://open-release-manifest-json',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseStatus()
-      ? [{ label: 'Open release status', href: 'zktalk://open-release-status', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release status',
+            href: 'zktalk://open-release-status',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseSummaryJsonFile()
-      ? [{ label: 'Open release summary', href: 'zktalk://open-release-summary', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release summary',
+            href: 'zktalk://open-release-summary',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseStatus()
-      ? [{ label: 'Open release status JSON', href: 'zktalk://open-release-status-json', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release status JSON',
+            href: 'zktalk://open-release-status-json',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseSummaryJsonFile()
-      ? [{ label: 'Open release summary JSON', href: 'zktalk://open-release-summary-json', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release summary JSON',
+            href: 'zktalk://open-release-summary-json',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseSummaryJsonFile()
-      ? [{ label: 'Open release summary JSON file', href: 'zktalk://open-release-summary-json-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release summary JSON file',
+            href: 'zktalk://open-release-summary-json-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseChecksums()
-      ? [{ label: 'Open release checksums', href: 'zktalk://open-release-checksums', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release checksums',
+            href: 'zktalk://open-release-checksums',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseChecksums()
-      ? [{ label: 'Open release checksums file', href: 'zktalk://open-release-checksums-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release checksums file',
+            href: 'zktalk://open-release-checksums-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseIndex()
       ? [{ label: 'Open release index', href: 'zktalk://open-release-index', variant: 'secondary' }]
       : []),
     ...(hasReleaseIndex()
-      ? [{ label: 'Open release index file', href: 'zktalk://open-release-index-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release index file',
+            href: 'zktalk://open-release-index-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseHandoff()
-      ? [{ label: 'Open release handoff file', href: 'zktalk://open-release-handoff-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release handoff file',
+            href: 'zktalk://open-release-handoff-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseHandoffJsonFile()
-      ? [{ label: 'Open release handoff JSON file', href: 'zktalk://open-release-handoff-json-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release handoff JSON file',
+            href: 'zktalk://open-release-handoff-json-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseHandoffHtmlFile()
-      ? [{ label: 'Open release handoff HTML file', href: 'zktalk://open-release-handoff-html-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release handoff HTML file',
+            href: 'zktalk://open-release-handoff-html-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
-    { label: 'Open release commands', href: 'zktalk://open-release-commands', variant: 'secondary' },
+    {
+      label: 'Open release commands',
+      href: 'zktalk://open-release-commands',
+      variant: 'secondary',
+    },
     ...(hasReleaseReport()
-      ? [{ label: 'Open release report', href: 'zktalk://open-release-report', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release report',
+            href: 'zktalk://open-release-report',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseReport()
-      ? [{ label: 'Open release report file', href: 'zktalk://open-release-report-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release report file',
+            href: 'zktalk://open-release-report-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseVerification()
-      ? [{ label: 'Open release verification', href: 'zktalk://open-release-verification', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release verification',
+            href: 'zktalk://open-release-verification',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseVerification()
-      ? [{ label: 'Open release verification file', href: 'zktalk://open-release-verification-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release verification file',
+            href: 'zktalk://open-release-verification-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseVerificationJsonFile()
-      ? [{ label: 'Open release verification JSON', href: 'zktalk://open-release-verification-json', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release verification JSON',
+            href: 'zktalk://open-release-verification-json',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseVerificationJsonFile()
-      ? [{ label: 'Open release verification JSON file', href: 'zktalk://open-release-verification-json-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release verification JSON file',
+            href: 'zktalk://open-release-verification-json-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseVerificationHtmlFile()
-      ? [{ label: 'Open release verification HTML file', href: 'zktalk://open-release-verification-html-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release verification HTML file',
+            href: 'zktalk://open-release-verification-html-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseBundle()
-      ? [{ label: 'Open release bundle', href: 'zktalk://open-release-bundle', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release bundle',
+            href: 'zktalk://open-release-bundle',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseBundle()
-      ? [{ label: 'Open release bundle folder', href: 'zktalk://open-release-bundle-folder', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release bundle folder',
+            href: 'zktalk://open-release-bundle-folder',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseArchive()
-      ? [{ label: 'Open release archive', href: 'zktalk://open-release-archive', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release archive',
+            href: 'zktalk://open-release-archive',
+            variant: 'secondary',
+          },
+        ]
       : []),
     ...(hasReleaseArchive()
-      ? [{ label: 'Open release archive file', href: 'zktalk://open-release-archive-file', variant: 'secondary' }]
+      ? [
+          {
+            label: 'Open release archive file',
+            href: 'zktalk://open-release-archive-file',
+            variant: 'secondary',
+          },
+        ]
       : []),
   ];
 
-  renderStatusPage(
-    'Desktop diagnostics',
-    getDiagnosticsText(),
-    {
-      actions: [
-        { label: 'Connection settings', href: 'zktalk://settings' },
-        { label: 'Export support bundle', href: 'zktalk://export-support-bundle' },
-        { label: 'Copy diagnostics', href: 'zktalk://copy-diagnostics', variant: 'secondary' },
-        { label: 'Copy release paths', href: 'zktalk://copy-release-paths', variant: 'secondary' },
-        { label: 'Copy release readiness', href: 'zktalk://copy-release-status-summary', variant: 'secondary' },
-        ...(hasReleaseSummaryJsonFile()
-          ? [{ label: 'Copy release summary', href: 'zktalk://copy-release-summary', variant: 'secondary' }]
-          : []),
-        { label: 'Copy release next steps', href: 'zktalk://copy-release-next-steps', variant: 'secondary' },
-        { label: 'Copy release commands', href: 'zktalk://copy-release-commands', variant: 'secondary' },
-        { label: 'Copy primary release command', href: 'zktalk://copy-primary-release-command', variant: 'secondary' },
-        { label: 'Copy recommended release commands', href: 'zktalk://copy-recommended-release-commands', variant: 'secondary' },
-        { label: 'Copy available signed release commands', href: 'zktalk://copy-available-signed-release-commands', variant: 'secondary' },
-        { label: 'Copy release artifacts', href: 'zktalk://copy-release-artifacts', variant: 'secondary' },
-        { label: 'Copy release checksums', href: 'zktalk://copy-release-checksums', variant: 'secondary' },
-        { label: 'Copy release report', href: 'zktalk://copy-release-report', variant: 'secondary' },
-        ...(hasReleaseVerification()
-          ? [{ label: 'Copy release verification', href: 'zktalk://copy-release-verification', variant: 'secondary' }]
-          : []),
-        ...(hasReleaseVerificationJsonFile()
-          ? [{ label: 'Copy release verification JSON', href: 'zktalk://copy-release-verification-json', variant: 'secondary' }]
-          : []),
-        { label: 'Copy release bundle', href: 'zktalk://copy-release-bundle', variant: 'secondary' },
-        { label: 'Copy release archive', href: 'zktalk://copy-release-archive', variant: 'secondary' },
-        { label: 'Copy release dashboard', href: 'zktalk://copy-release-dashboard', variant: 'secondary' },
-        { label: 'Copy release handoff', href: 'zktalk://copy-release-handoff', variant: 'secondary' },
-        { label: 'Copy release handoff markdown', href: 'zktalk://copy-release-handoff-markdown', variant: 'secondary' },
-        ...(hasReleaseHandoffJsonFile()
-          ? [{ label: 'Copy release handoff JSON', href: 'zktalk://copy-release-handoff-json', variant: 'secondary' }]
-          : []),
-        { label: 'Copy installers', href: 'zktalk://copy-installers', variant: 'secondary' },
-        { label: 'Copy signing setup', href: 'zktalk://copy-signing-setup', variant: 'secondary' },
-        { label: 'Copy signing blockers', href: 'zktalk://copy-signing-blockers', variant: 'secondary' },
-        ...(hasSigningBlockersFile()
-          ? [{ label: 'Copy signing blockers report', href: 'zktalk://copy-signing-blockers-report', variant: 'secondary' }]
-          : []),
-        ...(hasSigningBlockersJsonFile()
-          ? [{ label: 'Copy signing blockers JSON', href: 'zktalk://copy-signing-blockers-json', variant: 'secondary' }]
-          : []),
-        { label: 'Open config file', href: 'zktalk://open-config', variant: 'secondary' },
-        { label: 'Open logs', href: 'zktalk://open-logs', variant: 'secondary' },
-        { label: 'Open support folder', href: 'zktalk://open-support-folder', variant: 'secondary' },
-        { label: 'Open data folder', href: 'zktalk://open-data-folder', variant: 'secondary' },
-        ...releaseActions,
-        ...(resolvedAppUrl ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }] : []),
-      ],
-      config: getDesktopConfigSnapshot(),
-    },
-  );
+  renderStatusPage('Desktop diagnostics', getDiagnosticsText(), {
+    actions: [
+      { label: 'Connection settings', href: 'zktalk://settings' },
+      { label: 'Export support bundle', href: 'zktalk://export-support-bundle' },
+      { label: 'Copy diagnostics', href: 'zktalk://copy-diagnostics', variant: 'secondary' },
+      { label: 'Copy release paths', href: 'zktalk://copy-release-paths', variant: 'secondary' },
+      {
+        label: 'Copy release readiness',
+        href: 'zktalk://copy-release-status-summary',
+        variant: 'secondary',
+      },
+      ...(hasReleaseSummaryJsonFile()
+        ? [
+            {
+              label: 'Copy release summary',
+              href: 'zktalk://copy-release-summary',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      {
+        label: 'Copy release next steps',
+        href: 'zktalk://copy-release-next-steps',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release commands',
+        href: 'zktalk://copy-release-commands',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy primary release command',
+        href: 'zktalk://copy-primary-release-command',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy recommended release commands',
+        href: 'zktalk://copy-recommended-release-commands',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy available signed release commands',
+        href: 'zktalk://copy-available-signed-release-commands',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release artifacts',
+        href: 'zktalk://copy-release-artifacts',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release checksums',
+        href: 'zktalk://copy-release-checksums',
+        variant: 'secondary',
+      },
+      { label: 'Copy release report', href: 'zktalk://copy-release-report', variant: 'secondary' },
+      ...(hasReleaseVerification()
+        ? [
+            {
+              label: 'Copy release verification',
+              href: 'zktalk://copy-release-verification',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasReleaseVerificationJsonFile()
+        ? [
+            {
+              label: 'Copy release verification JSON',
+              href: 'zktalk://copy-release-verification-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      { label: 'Copy release bundle', href: 'zktalk://copy-release-bundle', variant: 'secondary' },
+      {
+        label: 'Copy release archive',
+        href: 'zktalk://copy-release-archive',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release dashboard',
+        href: 'zktalk://copy-release-dashboard',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release handoff',
+        href: 'zktalk://copy-release-handoff',
+        variant: 'secondary',
+      },
+      {
+        label: 'Copy release handoff markdown',
+        href: 'zktalk://copy-release-handoff-markdown',
+        variant: 'secondary',
+      },
+      ...(hasReleaseHandoffJsonFile()
+        ? [
+            {
+              label: 'Copy release handoff JSON',
+              href: 'zktalk://copy-release-handoff-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      { label: 'Copy installers', href: 'zktalk://copy-installers', variant: 'secondary' },
+      { label: 'Copy signing setup', href: 'zktalk://copy-signing-setup', variant: 'secondary' },
+      {
+        label: 'Copy signing blockers',
+        href: 'zktalk://copy-signing-blockers',
+        variant: 'secondary',
+      },
+      ...(hasSigningBlockersFile()
+        ? [
+            {
+              label: 'Copy signing blockers report',
+              href: 'zktalk://copy-signing-blockers-report',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      ...(hasSigningBlockersJsonFile()
+        ? [
+            {
+              label: 'Copy signing blockers JSON',
+              href: 'zktalk://copy-signing-blockers-json',
+              variant: 'secondary',
+            },
+          ]
+        : []),
+      { label: 'Open config file', href: 'zktalk://open-config', variant: 'secondary' },
+      { label: 'Open logs', href: 'zktalk://open-logs', variant: 'secondary' },
+      { label: 'Open support folder', href: 'zktalk://open-support-folder', variant: 'secondary' },
+      { label: 'Open data folder', href: 'zktalk://open-data-folder', variant: 'secondary' },
+      ...releaseActions,
+      ...(resolvedAppUrl
+        ? [{ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' }]
+        : []),
+    ],
+    config: getDesktopConfigSnapshot(),
+  });
 }
 
 function getStandaloneEntry() {
@@ -4447,15 +5557,20 @@ async function loadApp() {
   }
 
   const configuredWebUrl = getConfiguredWebUrl();
+  const devWebUrlReachable = !configuredWebUrl && (await probeServer(DEV_WEB_URL));
   if (configuredWebUrl) {
     appendDesktopLog(`Using external web URL ${configuredWebUrl}`);
+    stopBundledServer();
+  } else if (devWebUrlReachable) {
+    appendDesktopLog(`Using reachable dev web URL ${DEV_WEB_URL}`);
     stopBundledServer();
   }
 
   try {
-    const standaloneEntry = configuredWebUrl ? null : getStandaloneEntry();
+    const standaloneEntry = configuredWebUrl || devWebUrlReachable ? null : getStandaloneEntry();
     const bundledUrl = standaloneEntry ? await startBundledServer() : null;
-    const fallbackUrl = configuredWebUrl || bundledUrl || DEV_WEB_URL;
+    const fallbackUrl =
+      configuredWebUrl || (devWebUrlReachable ? DEV_WEB_URL : null) || bundledUrl || DEV_WEB_URL;
     const isApiReachable = await ensureApiReachable();
 
     if (!isApiReachable) {
@@ -4510,7 +5625,9 @@ async function loadApp() {
       'zkTalk could not start',
       [
         'The desktop app could not find a ready web bundle.',
-        standaloneEntry ? `Expected bundle: ${standaloneEntry}` : 'No standalone bundle path was configured.',
+        standaloneEntry
+          ? `Expected bundle: ${standaloneEntry}`
+          : 'No standalone bundle path was configured.',
         '',
         'Try one of these:',
         '- Build the web bundle first',
@@ -4586,20 +5703,41 @@ ipcMain.handle('desktop-files:pick', async (event, options) => {
 
   appendDesktopLog(`desktop-files:pick selected ${result.filePaths.length} file(s)`);
 
-  return Promise.all(result.filePaths.map(async (filePath) => {
-    const [bytes, stats] = await Promise.all([
-      fs.promises.readFile(filePath),
-      fs.promises.stat(filePath),
-    ]);
+  return Promise.all(
+    result.filePaths.map(async (filePath) => {
+      const stats = await fs.promises.stat(filePath);
+      return {
+        path: filePath,
+        name: path.basename(filePath),
+        type: guessMimeTypeFromPath(filePath),
+        size: stats.size,
+        lastModified: Math.round(stats.mtimeMs),
+      };
+    }),
+  );
+});
+ipcMain.handle('desktop-files:read-chunk', async (_event, payload) => {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Desktop read chunk payload is missing.');
+  }
 
-    return {
-      name: path.basename(filePath),
-      type: guessMimeTypeFromPath(filePath),
-      size: stats.size,
-      lastModified: Math.round(stats.mtimeMs),
-      bytes: Array.from(bytes),
-    };
-  }));
+  const filePath = typeof payload.path === 'string' ? payload.path : '';
+  const start = Number.isFinite(payload.start) ? Math.max(0, payload.start) : 0;
+  const end = Number.isFinite(payload.end) ? Math.max(start, payload.end) : start;
+
+  if (!filePath) {
+    throw new Error('Desktop read chunk path is missing.');
+  }
+
+  const length = Math.max(0, end - start);
+  const handle = await fs.promises.open(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(length);
+    const { bytesRead } = await handle.read(buffer, 0, length, start);
+    return Array.from(buffer.subarray(0, bytesRead));
+  } finally {
+    await handle.close();
+  }
 });
 ipcMain.handle('desktop-files:open', async (_event, payload) => {
   if (!payload || typeof payload !== 'object') {
@@ -4641,11 +5779,7 @@ process.on('uncaughtException', (error) => {
   if (!isQuitting) {
     renderFailurePage(
       'zkTalk hit an unexpected error',
-      [
-        'The desktop process hit an unexpected error.',
-        '',
-        message,
-      ].join('\n'),
+      ['The desktop process hit an unexpected error.', '', message].join('\n'),
     );
   }
 });
@@ -4656,18 +5790,12 @@ process.on('unhandledRejection', (reason) => {
   if (!isQuitting) {
     renderFailurePage(
       'zkTalk hit an unexpected error',
-      [
-        'A background task failed unexpectedly.',
-        '',
-        message,
-      ].join('\n'),
+      ['A background task failed unexpectedly.', '', message].join('\n'),
     );
   }
 });
 
-const gotSingleInstanceLock = IS_DESKTOP_TEST_INSTANCE
-  ? true
-  : app.requestSingleInstanceLock();
+const gotSingleInstanceLock = IS_DESKTOP_TEST_INSTANCE ? true : app.requestSingleInstanceLock();
 
 if (!gotSingleInstanceLock) {
   appendBootDebug('singleInstanceLock=false');

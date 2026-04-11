@@ -73,6 +73,9 @@ function podInstall() {
       LC_ALL: process.env.LC_ALL ?? 'en_US.UTF-8',
       API_URL: apiBaseUrl,
       EXPO_PUBLIC_API_URL: apiBaseUrl,
+      ENABLE_SIMULATOR_HARNESS: process.env.ENABLE_SIMULATOR_HARNESS ?? 'true',
+      EXPO_PUBLIC_ENABLE_SIMULATOR_HARNESS:
+        process.env.EXPO_PUBLIC_ENABLE_SIMULATOR_HARNESS ?? 'true',
     },
   });
 }
@@ -239,6 +242,9 @@ function buildStandaloneApp({ udid, scheme, configuration, derivedDataPath }) {
     ...process.env,
     API_URL: apiBaseUrl,
     EXPO_PUBLIC_API_URL: apiBaseUrl,
+    ENABLE_SIMULATOR_HARNESS: process.env.ENABLE_SIMULATOR_HARNESS ?? 'true',
+    EXPO_PUBLIC_ENABLE_SIMULATOR_HARNESS:
+      process.env.EXPO_PUBLIC_ENABLE_SIMULATOR_HARNESS ?? 'true',
   };
 
   if (hasExcpretty()) {
@@ -273,12 +279,12 @@ function buildStandaloneApp({ udid, scheme, configuration, derivedDataPath }) {
 
 function printUsage() {
   console.log(`Usage:
-  node scripts/prepare-mobile-standalone-simulator.mjs [--device booted|<udid>|<name>] [--scheme zkTalk] [--configuration Debug] [--derived-data-path <path>] [--skip-build] [--pod-install]
+  node scripts/prepare-mobile-standalone-simulator.mjs [--device booted|<udid>|<name>] [--scheme zkTalk] [--configuration Release] [--derived-data-path <path>] [--skip-build] [--pod-install]
 
 Defaults:
   --device booted
   --scheme zkTalk
-  --configuration Debug
+  --configuration Release
   --derived-data-path .tmp/mobile-ios-derived-data
   --pod-install auto
 `);
@@ -297,7 +303,7 @@ function main() {
 
   const requestedDevice = args.device ?? 'booted';
   const scheme = args.scheme ?? 'zkTalk';
-  const configuration = args.configuration ?? 'Debug';
+  const configuration = args.configuration ?? 'Release';
   const derivedDataPath = path.resolve(args['derived-data-path'] ?? defaultDerivedDataPath);
   const skipBuild = args['skip-build'] === 'true';
   const shouldPodInstall = args['pod-install'] === 'true' || podsNeedInstall();

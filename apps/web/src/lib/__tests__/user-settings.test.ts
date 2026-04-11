@@ -5,12 +5,14 @@ import {
   applyCommunityOrder,
   cacheCollapsedSections,
   cacheCommunityOrder,
+  clearCachedUserSettings,
   fetchUserSettings,
   getCachedCollapsedSections,
   getCachedCommunityOrder,
   getCollapsedSectionState,
   saveCommunityOrder,
   saveLastVisited,
+  saveTranslationDisplay,
   setCollapsedSectionState,
 } from '../user-settings';
 
@@ -134,6 +136,55 @@ describe('user-settings', () => {
     });
   });
 
+  it('saves translation display preferences through the API', async () => {
+    mockApi.mockResolvedValue({
+      settings: {
+        communityOrder: ['community-1'],
+        collapsedSections: {},
+        lastVisited: null,
+        translationDisplay: {
+          uiLocale: 'ko',
+          mode: 'target_language_except_readable',
+          targetLanguage: 'ko',
+          readableLanguages: ['ko', 'en'],
+        },
+        updatedAt: '2026-04-10T00:00:00.000Z',
+      },
+    } as never);
+
+    await expect(
+      saveTranslationDisplay({
+        uiLocale: 'ko',
+        mode: 'target_language_except_readable',
+        targetLanguage: 'ko',
+        readableLanguages: ['ko', 'en'],
+      }),
+    ).resolves.toEqual({
+      communityOrder: ['community-1'],
+      collapsedSections: {},
+      lastVisited: null,
+      translationDisplay: {
+        uiLocale: 'ko',
+        mode: 'target_language_except_readable',
+        targetLanguage: 'ko',
+        readableLanguages: ['ko', 'en'],
+      },
+      updatedAt: '2026-04-10T00:00:00.000Z',
+    });
+
+    expect(mockApi).toHaveBeenCalledWith('/api/me/settings', {
+      method: 'PATCH',
+      body: {
+        translationDisplay: {
+          uiLocale: 'ko',
+          mode: 'target_language_except_readable',
+          targetLanguage: 'ko',
+          readableLanguages: ['ko', 'en'],
+        },
+      },
+    });
+  });
+
   it('caches collapsed sections and dispatches an update event', () => {
     const listener = vi.fn();
     window.addEventListener(COLLAPSED_SECTIONS_UPDATED_EVENT, listener);
@@ -155,5 +206,24 @@ describe('user-settings', () => {
     });
     expect(getCollapsedSectionState('section:a')).toBe(true);
     expect(getCollapsedSectionState('section:b')).toBe(true);
+  });
+
+  it('clears cached auth-bound user setting state and emits reset events', () => {
+    const communityOrderListener = vi.fn();
+    const collapsedSectionsListener = vi.fn();
+    window.addEventListener(COMMUNITY_ORDER_UPDATED_EVENT, communityOrderListener);
+    window.addEventListener(COLLAPSED_SECTIONS_UPDATED_EVENT, collapsedSectionsListener);
+    cacheCommunityOrder(['community-9']);
+    cacheCollapsedSections({ 'section:z': true });
+
+    clearCachedUserSettings();
+
+    expect(getCachedCommunityOrder()).toEqual([]);
+    expect(getCachedCollapsedSections()).toEqual({});
+    expect(communityOrderListener).toHaveBeenCalledTimes(2);
+    expect(collapsedSectionsListener).toHaveBeenCalledTimes(2);
+
+    window.removeEventListener(COMMUNITY_ORDER_UPDATED_EVENT, communityOrderListener);
+    window.removeEventListener(COLLAPSED_SECTIONS_UPDATED_EVENT, collapsedSectionsListener);
   });
 });

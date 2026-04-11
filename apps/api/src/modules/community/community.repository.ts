@@ -1,4 +1,4 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { db } from '../../lib/db/index.js';
 import {
   communities,
@@ -103,16 +103,48 @@ export async function updateCommunity(
 
 // --------------- Default Channel ---------------
 
-export async function createDefaultChannel(communityId: string) {
+export async function createDefaultChannel(
+  communityId: string,
+  accessPolicy: 'public' | 'members_only' | 'invite_only' | 'private' = 'public',
+) {
   const id = uuidv7();
   await db.insert(channels).values({
     id,
     communityId,
     name: 'general',
     type: 'chat',
-    visibility: 'public',
+    visibility: accessPolicy === 'public' ? 'public' : 'role_restricted',
+    accessPolicy,
     position: 0,
   });
+}
+
+export async function countChannelsByAccessPolicy(
+  communityId: string,
+  accessPolicy: 'public' | 'members_only' | 'invite_only' | 'private',
+) {
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(channels)
+    .where(and(eq(channels.communityId, communityId), eq(channels.accessPolicy, accessPolicy)));
+
+  return Number(result[0]?.count ?? 0);
+}
+
+export async function findChannelsByIds(channelIds: string[]) {
+  if (channelIds.length === 0) {
+    return [];
+  }
+
+  return db
+    .select({
+      id: channels.id,
+      communityId: channels.communityId,
+      name: channels.name,
+      accessPolicy: channels.accessPolicy,
+    })
+    .from(channels)
+    .where(inArray(channels.id, channelIds));
 }
 
 // --------------- Membership ---------------

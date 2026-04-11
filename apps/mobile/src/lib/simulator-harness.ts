@@ -33,8 +33,7 @@ const configuredSimulatorHarnessFlag =
 
 export const isSimulatorHarnessEnabled =
   !Device.isDevice &&
-  (configuredSimulatorHarnessFlag === true ||
-    (__DEV__ && configuredSimulatorHarnessFlag !== false));
+  configuredSimulatorHarnessFlag !== false;
 
 export const simulatorHarnessDirectory = isSimulatorHarnessEnabled
   ? LegacyFileSystem.documentDirectory ?? null

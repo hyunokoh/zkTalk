@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -11,6 +11,8 @@ const distDir = path.join(desktopDir, 'dist');
 const statusPath = path.join(distDir, 'release-status.json');
 const signingEnv = loadSigningEnv();
 const isQuiet = process.argv.includes('--quiet');
+
+mkdirSync(distDir, { recursive: true });
 
 try {
   const output = execFileSync(process.execPath, [path.join(__dirname, 'release-check.mjs'), '--json'], {

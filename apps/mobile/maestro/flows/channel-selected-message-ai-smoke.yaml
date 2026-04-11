@@ -1,0 +1,32 @@
+appId: com.zktalk.mobile
+env:
+  FLOW_WAIT_TIMEOUT_MS: 20000
+---
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      text: "# ${CHANNEL_NAME}"
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertVisible: "# ${CHANNEL_NAME}"
+- extendedWaitUntil:
+    visible:
+      text: ${MESSAGE_BODY}
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertVisible: ${MESSAGE_BODY}
+- longPressOn:
+    text: ${MESSAGE_BODY}
+- extendedWaitUntil:
+    visible:
+      id: message-action-sheet-ai-section
+    timeout: ${FLOW_WAIT_TIMEOUT_MS}
+- assertVisible:
+    id: message-action-sheet-ai-status
+- assertVisible:
+    id: message-action-sheet-ai-reply-draft
+- assertVisible:
+    id: message-action-sheet-ai-rewrite-draft
+- assertVisible:
+    id: message-action-sheet-ai-translate-inline
+- assertVisible:
+    id: message-action-sheet-reply

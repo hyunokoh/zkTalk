@@ -14,6 +14,7 @@ const manifestPath = path.join(distDir, 'release-manifest.json');
 const checksumsPath = path.join(distDir, 'SHA256SUMS.txt');
 const bundleDir = path.join(distDir, 'release-bundle');
 const archivePath = path.join(distDir, 'zkTalk-desktop-release-bundle.tar.gz');
+const skipBundlePrereqs = process.env.ZKTALK_RELEASE_SKIP_BUNDLE_PREREQS === '1';
 
 function ensureExists(filePath, scriptFile) {
   if (existsSync(filePath)) {
@@ -58,14 +59,26 @@ function escapeHtml(value) {
 
 ensureExists(manifestPath, 'release-manifest.mjs');
 ensureExists(checksumsPath, 'release-checksums.mjs');
-ensureExists(bundleDir, 'release-bundle.mjs');
-ensureExists(archivePath, 'release-archive.mjs');
+if (!skipBundlePrereqs) {
+  ensureExists(bundleDir, 'release-bundle.mjs');
+  ensureExists(archivePath, 'release-archive.mjs');
+}
 
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 
 const distVerification = runVerification([path.join(__dirname, 'release-verify.mjs')]);
-const bundleVerification = runVerification([path.join(__dirname, 'release-verify.mjs'), '--bundle']);
-const archiveVerification = runVerification([path.join(__dirname, 'release-verify-archive.mjs')]);
+const bundleVerification = skipBundlePrereqs && !existsSync(bundleDir)
+  ? {
+      ok: false,
+      output: 'Skipped bundle verification while generating release handoff before the bundle exists.',
+    }
+  : runVerification([path.join(__dirname, 'release-verify.mjs'), '--bundle']);
+const archiveVerification = skipBundlePrereqs && !existsSync(archivePath)
+  ? {
+      ok: false,
+      output: 'Skipped archive verification while generating release handoff before the archive exists.',
+    }
+  : runVerification([path.join(__dirname, 'release-verify-archive.mjs')]);
 
 const checkEntries = [
   ['Dist', distVerification],

@@ -2,10 +2,20 @@
 
 Related docs:
 
+- `/Users/hyunokoh/Documents/Projects/zkTalk/docs/README.md`
+- `/Users/hyunokoh/Documents/Projects/zkTalk/docs/CURRENT_STATUS.md`
+- `/Users/hyunokoh/Documents/Projects/zkTalk/docs/current-release-next.md`
 - `/Users/hyunokoh/Documents/Projects/zkTalk/HANDOFF.md`
 - `/Users/hyunokoh/Documents/Projects/zkTalk/docs/test-matrix-2026-03-25.md`
 - `/Users/hyunokoh/Documents/Projects/zkTalk/docs/release-readiness-checklist-2026-03-25.md`
 - `/Users/hyunokoh/Documents/Projects/zkTalk/docs/current-blockers-2026-03-25.md`
+
+Source-of-truth rule:
+
+- Use `docs/README.md` when the current authority document is unclear.
+- Use `docs/current-release-next.md` and `docs/current-release-next.json` for the latest repo-level release snapshot.
+- Keep credential/device blockers in `docs/current-blockers-2026-03-25.md`.
+- Keep code-fixable runtime or regression work in `docs/production-runtime-runbook.md`, `docs/COMMERCIALIZATION_PLAN.md`, and `docs/IMPLEMENTATION_PLAN.md`.
 
 ## Local development
 
@@ -24,6 +34,12 @@ npm run start:devserver
 ```
 
 Desktop runtime settings live in `desktop.config.json`.
+
+The desktop config now also carries `localAgentLanguagePreset` for the desktop-first local Codex bridge. Use one of:
+
+- `manual_only`
+- `english_only`
+- `korean_preferred_english_readable`
 
 The app can also open this file from:
 
@@ -57,6 +73,11 @@ Current output locations:
 - Windows x64 unpacked: `dist/win-unpacked/zkTalk.exe`
 - Windows x64 installer: `dist/zkTalk-win-x64-0.0.1.exe`
 - Windows arm64 unpacked: `dist/win-arm64-unpacked/zkTalk.exe`
+- Windows arm64 installer: `dist/zkTalk-win-arm64-0.0.1.exe`
+
+Installer and blockmap naming is controlled by `artifactName=zkTalk-${os}-${arch}-${version}.${ext}` in `apps/desktop/package.json`.
+Use dist/release-manifest.json as the source of truth for the current installer and blockmap set instead of relying on a static file list.
+The manifest currently collects .dmg, .exe, and .blockmap outputs from dist/.
 
 ## Release preflight
 
@@ -136,6 +157,9 @@ npm run release:unsigned
 
 That orchestration now does an initial bundle/archive pass, runs verification, then refreshes the final summary, report, index, bundle, and archive so the shipped metadata all reflects the latest verification results.
 
+The unsigned handoff flow is the correct operator path when signing credentials or devices are still unavailable.
+Missing `signing.env`, Apple notarization credentials, Windows certificates, or a local signing identity are external input blockers, not reasons to reopen desktop packaging code by default.
+
 To rebuild every installer first and then regenerate all release metadata:
 
 ```bash
@@ -193,6 +217,26 @@ It also lets you generate:
 - `npm run release:verify:bundle` to verify the bundle contents after copying
 - `dist/zkTalk-desktop-release-bundle.tar.gz` as a single handoff archive
 - `npm run release:verify:archive` to verify the archive contents after compression
+
+dist/release-bundle/ currently contains:
+
+- installer artifacts and blockmaps copied from `dist/release-manifest.json`
+- `release-manifest.json`
+- `release-status.json`
+- `signing-blockers.md`
+- `signing-blockers.json`
+- `release-summary.json`
+- `SHA256SUMS.txt`
+- `release-report.md`
+- `release-handoff.md`
+- `release-handoff.json`
+- `release-handoff.html`
+- `release-verification.md`
+- `release-verification.json`
+- `release-verification.html`
+- `release-index.html`
+- `RELEASE.md`
+- `README.txt`
 
 `signing-blockers.md` and `signing-blockers.json` now refresh from the latest `release-status.json`, show whether `signing.env` exists/loaded, and switch the recommended primary command back to `npm run release:init-signing` if the env file exists but did not load.
 `release-summary.json`, `release-report.md`, `release-handoff.*`, `release-index.html`, and `release-bundle/` now also refresh their signing/readiness inputs on each run so they do not silently package stale blocker data.

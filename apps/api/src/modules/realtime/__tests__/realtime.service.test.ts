@@ -27,13 +27,12 @@ vi.mock('../../../lib/redis.js', () => ({
   redisSub: mockRedisSub,
 }));
 
-// Mock DB for permission checks in subscribe methods
 vi.mock('../../../lib/db/index.js', () => ({
   db: {
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ id: 'mock', communityId: 'community-1' }]),
+          limit: vi.fn().mockResolvedValue([{ id: 'mock' }]),
         }),
       }),
     }),
@@ -41,11 +40,15 @@ vi.mock('../../../lib/db/index.js', () => ({
 }));
 
 vi.mock('../../../lib/db/schema.js', () => ({
-  channels: { id: 'id', communityId: 'community_id' },
   communityMemberships: { id: 'id', userId: 'user_id', communityId: 'community_id', membershipStatus: 'membership_status' },
 }));
 
+vi.mock('../../channel/channel-access.service.js', () => ({
+  assertCanAccessChannel: vi.fn().mockResolvedValue({ id: 'channel-1', communityId: 'community-1' }),
+}));
+
 import { realtimeService } from '../realtime.service.js';
+import { assertCanAccessChannel } from '../../channel/channel-access.service.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -74,6 +77,7 @@ describe('RealtimeService', () => {
       expect(client.ws).toBe(ws);
       expect(client.subscribedChannels.size).toBe(0);
       expect(client.subscribedCommunities.size).toBe(0);
+      expect(client.subscribedDms.size).toBe(0);
       expect(realtimeService.getConnectionCount()).toBeGreaterThanOrEqual(1);
 
       // Cleanup
@@ -134,6 +138,48 @@ describe('RealtimeService', () => {
       // After removal, subscriptions should be cleaned up
       expect(client.subscribedChannels.size).toBe(0);
     });
+
+    it('should reject peer file requests without an active channel subscription', async () => {
+      const ws = createMockWebSocket();
+      const client = realtimeService.addClient('user-5b', ws);
+
+      const requested = await realtimeService.requestChannelPeerFile(
+        client,
+        'channel-secret',
+        'file-1',
+      );
+
+      expect(requested).toBe(false);
+      expect(mockRedis.publish).not.toHaveBeenCalledWith(
+        'ws:channel:channel-secret',
+        expect.stringContaining('"event":"p2p.file_request"'),
+      );
+
+      realtimeService.removeClient(client);
+    });
+
+    it('should unsubscribe a client when peer file access is no longer allowed', async () => {
+      const ws = createMockWebSocket();
+      const client = realtimeService.addClient('user-5c', ws);
+
+      await realtimeService.subscribeToChannel(client, 'channel-secret');
+      vi.mocked(assertCanAccessChannel).mockRejectedValueOnce(new Error('forbidden'));
+
+      const requested = await realtimeService.requestChannelPeerFile(
+        client,
+        'channel-secret',
+        'file-2',
+      );
+
+      expect(requested).toBe(false);
+      expect(client.subscribedChannels.has('channel-secret')).toBe(false);
+      expect(mockRedis.publish).not.toHaveBeenCalledWith(
+        'ws:channel:channel-secret',
+        expect.stringContaining('"event":"p2p.file_request"'),
+      );
+
+      realtimeService.removeClient(client);
+    });
   });
 
   // ── Broadcasting ────────────────────────────────────────────────
@@ -165,6 +211,62 @@ describe('RealtimeService', () => {
         expect.stringContaining('"excludeUserId":"user-1"'),
       );
     });
+
+    it('should deliver immediately to locally subscribed clients', async () => {
+      const ws = createMockWebSocket();
+      const client = realtimeService.addClient('user-local-1', ws);
+
+      await realtimeService.subscribeToChannel(client, 'channel-live');
+      realtimeService.broadcastToChannel(
+        'channel-live',
+        WebSocketEvent.MESSAGE_CREATED,
+        { text: 'hello-now' },
+      );
+
+      expect(ws.send).toHaveBeenCalledTimes(1);
+      const sent = JSON.parse((ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+      expect(sent.event).toBe(WebSocketEvent.MESSAGE_CREATED);
+      expect(sent.channelId).toBe('channel-live');
+      expect(sent.data).toEqual({ text: 'hello-now' });
+
+      realtimeService.removeClient(client);
+    });
+
+    it('should ignore subscriptions for inaccessible channels', async () => {
+      vi.mocked(assertCanAccessChannel).mockRejectedValueOnce(new Error('forbidden'));
+      const ws = createMockWebSocket();
+      const client = realtimeService.addClient('user-6', ws);
+
+      await realtimeService.subscribeToChannel(client, 'channel-secret');
+
+      expect(client.subscribedChannels.has('channel-secret')).toBe(false);
+      expect(ws.send).toHaveBeenCalledWith(
+        expect.stringContaining('"code":"CHANNEL_ACCESS_DENIED"'),
+      );
+
+      realtimeService.removeClient(client);
+    });
+
+    it('should broadcast peer file requests only for authorized subscribers', async () => {
+      const ws = createMockWebSocket();
+      const client = realtimeService.addClient('user-6b', ws);
+
+      await realtimeService.subscribeToChannel(client, 'channel-live');
+
+      const requested = await realtimeService.requestChannelPeerFile(
+        client,
+        'channel-live',
+        'file-live',
+      );
+
+      expect(requested).toBe(true);
+      expect(mockRedis.publish).toHaveBeenCalledWith(
+        'ws:channel:channel-live',
+        expect.stringContaining('"event":"p2p.file_request"'),
+      );
+
+      realtimeService.removeClient(client);
+    });
   });
 
   describe('broadcastToCommunity', () => {
@@ -179,6 +281,25 @@ describe('RealtimeService', () => {
         'ws:community:community-1',
         expect.stringContaining('"event":"presence.updated"'),
       );
+    });
+
+    it('should deliver immediately to local community subscribers', async () => {
+      const ws = createMockWebSocket();
+      const client = realtimeService.addClient('user-community-1', ws);
+
+      await realtimeService.subscribeToCommunity(client, 'community-1');
+      realtimeService.broadcastToCommunity(
+        'community-1',
+        WebSocketEvent.PRESENCE_UPDATED,
+        { userId: 'user-1', status: 'online' },
+      );
+
+      expect(ws.send).toHaveBeenCalledTimes(1);
+      const sent = JSON.parse((ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+      expect(sent.event).toBe(WebSocketEvent.PRESENCE_UPDATED);
+      expect(sent.communityId).toBe('community-1');
+
+      realtimeService.removeClient(client);
     });
   });
 

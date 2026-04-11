@@ -168,6 +168,7 @@ export function VoiceRoomButton({
         <button
           onClick={handleLeave}
           disabled={leaveMutation.isPending}
+          data-testid="voice-room-leave-button"
           className={activeLeaveClass}
           title={t('voice.leave')}
         >
@@ -187,6 +188,7 @@ export function VoiceRoomButton({
       <button
         onClick={handleJoinVoice}
         disabled={joinMutation.isPending || isConnected}
+        data-testid="voice-room-join-button"
         className={joinButtonClass}
         title={t('voice.join')}
       >
@@ -198,6 +200,7 @@ export function VoiceRoomButton({
       <button
         onClick={handleJoinVideo}
         disabled={joinMutation.isPending || isConnected}
+        data-testid="voice-room-join-video-button"
         className={joinButtonClass}
         title={t('voice.videoCall')}
       >

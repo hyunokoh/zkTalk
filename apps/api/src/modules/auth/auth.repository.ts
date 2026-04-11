@@ -3,6 +3,10 @@ import { db } from '../../lib/db/index.js';
 import { users, userKeys, userAuthMethods, otpCodes, userSettings } from '../../lib/db/schema.js';
 import { uuidv7 } from 'uuidv7';
 import type { AuthMethodType } from '@zktalk/shared';
+import {
+  DEFAULT_TRANSLATION_DISPLAY_PREFERENCE,
+  normalizeTranslationDisplayPreference,
+} from '@zktalk/shared';
 
 // ── User Queries ─────────────────────────────────────────────────────
 
@@ -232,6 +236,12 @@ export async function upsertUserSettings(
       threadId?: string;
       conversationId?: string;
     } | null;
+    translationDisplay?: {
+      uiLocale: string;
+      mode: 'manual_only' | 'target_language_all' | 'target_language_except_readable';
+      targetLanguage: string | null;
+      readableLanguages: string[];
+    };
   },
 ) {
   const existing = await getUserSettings(userId);
@@ -263,11 +273,16 @@ export async function upsertUserSettings(
     : data.lastVisited === null
       ? null
       : JSON.stringify(data.lastVisited);
+  const translationDisplay = JSON.stringify(
+    data.translationDisplay
+      ?? parseTranslationDisplay(existing?.translationDisplay ?? null),
+  );
 
   const values = {
     communityOrder: JSON.stringify(communityOrder),
     collapsedSections: JSON.stringify(collapsedSections),
     lastVisited,
+    translationDisplay,
     updatedAt: now,
   };
 
@@ -276,6 +291,7 @@ export async function upsertUserSettings(
     communityOrder: JSON.stringify(communityOrder),
     collapsedSections: JSON.stringify(collapsedSections),
     lastVisited,
+    translationDisplay,
     createdAt: now,
     updatedAt: now,
   };
@@ -340,5 +356,17 @@ export function parseLastVisited(value: string | null): {
     };
   } catch {
     return null;
+  }
+}
+
+export function parseTranslationDisplay(value: string | null | undefined) {
+  if (!value) {
+    return DEFAULT_TRANSLATION_DISPLAY_PREFERENCE;
+  }
+
+  try {
+    return normalizeTranslationDisplayPreference(JSON.parse(value));
+  } catch {
+    return DEFAULT_TRANSLATION_DISPLAY_PREFERENCE;
   }
 }

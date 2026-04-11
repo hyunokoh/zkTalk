@@ -23,6 +23,17 @@ const summaryPath = path.join(distDir, 'release-summary.json');
 const bundlePath = path.join(distDir, 'release-bundle');
 const archivePath = path.join(distDir, 'zkTalk-desktop-release-bundle.tar.gz');
 const indexPath = path.join(distDir, 'release-index.html');
+const repoRoot = path.resolve(desktopDir, '..', '..');
+const docsDir = path.join(repoRoot, 'docs');
+const docsIndexPath = path.join(docsDir, 'README.md');
+const currentStatusPath = path.join(docsDir, 'CURRENT_STATUS.md');
+const repoSnapshotPath = path.join(docsDir, 'current-release-next.md');
+const repoSnapshotJsonPath = path.join(docsDir, 'current-release-next.json');
+const blockerSummaryPath = path.join(docsDir, 'current-blockers-2026-03-25.md');
+const runtimeRunbookPath = path.join(docsDir, 'production-runtime-runbook.md');
+const commercializationPlanPath = path.join(docsDir, 'COMMERCIALIZATION_PLAN.md');
+const implementationPlanPath = path.join(docsDir, 'IMPLEMENTATION_PLAN.md');
+const desktopReleasePath = path.join(desktopDir, 'RELEASE.md');
 
 function runScript(scriptName) {
   execFileSync(process.execPath, [path.join(__dirname, scriptName)], {
@@ -129,6 +140,18 @@ ${blockerSection}
 ## Available Signed Release Commands
 
 ${targetCommands.length > 0 ? targetCommands.join('\n') : '- None'}
+
+## Source Of Truth
+
+- Docs index: \`${docsIndexPath}\`
+- Current status: \`${currentStatusPath}\`
+- Repo release snapshot: \`${repoSnapshotPath}\`
+- Repo release snapshot JSON: \`${repoSnapshotJsonPath}\`
+- Current blocker summary: \`${blockerSummaryPath}\`
+- Production runtime runbook: \`${runtimeRunbookPath}\`
+- Commercialization plan: \`${commercializationPlanPath}\`
+- Implementation plan: \`${implementationPlanPath}\`
+- Desktop release runbook: \`${desktopReleasePath}\`
 
 ## Result
 

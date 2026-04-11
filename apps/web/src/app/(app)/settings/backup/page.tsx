@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useAuthStore } from '@/stores/auth';
 import { api } from '@/lib/api';
+import { devLogError } from '@/lib/client-log';
+import {
+  getBackupExportErrorMessage,
+  getBackupImportErrorMessage,
+} from '@/lib/error-copy';
 import {
   encrypt,
   decrypt,
@@ -20,12 +25,15 @@ interface BackupData {
   dmMessages: unknown[];
 }
 
+type BackupStatusTone = 'neutral' | 'success' | 'error';
+
 export default function BackupSettingsPage() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [statusTone, setStatusTone] = useState<BackupStatusTone>('neutral');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ensureBackupKey = async (userId: string): Promise<string> => {
@@ -35,6 +43,7 @@ export default function BackupSettingsPage() {
     }
 
     setStatus(t('backup.generatingKey'));
+    setStatusTone('neutral');
 
     const keyPair = await generateKeyPair();
     await storePrivateKey(userId, keyPair.privateKey);
@@ -50,6 +59,7 @@ export default function BackupSettingsPage() {
     if (!user) return;
     setIsExporting(true);
     setStatus(t('backup.encrypting'));
+    setStatusTone('neutral');
 
     try {
       // Fetch the backup data from server
@@ -100,9 +110,11 @@ export default function BackupSettingsPage() {
       URL.revokeObjectURL(url);
 
       setStatus(t('backup.exportSuccess'));
+      setStatusTone('success');
     } catch (err) {
-      setStatus(t('backup.exportError'));
-      console.error('[Backup] Export failed:', err);
+      setStatus(getBackupExportErrorMessage(t, err));
+      setStatusTone('error');
+      devLogError('[Backup] Export failed:', err);
     } finally {
       setIsExporting(false);
     }
@@ -114,6 +126,7 @@ export default function BackupSettingsPage() {
 
     setIsImporting(true);
     setStatus(t('backup.decrypting'));
+    setStatusTone('neutral');
 
     try {
       const encryptedData = await file.text();
@@ -128,6 +141,7 @@ export default function BackupSettingsPage() {
       const privateKeyBase64 = await getPrivateKey(user.id);
       if (!privateKeyBase64) {
         setStatus(t('backup.noKey'));
+        setStatusTone('error');
         setIsImporting(false);
         return;
       }
@@ -157,12 +171,15 @@ export default function BackupSettingsPage() {
       const decrypted = await decrypt(encryptedData, backupKey);
       const backup = JSON.parse(decrypted) as BackupData;
 
-      setStatus(
-        `${t('backup.importSuccess')} (${backup.channelMessages.length} channel, ${backup.dmMessages.length} DM messages)`,
-      );
+      setStatus(t('backup.importSuccessDetail', {
+        channelCount: backup.channelMessages.length,
+        dmCount: backup.dmMessages.length,
+      }));
+      setStatusTone('success');
     } catch (err) {
-      setStatus(t('backup.importError'));
-      console.error('[Backup] Import failed:', err);
+      setStatus(getBackupImportErrorMessage(t, err));
+      setStatusTone('error');
+      devLogError('[Backup] Import failed:', err);
     } finally {
       setIsImporting(false);
       // Reset file input
@@ -219,7 +236,15 @@ export default function BackupSettingsPage() {
 
         {/* Status */}
         {status && (
-          <div className="rounded-lg border border-gray-700 bg-gray-800/50 p-4 text-sm text-gray-300">
+          <div
+            className={`rounded-lg border p-4 text-sm ${
+              statusTone === 'success'
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
+                : statusTone === 'error'
+                  ? 'border-rose-500/30 bg-rose-500/10 text-rose-100'
+                  : 'border-gray-700 bg-gray-800/50 text-gray-300'
+            }`}
+          >
             {status}
           </div>
         )}

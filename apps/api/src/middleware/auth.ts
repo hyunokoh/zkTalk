@@ -1,6 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import * as jose from 'jose';
 import { AppError } from '../lib/errors.js';
+import { getCookieSecretBytes } from '../lib/env.js';
 
 export interface RequestUser {
   id: string;
@@ -16,35 +17,34 @@ declare module 'fastify' {
 }
 
 const COOKIE_NAME = 'zktalk_session';
+const AUTH_MODE_HEADER = 'x-zktalk-auth-mode';
 
-function getCookieSecret(): Uint8Array {
-  const secret = process.env.COOKIE_SECRET || 'dev-cookie-secret-change-in-production';
-  return new TextEncoder().encode(secret);
+function getBearerToken(request: FastifyRequest): string | undefined {
+  const authHeader = request.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+
+  return undefined;
 }
 
 export async function authenticate(
   request: FastifyRequest,
   _reply: FastifyReply,
 ): Promise<void> {
-  // Prefer an explicit Bearer token so desktop/mobile harness flows
-  // can override a stale browser cookie during session handoff.
-  let token: string | undefined;
-
-  const authHeader = request.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    token = authHeader.slice(7);
-  }
-
-  if (!token) {
-    token = request.cookies[COOKIE_NAME];
-  }
+  const cookieToken = request.cookies[COOKIE_NAME];
+  const bearerToken = getBearerToken(request);
+  const authModeHeader = request.headers[AUTH_MODE_HEADER];
+  const wantsBearerOverride =
+    typeof authModeHeader === 'string' && authModeHeader.toLowerCase() === 'bearer';
+  const token = wantsBearerOverride ? bearerToken : cookieToken ?? bearerToken;
 
   if (!token) {
     throw AppError.unauthorized('Missing session cookie or authorization header');
   }
 
   try {
-    const { payload } = await jose.jwtVerify(token, getCookieSecret(), {
+    const { payload } = await jose.jwtVerify(token, getCookieSecretBytes(), {
       issuer: 'zktalk',
       audience: 'zktalk-session',
     });
@@ -66,7 +66,7 @@ export async function createSessionToken(user: {
   displayName: string;
   username: string;
 }): Promise<string> {
-  const secret = getCookieSecret();
+  const secret = getCookieSecretBytes();
   return new jose.SignJWT({
     email: user.email,
     displayName: user.displayName,

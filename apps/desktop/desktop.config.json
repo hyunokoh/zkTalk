@@ -2,5 +2,6 @@
   "apiUrl": "http://127.0.0.1:4000",
   "wsUrl": "ws://127.0.0.1:4000/api/ws",
   "livekitUrl": "ws://127.0.0.1:7880",
-  "webUrl": ""
+  "webUrl": "",
+  "localAgentLanguagePreset": "manual_only"
 }

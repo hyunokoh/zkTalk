@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { UserAvatar } from '@/components/UserAvatar';
 import { UserProfileCard } from '@/components/UserProfileCard';
@@ -10,21 +10,37 @@ import { P2PFileCard } from '@/components/P2PFileCard';
 import { AttachmentPreview } from '@/components/AttachmentPreview/AttachmentPreview';
 import { PollCard, type PollCardData } from '@/components/PollCard';
 import { ReportButton } from '@/components/ReportButton';
-import { relativeTime } from '@/lib/time';
 import { api } from '@/lib/api';
+import {
+  getAiRuntimePresentation,
+  isAiRuntimeUsable,
+  type AIRuntimeSummary,
+} from '@/lib/ai-runtime';
 import { useAuthStore } from '@/stores/auth';
 import { useThreadStore } from '@/stores/thread';
 import { useTranslation } from '@/lib/i18n';
 import {
+  buildSelectedMessageAiContract,
+  createTranslationRenderCacheEntry,
+  getTranslationRenderSourceVersion,
+  inferMessageLanguage,
+  normalizeTranslationDisplayPreference,
+  resolveTranslationDisplayDecision,
+  resolveTranslationRenderCacheState,
   shouldHideAttachmentBody,
   type Attachment,
   type Message,
+  type SelectedMessageAiAction,
+  type TranslationRenderCacheEntry,
+  type TranslationDisplayPreference,
   type User,
 } from '@zktalk/shared';
 
 const EMOJI_OPTIONS = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F389}'];
 const LONG_MESSAGE_COLLAPSE_LENGTH = 1200;
 const LONG_MESSAGE_COLLAPSE_LINES = 12;
+const AI_MESSAGE_ACTIONS_VISIBLE = true;
+const RECENT_ATTACHMENT_PROBE_WINDOW_MS = 60_000;
 
 function countRenderedLines(body: string): number {
   return body.split('\n').length;
@@ -112,6 +128,8 @@ export interface MessageReactionGroup {
   userIds: string[];
 }
 
+export type MessageAiActionKind = SelectedMessageAiAction;
+
 interface Thread {
   id: string;
 }
@@ -129,6 +147,9 @@ interface MessageItemProps {
   onRetryOfflineMessage?: () => void;
   onRemoveOfflineMessage?: () => void;
   onReply?: (message: Message, author?: User | null) => void;
+  onRequestAiAction?: (message: Message, author: User | null | undefined, action: MessageAiActionKind) => void;
+  aiRuntime?: AIRuntimeSummary | null;
+  translationDisplayPreference?: TranslationDisplayPreference;
   /** Map of all messages in the list for resolving parent message previews */
   allMessages?: Message[];
   /** User map for resolving author names of parent messages */
@@ -162,6 +183,9 @@ export function MessageItem({
   onRetryOfflineMessage,
   onRemoveOfflineMessage,
   onReply,
+  onRequestAiAction,
+  aiRuntime,
+  translationDisplayPreference,
   allMessages,
   userMap,
   unreadCount,
@@ -183,17 +207,35 @@ export function MessageItem({
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLButtonElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
 
   const isAuthor = currentUser?.id === message.authorUserId;
 
   // Translation state
-  const [translatedText, setTranslatedText] = useState<string | null>(null);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [showTranslation, setShowTranslation] = useState(false);
+  const [manualTranslationEntry, setManualTranslationEntry] = useState<TranslationRenderCacheEntry | null>(null);
+  const [manualTranslationRuntime, setManualTranslationRuntime] = useState<{
+    status: 'available' | 'mock' | 'disabled' | 'unavailable';
+    issue?: string;
+  } | null>(null);
+  const [isManualTranslating, setIsManualTranslating] = useState(false);
+  const [showManualTranslation, setShowManualTranslation] = useState(false);
+  const [autoTranslationEntry, setAutoTranslationEntry] = useState<TranslationRenderCacheEntry | null>(null);
+  const [autoTranslationError, setAutoTranslationError] = useState(false);
+  const [autoTranslationRuntime, setAutoTranslationRuntime] = useState<{
+    status: 'available' | 'mock' | 'disabled' | 'unavailable';
+    issue?: string;
+  } | null>(null);
+  const [isAutoTranslating, setIsAutoTranslating] = useState(false);
 
   // E2EE decrypted content state
   const [decryptedBody, setDecryptedBody] = useState<string | null>(null);
   const [decryptError, setDecryptError] = useState(false);
+  const aiRuntimePresentation = useMemo(() => getAiRuntimePresentation(t, aiRuntime), [aiRuntime, t]);
+  const aiActionsEnabled = aiRuntime ? isAiRuntimeUsable(aiRuntime) : true;
+  const aiActionTitleSuffix = aiRuntimePresentation
+    ? `${aiRuntimePresentation.label}. ${aiRuntimePresentation.description}`
+    : '';
+  const selectedMessageAiScopeHint = t('ai.selectedMessageScopeHint');
 
   useEffect(() => {
     if (!isEncrypted || !e2eeDecrypt) {
@@ -215,6 +257,55 @@ export function MessageItem({
 
   // Use decrypted body if available, otherwise original
   const displayBody = isEncrypted && decryptedBody ? decryptedBody : message.bodyMarkdown;
+  const translationSourceVersion = useMemo(
+    () => getTranslationRenderSourceVersion(message),
+    [message.createdAt, message.updatedAt],
+  );
+  const normalizedTranslationPreference = useMemo(
+    () => normalizeTranslationDisplayPreference(translationDisplayPreference),
+    [translationDisplayPreference],
+  );
+  const inferredMessageLanguage = useMemo(() => inferMessageLanguage(displayBody), [displayBody]);
+  const autoTranslationCacheState = useMemo(
+    () =>
+      resolveTranslationRenderCacheState({
+        entry: autoTranslationEntry,
+        sourceVersion: translationSourceVersion,
+        targetLanguage: normalizedTranslationPreference.targetLanguage,
+      }),
+    [autoTranslationEntry, normalizedTranslationPreference.targetLanguage, translationSourceVersion],
+  );
+  const manualTranslationCacheState = useMemo(
+    () =>
+      resolveTranslationRenderCacheState({
+        entry: manualTranslationEntry,
+        sourceVersion: translationSourceVersion,
+        targetLanguage: 'ko',
+      }),
+    [manualTranslationEntry, translationSourceVersion],
+  );
+  const autoTranslationDecision = useMemo(
+    () =>
+      resolveTranslationDisplayDecision({
+        preference: normalizedTranslationPreference,
+        messageLanguage: inferredMessageLanguage,
+        hasTranslatedText:
+          autoTranslationCacheState === 'ready' || autoTranslationCacheState === 'stale',
+        translationLanguage: autoTranslationEntry?.targetLanguage ?? null,
+        runtime: autoTranslationError
+          ? 'unavailable'
+          : (autoTranslationRuntime?.status ?? 'available'),
+        stale: autoTranslationCacheState === 'stale',
+      }),
+    [
+      autoTranslationCacheState,
+      autoTranslationEntry,
+      autoTranslationError,
+      autoTranslationRuntime,
+      inferredMessageLanguage,
+      normalizedTranslationPreference,
+    ],
+  );
   const [isLongMessageExpanded, setIsLongMessageExpanded] = useState(getInitialExpandedForBody(displayBody));
   const renderedBody = useMemo(
     () => getBodyToRender(displayBody, isLongMessageExpanded),
@@ -228,6 +319,71 @@ export function MessageItem({
   useEffect(() => {
     setIsLongMessageExpanded(getResetExpandedForBody(displayBody));
   }, [displayBody]);
+
+  useEffect(() => {
+    if (
+      !autoTranslationDecision.shouldAutoTranslate ||
+      (autoTranslationDecision.state !== 'translation-pending' &&
+        autoTranslationDecision.state !== 'translation-stale') ||
+      !autoTranslationDecision.targetLanguage ||
+      isAutoTranslating
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const targetLanguage = autoTranslationDecision.targetLanguage;
+    setIsAutoTranslating(true);
+    setAutoTranslationError(false);
+    setAutoTranslationRuntime(null);
+
+    void api<{
+      translatedText: string | null;
+      runtime: {
+        status: 'available' | 'mock' | 'disabled' | 'unavailable';
+        issue?: string;
+      };
+    }>('/api/translate', {
+      method: 'POST',
+      body: {
+        text: displayBody,
+        targetLang: targetLanguage,
+      },
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setAutoTranslationRuntime(res.runtime);
+        if (res.translatedText) {
+          setAutoTranslationEntry(
+            createTranslationRenderCacheEntry({
+              translatedText: res.translatedText,
+              targetLanguage,
+              sourceVersion: translationSourceVersion,
+            }),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAutoTranslationError(true);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsAutoTranslating(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    autoTranslationDecision.shouldAutoTranslate,
+    autoTranslationDecision.state,
+    autoTranslationDecision.targetLanguage,
+    displayBody,
+    translationSourceVersion,
+  ]);
 
   // Detect P2P file messages: [p2p-file:ID|name|size|mimeType]
   const p2pMatch = displayBody.match(
@@ -245,7 +401,14 @@ export function MessageItem({
         author: User;
         attachments?: Attachment[];
       }>(`/api/messages/${message.id}`),
-    enabled: attachments.length === 0 && !poll && !p2pFile && looksLikeAttachmentBody(message.bodyMarkdown),
+    enabled:
+      attachments.length === 0
+      && !poll
+      && !p2pFile
+      && (
+        looksLikeAttachmentBody(message.bodyMarkdown)
+        || Date.now() - new Date(message.createdAt).getTime() < RECENT_ATTACHMENT_PROBE_WINDOW_MS
+      ),
     staleTime: 30_000,
   });
 
@@ -413,26 +576,108 @@ export function MessageItem({
   }, []);
 
   const handleTranslate = useCallback(async () => {
-    if (translatedText) {
-      setShowTranslation(!showTranslation);
+    if (manualTranslationCacheState === 'ready' && manualTranslationEntry?.translatedText) {
+      setShowManualTranslation(!showManualTranslation);
       setPinActionMenu(false);
       return;
     }
-    setIsTranslating(true);
+    setIsManualTranslating(true);
     try {
-      const res = await api<{ translatedText: string }>('/api/translate', {
+      const res = await api<{
+        translatedText: string | null;
+        runtime: {
+          status: 'available' | 'mock' | 'disabled' | 'unavailable';
+          issue?: string;
+        };
+      }>('/api/translate', {
         method: 'POST',
         body: { text: displayBody, targetLang: 'ko' },
       });
-      setTranslatedText(res.translatedText);
-      setShowTranslation(true);
+      setManualTranslationRuntime(res.runtime);
+      if (res.translatedText) {
+        setManualTranslationEntry(
+          createTranslationRenderCacheEntry({
+            translatedText: res.translatedText,
+            targetLanguage: 'ko',
+            sourceVersion: translationSourceVersion,
+          }),
+        );
+        setShowManualTranslation(true);
+      } else {
+        setShowManualTranslation(false);
+      }
     } catch {
-      // silently fail
+      setManualTranslationRuntime({
+        status: 'unavailable',
+        issue: t('translate.error'),
+      });
     } finally {
-      setIsTranslating(false);
+      setIsManualTranslating(false);
       setPinActionMenu(false);
     }
-  }, [displayBody, translatedText, showTranslation]);
+  }, [
+    displayBody,
+    manualTranslationCacheState,
+    manualTranslationEntry,
+    showManualTranslation,
+    translationSourceVersion,
+  ]);
+
+  const handleRequestAiInlineTranslation = useCallback(async () => {
+    if (aiRuntime && !aiActionsEnabled) {
+      setPinActionMenu(false);
+      return;
+    }
+
+    const contract = buildSelectedMessageAiContract({
+      action: 'translate-inline',
+      surface: message.threadId ? 'thread' : 'channel',
+      sourceMessage: {
+        authorDisplayName: author?.displayName ?? null,
+        bodyText: displayBody,
+      },
+    });
+
+    if (contract.errorKey || !contract.sourceText) {
+      setPinActionMenu(false);
+      return;
+    }
+
+    setIsManualTranslating(true);
+    try {
+      const res = await api<{
+        translatedText: string | null;
+        runtime: {
+          status: 'available' | 'mock' | 'disabled' | 'unavailable';
+          issue?: string;
+        };
+      }>('/api/translate', {
+        method: 'POST',
+        body: { text: contract.sourceText, targetLang: 'ko' },
+      });
+      setManualTranslationRuntime(res.runtime);
+      if (res.translatedText) {
+        setManualTranslationEntry(
+          createTranslationRenderCacheEntry({
+            translatedText: res.translatedText,
+            targetLanguage: 'ko',
+            sourceVersion: translationSourceVersion,
+          }),
+        );
+        setShowManualTranslation(true);
+      } else {
+        setShowManualTranslation(false);
+      }
+    } catch {
+      setManualTranslationRuntime({
+        status: 'unavailable',
+        issue: t('translate.error'),
+      });
+    } finally {
+      setIsManualTranslating(false);
+      setPinActionMenu(false);
+    }
+  }, [aiActionsEnabled, aiRuntime, author?.displayName, displayBody, message.threadId, translationSourceVersion]);
 
   const handleInlineReply = useCallback(() => {
     onReply?.(message, author);
@@ -443,6 +688,70 @@ export function MessageItem({
     void navigator.clipboard.writeText(message.bodyMarkdown);
     setPinActionMenu(false);
   }, [message.bodyMarkdown]);
+
+  const handleRequestAiReplyDraft = useCallback(() => {
+    onRequestAiAction?.(message, author, 'reply-draft');
+    setPinActionMenu(false);
+  }, [author, message, onRequestAiAction]);
+
+  const handleRequestAiRewriteDraft = useCallback(() => {
+    onRequestAiAction?.(message, author, 'rewrite-draft');
+    setPinActionMenu(false);
+  }, [author, message, onRequestAiAction]);
+
+  const handleRowFocusCapture = useCallback(() => {
+    setShowActions(true);
+  }, []);
+
+  const handleRowBlurCapture = useCallback((event: React.FocusEvent<HTMLDivElement>) => {
+    const nextFocusedNode = event.relatedTarget;
+    if (nextFocusedNode instanceof Node && rowRef.current?.contains(nextFocusedNode)) {
+      return;
+    }
+
+    setShowActions(false);
+    setShowEmojiPicker(false);
+    setPinActionMenu(false);
+  }, []);
+
+  const visibleAutoTranslatedText =
+    autoTranslationDecision.render === 'translated' &&
+    (autoTranslationCacheState === 'ready' || autoTranslationCacheState === 'stale')
+      ? autoTranslationEntry?.translatedText ?? null
+      : null;
+  const visibleManualTranslatedText =
+    showManualTranslation &&
+    (manualTranslationCacheState === 'ready' || manualTranslationCacheState === 'stale')
+      ? manualTranslationEntry?.translatedText ?? null
+      : null;
+  const visibleTranslatedText = visibleManualTranslatedText ?? visibleAutoTranslatedText;
+  const translatedLabel = showManualTranslation
+    ? manualTranslationRuntime?.status === 'mock'
+      ? t('translate.translatedMock')
+      : manualTranslationCacheState === 'stale'
+      ? t('translate.translatedStale')
+      : t('translate.translated')
+    : visibleAutoTranslatedText
+      ? autoTranslationDecision.state === 'translation-runtime-mock'
+        ? t('translate.autoTranslatedMock')
+        : autoTranslationDecision.state === 'translation-stale'
+        ? t('translate.autoTranslatedStale')
+        : t('translate.autoTranslated')
+      : null;
+  const translationStatusLabel = !visibleTranslatedText
+    ? manualTranslationRuntime?.status === 'disabled'
+      ? t('translate.translationDisabled')
+      : manualTranslationRuntime?.status === 'unavailable'
+        ? t('translate.translationUnavailable')
+        : autoTranslationDecision.state === 'translation-runtime-disabled'
+          ? t('translate.autoTranslationDisabled')
+          : autoTranslationDecision.state === 'translation-unavailable'
+            ? t('translate.autoTranslationUnavailable')
+            : null
+    : null;
+  const translationStatusIssue = !visibleTranslatedText
+    ? manualTranslationRuntime?.issue ?? autoTranslationRuntime?.issue ?? null
+    : null;
 
   if (message.messageType === 'system') {
     return (
@@ -474,23 +783,37 @@ export function MessageItem({
   const replyTone = isAuthor
     ? 'border-white/14 bg-white/10 text-white/78'
     : 'border-white/8 bg-white/[0.03] text-white/52';
+  const sideMeta = (
+    <div className={`shrink-0 self-end pb-0.5 text-[11px] leading-tight text-white/34 ${isAuthor ? 'text-right' : 'text-left'}`}>
+      {reactions.length === 0 && unreadCount != null && unreadCount > 0 ? <div>{Math.min(99, unreadCount)}</div> : null}
+      <div>{new Date(message.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
+      {offlineStatus ? (
+        <div className={`${offlineStatus === 'failed' ? 'text-red-200' : 'text-amber-100'}`}>
+          {offlineStatus === 'failed' ? t('offline.failed') : t('offline.queued')}
+        </div>
+      ) : null}
+      {message.isEdited ? <div>{t('message.edited')}</div> : null}
+    </div>
+  );
 
   return (
     <div
+      ref={rowRef}
       data-testid="message-row"
       data-message-id={message.id}
+      tabIndex={0}
       className={`group relative flex rounded-[1.6rem] px-4 py-1 ${startsGroup ? 'mt-4' : 'mt-1'} transition hover:bg-white/[0.025]`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
+      onFocusCapture={handleRowFocusCapture}
+      onBlurCapture={handleRowBlurCapture}
     >
       {/* Avatar or hover-time column */}
       <div className="mr-3 mt-0.5 w-10 shrink-0">
         {isAuthor ? null : startsGroup ? (
           <UserAvatar displayName={displayName} avatarUrl={avatarUrl} size="sm" isOnline={isAuthorOnline} />
         ) : (
-          <span className="invisible block pt-[3px] text-right text-[10px] leading-snug text-white/26 group-hover:visible">
-            {relativeTime(message.createdAt)}
-          </span>
+          <span className="block h-5" />
         )}
       </div>
 
@@ -506,7 +829,6 @@ export function MessageItem({
             >
               {displayName}
             </button>
-            <span className="text-[11px] text-white/34">{relativeTime(message.createdAt)}</span>
             {isEncrypted && (
               <span className="inline-flex items-center text-green-500" title={t('e2ee.channelEnabled')}>
                 <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
@@ -570,54 +892,58 @@ export function MessageItem({
         ) : (
           <>
             {hasBubbleContent ? (
-              <div className="relative inline-flex max-w-[min(44rem,100%)]">
-                {startsGroup ? (
-                  <span
-                    className={`absolute bottom-2 h-2.5 w-2.5 rotate-45 ${isAuthor ? '-right-1 border-b border-r border-[#6b84ff]/28 bg-[#4b61dc]' : '-left-1 border-b border-l border-white/10 bg-[#101a2a]'}`}
-                  />
-                ) : null}
-                <div className={`inline-flex max-w-[min(44rem,100%)] flex-col rounded-[1.35rem] border px-4 py-3 shadow-sm backdrop-blur-sm ${bubbleTone}`}>
-                {p2pFile ? (
-                  <div>
-                    <p className={`mb-1 text-xs ${isAuthor ? 'text-white/70' : 'text-white/40'}`}>{t('p2p.fileShared')}</p>
-                    <P2PFileCard
-                      fileId={p2pFile.fileId}
-                      fileName={p2pFile.fileName}
-                      fileSize={p2pFile.fileSize}
-                      mimeType={p2pFile.mimeType}
-                      channelId={channelId}
+              <div className="inline-flex max-w-[min(44rem,100%)] items-end gap-1">
+                {isAuthor ? sideMeta : null}
+                <div className="relative inline-flex max-w-[min(44rem,100%)]">
+                  {startsGroup ? (
+                    <span
+                      className={`absolute bottom-2 h-2.5 w-2.5 rotate-45 ${isAuthor ? '-right-1 border-b border-r border-[#6b84ff]/28 bg-[#4b61dc]' : '-left-1 border-b border-l border-white/10 bg-[#101a2a]'}`}
                     />
-                  </div>
-                ) : isEncrypted && decryptError ? (
-                  <div className="text-sm italic text-red-400">
-                    {t('e2ee.decryptFailed')}
-                  </div>
-                ) : isEncrypted && !decryptedBody ? (
-                  <div className={`text-sm italic ${isAuthor ? 'text-white/75' : 'text-white/42'}`}>
-                    {t('e2ee.decrypting')}
-                  </div>
-                ) : (
-                  !shouldHideBody ? (
-                    <div className={renderedBodyClass}>
-                      <MarkdownRenderer content={renderedBody} />
-                      {shouldShowButtonForBody(displayBody) ? (
-                        <>
-                          <p className={getComposedMetaClass(isAuthor)}>{getMetaTextToRender(displayBody)}</p>
-                          <button
-                            type="button"
-                            aria-label={getButtonA11yToRender(isLongMessageExpanded)}
-                            className={getComposedButtonClass(isAuthor)}
-                            onClick={() => setIsLongMessageExpanded((prev) => !prev)}
-                          >
-                            {getButtonTextToRender(isLongMessageExpanded)}
-                          </button>
-                        </>
-                      ) : null}
+                  ) : null}
+                  <div className={`inline-flex max-w-[min(44rem,100%)] flex-col rounded-[1.35rem] border px-4 py-3 shadow-sm backdrop-blur-sm ${bubbleTone}`}>
+                  {p2pFile ? (
+                    <div>
+                      <p className={`mb-1 text-xs ${isAuthor ? 'text-white/70' : 'text-white/40'}`}>{t('p2p.fileShared')}</p>
+                      <P2PFileCard
+                        fileId={p2pFile.fileId}
+                        fileName={p2pFile.fileName}
+                        fileSize={p2pFile.fileSize}
+                        mimeType={p2pFile.mimeType}
+                        channelId={channelId}
+                      />
                     </div>
-                  ) : null
-                )}
-                {resolvedAttachments.length > 0 ? <AttachmentPreview attachments={resolvedAttachments} /> : null}
+                  ) : isEncrypted && decryptError ? (
+                    <div className="text-sm italic text-red-400">
+                      {t('e2ee.decryptFailed')}
+                    </div>
+                  ) : isEncrypted && !decryptedBody ? (
+                    <div className={`text-sm italic ${isAuthor ? 'text-white/75' : 'text-white/42'}`}>
+                      {t('e2ee.decrypting')}
+                    </div>
+                  ) : (
+                    !shouldHideBody ? (
+                      <div className={renderedBodyClass}>
+                        <MarkdownRenderer content={renderedBody} />
+                        {shouldShowButtonForBody(displayBody) ? (
+                          <>
+                            <p className={getComposedMetaClass(isAuthor)}>{getMetaTextToRender(displayBody)}</p>
+                            <button
+                              type="button"
+                              aria-label={getButtonA11yToRender(isLongMessageExpanded)}
+                              className={getComposedButtonClass(isAuthor)}
+                              onClick={() => setIsLongMessageExpanded((prev) => !prev)}
+                            >
+                              {getButtonTextToRender(isLongMessageExpanded)}
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null
+                  )}
+                  {resolvedAttachments.length > 0 ? <AttachmentPreview attachments={resolvedAttachments} /> : null}
+                  </div>
                 </div>
+                {!isAuthor ? sideMeta : null}
               </div>
             ) : null}
             {poll ? <PollCard poll={poll} /> : null}
@@ -625,20 +951,30 @@ export function MessageItem({
         )}
 
         {/* Translation */}
-        {showTranslation && translatedText && (
+        {visibleTranslatedText && translatedLabel && (
           <div className="mt-2 rounded-[1rem] border border-white/8 bg-white/[0.03] px-3 py-3">
             <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/38">
-              <span>{t('translate.translated')}</span>
-              <button
-                onClick={() => setShowTranslation(false)}
-                className="ml-1 text-sky-300 hover:underline"
-              >
-                {t('translate.showOriginal')}
-              </button>
+              <span>{translatedLabel}</span>
+              {showManualTranslation ? (
+                <button
+                  onClick={() => setShowManualTranslation(false)}
+                  className="ml-1 text-sky-300 hover:underline"
+                >
+                  {t('translate.showOriginal')}
+                </button>
+              ) : null}
             </div>
-            <div className="mt-1 text-sm text-[#dcddde]">{translatedText}</div>
+            <div className="mt-1 text-sm text-[#dcddde]">{visibleTranslatedText}</div>
           </div>
         )}
+        {translationStatusLabel ? (
+          <div className="mt-2 rounded-[1rem] border border-amber-300/18 bg-amber-300/10 px-3 py-3 text-sm text-amber-50">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-100/80">
+              {translationStatusLabel}
+            </div>
+            {translationStatusIssue ? <div className="mt-1">{translationStatusIssue}</div> : null}
+          </div>
+        ) : null}
 
         {/* Reactions */}
         {reactions.length > 0 && (
@@ -656,31 +992,12 @@ export function MessageItem({
                   }`}
                 >
                   <span>{r.emoji}</span>
-                  <span>{r.count}</span>
+                  {r.count >= 2 ? <span>{r.count}</span> : null}
                 </button>
               );
             })}
           </div>
         )}
-
-        <div className={`mt-2 flex items-center gap-1.5 text-[11px] text-white/34 ${isAuthor ? 'justify-end pr-1' : 'pl-1'}`}>
-          {!startsGroup || isAuthor ? <span>{relativeTime(message.createdAt)}</span> : null}
-          {offlineStatus ? (
-            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-              offlineStatus === 'failed'
-                ? 'bg-red-500/20 text-red-200'
-                : 'bg-amber-400/20 text-amber-100'
-            }`}>
-              {offlineStatus === 'failed' ? t('offline.failed') : t('offline.queued')}
-            </span>
-          ) : null}
-          {message.isEdited ? <span>{t('message.edited')}</span> : null}
-          {isAuthor && unreadCount != null && unreadCount > 0 && (
-            <span className="rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-[#111827]">
-              {unreadCount}
-            </span>
-          )}
-        </div>
       </div>
 
       {/* Hover action bar */}
@@ -754,6 +1071,54 @@ export function MessageItem({
             </button>
           )}
 
+          {AI_MESSAGE_ACTIONS_VISIBLE && onRequestAiAction ? (
+            <div className="flex items-center gap-1">
+              <button
+                data-testid="message-ai-reply-draft-button"
+                onClick={handleRequestAiReplyDraft}
+                disabled={!aiActionsEnabled}
+                className="rounded-xl p-1.5 text-indigo-200/72 hover:bg-indigo-400/14 hover:text-indigo-100 disabled:cursor-not-allowed disabled:opacity-45"
+                title={[t('ai.replyDraftFromMessage'), aiActionTitleSuffix].filter(Boolean).join(' · ')}
+              >
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3.172 6.172a4 4 0 015.656 0L10 7.343l1.172-1.171a4 4 0 115.656 5.656L10 18.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                </svg>
+              </button>
+              <button
+                data-testid="message-ai-rewrite-draft-button"
+                onClick={handleRequestAiRewriteDraft}
+                disabled={!aiActionsEnabled}
+                className="rounded-xl p-1.5 text-indigo-200/72 hover:bg-indigo-400/14 hover:text-indigo-100 disabled:cursor-not-allowed disabled:opacity-45"
+                title={[t('ai.rewriteDraftFromMessage'), aiActionTitleSuffix].filter(Boolean).join(' · ')}
+              >
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                </svg>
+              </button>
+              {aiRuntimePresentation ? (
+                <span
+                  className={
+                    aiRuntimePresentation.tone === 'live'
+                      ? 'rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-100'
+                      : aiRuntimePresentation.tone === 'mock'
+                        ? 'rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-100'
+                        : 'rounded-full border border-rose-300/20 bg-rose-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-rose-100'
+                  }
+                  title={aiRuntimePresentation.description}
+                >
+                  {aiRuntimePresentation.label}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          {AI_MESSAGE_ACTIONS_VISIBLE && onRequestAiAction ? (
+            <p className="mt-2 max-w-[20rem] text-[11px] leading-4 text-white/46">
+              {[aiRuntimePresentation?.description, selectedMessageAiScopeHint]
+                .filter(Boolean)
+                .join(' ')}
+            </p>
+          ) : null}
+
           {/* Reply in thread */}
           <button
             data-testid="message-thread-button"
@@ -767,17 +1132,30 @@ export function MessageItem({
             </svg>
           </button>
 
-          {/* Translate */}
-          <button
-            onClick={handleTranslate}
-            disabled={isTranslating}
-            className="rounded p-1.5 text-[#96989d] hover:bg-white/10 hover:text-[#dcddde] disabled:opacity-50"
-            title={t('translate.translate')}
-          >
-            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a18.965 18.965 0 01-3.386 3.014 1 1 0 11-1.176-1.618 17.01 17.01 0 003.06-2.72A17.007 17.007 0 013.2 7.16a1 1 0 011.74-.98 15.063 15.063 0 001.87 2.71A16.905 16.905 0 008.578 6H2a1 1 0 110-2h4V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" />
-            </svg>
-          </button>
+          {AI_MESSAGE_ACTIONS_VISIBLE ? (
+            <button
+              data-testid="message-ai-translate-inline-button"
+              onClick={() => void handleRequestAiInlineTranslation()}
+              disabled={!aiActionsEnabled || isManualTranslating || isAutoTranslating}
+              className="rounded-xl p-1.5 text-indigo-200/72 hover:bg-indigo-400/14 hover:text-indigo-100 disabled:cursor-not-allowed disabled:opacity-45"
+              title={[t('translate.translate'), aiActionTitleSuffix].filter(Boolean).join(' · ')}
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a18.965 18.965 0 01-3.386 3.014 1 1 0 11-1.176-1.618 17.01 17.01 0 003.06-2.72A17.007 17.007 0 013.2 7.16a1 1 0 011.74-.98 15.063 15.063 0 001.87 2.71A16.905 16.905 0 008.578 6H2a1 1 0 110-2h4V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={handleTranslate}
+              disabled={isManualTranslating || isAutoTranslating}
+              className="rounded p-1.5 text-[#96989d] hover:bg-white/10 hover:text-[#dcddde] disabled:opacity-50"
+              title={t('translate.translate')}
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a18.965 18.965 0 01-3.386 3.014 1 1 0 11-1.176-1.618 17.01 17.01 0 003.06-2.72A17.007 17.007 0 013.2 7.16a1 1 0 011.74-.98 15.063 15.063 0 001.87 2.71A16.905 16.905 0 008.578 6H2a1 1 0 110-2h4V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" />
+              </svg>
+            </button>
+          )}
 
           {/* Copy */}
           <button

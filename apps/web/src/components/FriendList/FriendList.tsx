@@ -261,30 +261,30 @@ export function FriendList() {
   return (
     <div data-testid="friend-list">
       <div
-        className="mb-5 rounded-lg border border-[#dbe7ef] bg-[#f8fbfd] p-4"
+        className="mb-5 rounded-lg border border-gray-700 bg-gray-800/60 p-4"
         data-testid="friend-share-guide"
       >
-        <h3 className="text-sm font-semibold text-[#23384c]">
+        <h3 className="text-sm font-semibold text-gray-100">
           {t('friend.desktopShareGuideTitle')}
         </h3>
-        <p className="mt-1 text-xs text-[#5f7486]">
+        <p className="mt-1 text-xs text-gray-400">
           {t('friend.desktopShareGuideBody')}
         </p>
-        <div className="mt-3 space-y-2 text-xs text-[#415a6b]">
+        <div className="mt-3 space-y-2 text-xs text-gray-300">
           <p>{t('friend.desktopShareGuideStepMobile')}</p>
           <p>{t('friend.desktopShareGuideStepDesktop')}</p>
         </div>
       </div>
 
       <div
-        className="mb-5 space-y-3 rounded-lg border border-[#d4e2eb] bg-white p-4"
+        className="mb-5 space-y-3 rounded-lg border border-gray-700 bg-gray-800/60 p-4"
         data-testid="friend-shared-profile-input-section"
       >
         <div>
-          <h3 className="text-sm font-semibold text-[#23384c]">
+          <h3 className="text-sm font-semibold text-gray-100">
             {t('friend.sharedProfileInputTitle')}
           </h3>
-          <p className="mt-1 text-xs text-[#5f7486]">
+          <p className="mt-1 text-xs text-gray-400">
             {t('friend.sharedProfileInputHelp')}
           </p>
         </div>
@@ -303,14 +303,14 @@ export function FriendList() {
             placeholder={t('friend.sharedProfileInputPlaceholder')}
             rows={3}
             data-testid="friend-shared-profile-input"
-            className="w-full rounded-lg border border-[#d4e2eb] bg-[#f8fbfd] px-3 py-2 text-sm text-[#23384c] placeholder:text-[#7b90a1] focus:border-[#9cc0d6] focus:outline-none"
+            className="w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none"
           />
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => void handlePasteFromClipboard()}
               data-testid="friend-shared-profile-paste-button"
-              className="rounded-lg border border-[#d4e2eb] bg-white px-3 py-2 text-xs font-medium text-[#415a6b] transition hover:border-[#c2d5e1] hover:text-[#23384c]"
+              className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-xs font-medium text-gray-200 transition hover:border-gray-500 hover:text-white"
             >
               {t('friend.sharedProfilePaste')}
             </button>
@@ -333,17 +333,17 @@ export function FriendList() {
 
       {sharedProfile && (
         <div
-          className="mb-5 space-y-3 rounded-lg border border-[#d4e2eb] bg-[#f8fbfd] p-4"
+          className="mb-5 space-y-3 rounded-lg border border-gray-700 bg-gray-800/60 p-4"
           data-testid="friend-shared-profile-card"
           data-profile-user-id={sharedProfile.userId}
           data-friendship-status={sharedFriendshipStatus}
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-[#23384c]">
+              <h3 className="text-sm font-semibold text-gray-100">
                 {t('friend.sharedProfileTitle')}
               </h3>
-              <p className="mt-1 text-xs text-[#5f7486]">
+              <p className="mt-1 text-xs text-gray-400">
                 {sharedProfile.username
                   ? t('friend.sharedProfileBodyWithUsername', {
                       name: sharedProfileName,
@@ -355,14 +355,14 @@ export function FriendList() {
             <button
               onClick={dismissSharedProfile}
               data-testid="friend-shared-profile-dismiss-button"
-              className="rounded-full border border-[#d4e2eb] bg-white px-2.5 py-1 text-xs font-medium text-[#5f7486] transition hover:border-[#c2d5e1] hover:text-[#23384c]"
+              className="rounded-full border border-gray-600 bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300 transition hover:border-gray-500 hover:text-white"
             >
               {t('common.cancel')}
             </button>
           </div>
 
           <div
-            className="flex items-center gap-3 rounded-lg border border-[#d4e2eb] bg-white p-3"
+            className="flex items-center gap-3 rounded-lg border border-gray-700 bg-gray-900/80 p-3"
             data-testid="friend-shared-profile-user-row"
           >
             <UserAvatar
@@ -371,10 +371,10 @@ export function FriendList() {
               size="sm"
             />
             <div className="min-w-0 flex-1">
-              <p className="truncate font-medium text-[#23384c]">
+              <p className="truncate font-medium text-gray-100">
                 {sharedProfileName}
               </p>
-              <p className="text-xs text-[#5f7486]">
+              <p className="text-xs text-gray-400">
                 {sharedProfile.username ? `@${sharedProfile.username}` : t('friend.sharedProfilePendingHint')}
               </p>
             </div>
@@ -421,7 +421,7 @@ export function FriendList() {
                 </>
               )}
               {sharedFriendshipStatus === 'pending' && isSharedRequester && (
-                <span className="text-xs font-medium text-[#5f7486]">
+                <span className="text-xs font-medium text-gray-400">
                   {t('friend.requestSent')}
                 </span>
               )}
@@ -454,14 +454,14 @@ export function FriendList() {
       )}
 
       <div
-        className="mb-5 space-y-3 rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+        className="mb-5 space-y-3 rounded-lg border border-gray-700 bg-gray-800/60 p-4"
         data-testid="friend-search-section"
       >
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <h3 className="text-sm font-semibold text-gray-100">
             {t('friend.addByUsername')}
           </h3>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-xs text-gray-400">
             {t('friend.addByUsernameHelp')}
           </p>
         </div>
@@ -475,7 +475,7 @@ export function FriendList() {
           }}
           placeholder={t('friend.searchUsers')}
           data-testid="friend-search-input"
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
+          className="w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none"
         />
 
         {searchFeedback && (

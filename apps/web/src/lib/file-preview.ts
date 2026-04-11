@@ -1,4 +1,5 @@
 import { isImageFileLike } from '@/lib/file-mime';
+import { devLogWarn } from '@/lib/client-log';
 
 function readFileAsDataUrl(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -29,7 +30,7 @@ export async function createFilePreviewUrl(file: File): Promise<string | null> {
   try {
     return URL.createObjectURL(file);
   } catch (error) {
-    console.warn('Falling back to FileReader preview for attachment.', {
+    devLogWarn('Falling back to FileReader preview for attachment.', {
       fileName: file.name,
       message: error instanceof Error ? error.message : String(error),
     });
@@ -38,7 +39,7 @@ export async function createFilePreviewUrl(file: File): Promise<string | null> {
   try {
     return await readFileAsDataUrl(file);
   } catch (error) {
-    console.warn('Attachment preview could not be generated.', {
+    devLogWarn('Attachment preview could not be generated.', {
       fileName: file.name,
       message: error instanceof Error ? error.message : String(error),
     });

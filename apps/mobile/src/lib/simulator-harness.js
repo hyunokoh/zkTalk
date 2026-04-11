@@ -70,8 +70,7 @@ function parseSimulatorHarnessFlag(value) {
 }
 var configuredSimulatorHarnessFlag = (_a = parseSimulatorHarnessFlag(process.env.EXPO_PUBLIC_ENABLE_SIMULATOR_HARNESS)) !== null && _a !== void 0 ? _a : parseSimulatorHarnessFlag((_c = (_b = expo_constants_1.default.expoConfig) === null || _b === void 0 ? void 0 : _b.extra) === null || _c === void 0 ? void 0 : _c.enableSimulatorHarness);
 exports.isSimulatorHarnessEnabled = !Device.isDevice &&
-    (configuredSimulatorHarnessFlag === true ||
-        (__DEV__ && configuredSimulatorHarnessFlag !== false));
+    configuredSimulatorHarnessFlag !== false;
 exports.simulatorHarnessDirectory = exports.isSimulatorHarnessEnabled
     ? (_d = LegacyFileSystem.documentDirectory) !== null && _d !== void 0 ? _d : null
     : null;

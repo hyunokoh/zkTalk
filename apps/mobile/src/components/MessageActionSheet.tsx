@@ -14,12 +14,12 @@ import { useTranslation } from '../lib/i18n';
 import { colors, spacing, fontSize as fs, borderRadius } from '../theme';
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '🔥', '👏', '🎉'];
-
 export interface ActionSheetMessage {
   id: string;
   bodyPlaintext: string;
   bodyMarkdown?: string;
   authorUserId: string;
+  authorName?: string;
 }
 
 interface MessageActionSheetProps {
@@ -33,6 +33,12 @@ interface MessageActionSheetProps {
   onReact?: (emoji: string) => void;
   onPin?: () => void;
   onBookmark?: () => void;
+  onAiReplyDraft?: () => void;
+  onAiRewriteDraft?: () => void;
+  aiStatusLabel?: string;
+  aiStatusTone?: 'live' | 'mock' | 'unavailable';
+  aiStatusDescription?: string;
+  aiActionsDisabled?: boolean;
   onClose: () => void;
   onDelete?: (message: ActionSheetMessage) => void;
 }
@@ -48,6 +54,12 @@ const MessageActionSheet = memo(function MessageActionSheet({
   onReact,
   onPin,
   onBookmark,
+  onAiReplyDraft,
+  onAiRewriteDraft,
+  aiStatusLabel,
+  aiStatusTone = 'live',
+  aiStatusDescription,
+  aiActionsDisabled = false,
   onClose,
   onDelete,
 }: MessageActionSheetProps) {
@@ -87,9 +99,13 @@ const MessageActionSheet = memo(function MessageActionSheet({
   }, [onClose, onEdit]);
 
   const handleTranslate = useCallback(() => {
+    if (aiActionsDisabled) {
+      return;
+    }
+
     onTranslate?.();
     onClose();
-  }, [onClose, onTranslate]);
+  }, [aiActionsDisabled, onClose, onTranslate]);
 
   const handleReport = useCallback(() => {
     onReport?.();
@@ -114,22 +130,107 @@ const MessageActionSheet = memo(function MessageActionSheet({
     onClose();
   }, [onBookmark, onClose]);
 
+  const handleAiReplyDraft = useCallback(() => {
+    if (aiActionsDisabled) {
+      return;
+    }
+
+    onAiReplyDraft?.();
+    onClose();
+  }, [aiActionsDisabled, onAiReplyDraft, onClose]);
+
+  const handleAiRewriteDraft = useCallback(() => {
+    if (aiActionsDisabled) {
+      return;
+    }
+
+    onAiRewriteDraft?.();
+    onClose();
+  }, [aiActionsDisabled, onAiRewriteDraft, onClose]);
+
   const handleDelete = useCallback(() => {
     onDelete?.(message);
     onClose();
   }, [message, onDelete, onClose]);
 
   return (
-    <Modal
-      visible
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
             <View style={styles.sheet}>
+              {(onAiReplyDraft || onAiRewriteDraft || aiStatusLabel) && (
+                <View style={styles.aiSection} testID="message-action-sheet-ai-section">
+                  <View style={styles.aiHeaderRow}>
+                    <Text style={styles.aiTitle}>{t('ai.messageActionsTitle')}</Text>
+                    {aiStatusLabel ? (
+                      <View
+                        testID="message-action-sheet-ai-status"
+                        style={[
+                          styles.aiStatusBadge,
+                          aiStatusTone === 'mock'
+                            ? styles.aiStatusBadgeMock
+                            : aiStatusTone === 'unavailable'
+                              ? styles.aiStatusBadgeUnavailable
+                              : styles.aiStatusBadgeLive,
+                        ]}
+                      >
+                        <Text style={styles.aiStatusBadgeText}>{aiStatusLabel}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  {aiStatusDescription ? (
+                    <Text style={styles.aiDescription}>{aiStatusDescription}</Text>
+                  ) : null}
+                  <View style={styles.aiActionsRow}>
+                    {onAiReplyDraft ? (
+                      <TouchableOpacity
+                        testID="message-action-sheet-ai-reply-draft"
+                        style={[
+                          styles.aiActionCard,
+                          aiActionsDisabled && styles.aiActionCardDisabled,
+                        ]}
+                        onPress={handleAiReplyDraft}
+                        disabled={aiActionsDisabled}
+                      >
+                        <Text style={styles.aiActionIcon}>{'\u2728'}</Text>
+                        <Text style={styles.aiActionTitle}>{t('ai.messageReplyDraft')}</Text>
+                        <Text style={styles.aiActionBody}>{t('ai.messageReplyDraftHint')}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    {onAiRewriteDraft ? (
+                      <TouchableOpacity
+                        testID="message-action-sheet-ai-rewrite-draft"
+                        style={[
+                          styles.aiActionCard,
+                          aiActionsDisabled && styles.aiActionCardDisabled,
+                        ]}
+                        onPress={handleAiRewriteDraft}
+                        disabled={aiActionsDisabled}
+                      >
+                        <Text style={styles.aiActionIcon}>{'\u270D\uFE0F'}</Text>
+                        <Text style={styles.aiActionTitle}>{t('ai.messageRewriteDraft')}</Text>
+                        <Text style={styles.aiActionBody}>{t('ai.messageRewriteDraftHint')}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    {onTranslate ? (
+                      <TouchableOpacity
+                        testID="message-action-sheet-ai-translate-inline"
+                        style={[
+                          styles.aiActionCard,
+                          aiActionsDisabled && styles.aiActionCardDisabled,
+                        ]}
+                        onPress={handleTranslate}
+                        disabled={aiActionsDisabled}
+                      >
+                        <Text style={styles.aiActionIcon}>{'\u{1F310}'}</Text>
+                        <Text style={styles.aiActionTitle}>{t('ai.messageTranslateInline')}</Text>
+                        <Text style={styles.aiActionBody}>{t('ai.messageTranslateInlineHint')}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                </View>
+              )}
               {onReact && (
                 <View style={styles.reactionSection}>
                   <Text style={styles.reactionTitle}>{t('message.react')}</Text>
@@ -148,7 +249,11 @@ const MessageActionSheet = memo(function MessageActionSheet({
               )}
               <View style={styles.actionsGrid}>
                 {onReply && (
-                  <TouchableOpacity style={styles.actionItem} onPress={handleReply}>
+                  <TouchableOpacity
+                    testID="message-action-sheet-reply"
+                    style={styles.actionItem}
+                    onPress={handleReply}
+                  >
                     <View style={styles.actionIconBg}>
                       <Text style={styles.actionIcon}>{'\u{1F4AC}'}</Text>
                     </View>
@@ -180,15 +285,6 @@ const MessageActionSheet = memo(function MessageActionSheet({
                   </View>
                   <Text style={styles.actionLabel}>{t('message.copy')}</Text>
                 </TouchableOpacity>
-
-                {onTranslate && (
-                  <TouchableOpacity style={styles.actionItem} onPress={handleTranslate}>
-                    <View style={styles.actionIconBg}>
-                      <Text style={styles.actionIcon}>{'\u{1F310}'}</Text>
-                    </View>
-                    <Text style={styles.actionLabel}>{t('message.translate')}</Text>
-                  </TouchableOpacity>
-                )}
 
                 {!isOwn && onReport && (
                   <TouchableOpacity style={styles.actionItem} onPress={handleReport}>
@@ -253,6 +349,78 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: spacing.xxxl,
     paddingHorizontal: spacing.lg,
+  },
+  aiSection: {
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.sm,
+  },
+  aiHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  aiTitle: {
+    color: colors.textPrimary,
+    fontSize: fs.base,
+    fontWeight: '700',
+  },
+  aiStatusBadge: {
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+  },
+  aiStatusBadgeLive: {
+    backgroundColor: 'rgba(70, 181, 127, 0.18)',
+  },
+  aiStatusBadgeMock: {
+    backgroundColor: 'rgba(244, 187, 68, 0.18)',
+  },
+  aiStatusBadgeUnavailable: {
+    backgroundColor: 'rgba(239, 68, 68, 0.16)',
+  },
+  aiStatusBadgeText: {
+    color: colors.textPrimary,
+    fontSize: fs.xs,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  aiDescription: {
+    color: colors.textSecondary,
+    fontSize: fs.sm,
+    lineHeight: 18,
+    marginBottom: spacing.md,
+  },
+  aiActionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  aiActionCard: {
+    flex: 1,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.talkOtherBubble,
+    borderWidth: 1,
+    borderColor: colors.talkPanelBorder,
+    padding: spacing.md,
+    minHeight: 116,
+  },
+  aiActionCardDisabled: {
+    opacity: 0.55,
+  },
+  aiActionIcon: {
+    fontSize: 20,
+    marginBottom: spacing.xs,
+  },
+  aiActionTitle: {
+    color: colors.textPrimary,
+    fontSize: fs.sm,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  aiActionBody: {
+    color: colors.textSecondary,
+    fontSize: fs.xs,
+    lineHeight: 17,
   },
   reactionSection: {
     paddingHorizontal: spacing.sm,

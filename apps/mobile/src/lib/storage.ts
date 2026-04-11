@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './api';
-import type { LastVisitedLocation, UserSettings } from '@zktalk/shared';
+import type { LastVisitedLocation, UpdateUserSettingsInput, UserSettings } from '@zktalk/shared';
 
 const TOKEN_KEY = 'zktalk_session_token';
 const LAST_VOICE_CHANNELS_KEY = 'zktalk_last_voice_channels';
@@ -11,10 +11,7 @@ export async function fetchUserSettings(): Promise<UserSettings> {
   return res.settings;
 }
 
-export async function patchUserSettings(input: {
-  communityOrder?: string[];
-  lastVisited?: LastVisitedLocation | null;
-}): Promise<UserSettings> {
+export async function patchUserSettings(input: UpdateUserSettingsInput): Promise<UserSettings> {
   const res = await api<{ settings: UserSettings }>('/api/me/settings', {
     method: 'PATCH',
     body: input,
@@ -67,6 +64,12 @@ export async function saveLastVisited(lastVisited: LastVisitedLocation | null): 
   return patchUserSettings({ lastVisited });
 }
 
+export async function saveTranslationDisplay(
+  translationDisplay: UpdateUserSettingsInput['translationDisplay'],
+): Promise<UserSettings> {
+  return patchUserSettings({ translationDisplay });
+}
+
 
 export async function getToken(): Promise<string | null> {
   try {
@@ -113,4 +116,3 @@ export async function setLastVoiceChannelForCommunity(
     // Best effort only.
   }
 }
-

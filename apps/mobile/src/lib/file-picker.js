@@ -57,13 +57,32 @@ exports.attachToDmMessage = attachToDmMessage;
 exports.getAttachmentFileUrl = getAttachmentFileUrl;
 var ImagePicker = require("expo-image-picker");
 var DocumentPicker = require("expo-document-picker");
+var expo_file_system_1 = require("expo-file-system");
 var LegacyFileSystem = require("expo-file-system/legacy");
 var api_1 = require("./api");
 var network_config_1 = require("./network-config");
-var storage_1 = require("./storage");
 var simulator_harness_1 = require("./simulator-harness");
 var RAW_UPLOAD_CONTENT_TYPE = 'application/octet-stream';
 var SIMULATOR_TINY_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9sM1n8kAAAAASUVORK5CYII=';
+function resolveUploadUrl(uploadUrl) {
+    return uploadUrl.startsWith('http')
+        ? uploadUrl
+        : "".concat(network_config_1.API_ORIGIN).concat(uploadUrl);
+}
+function getMultipartUploadEtag(response) {
+    var etag = response.headers.get('etag');
+    if (!etag) {
+        throw new Error('Multipart upload did not return an ETag');
+    }
+    return etag;
+}
+function getMultipartUploadEtagFromHeaders(headers) {
+    var etag = headers.etag || headers.ETag;
+    if (!etag) {
+        throw new Error('Multipart upload did not return an ETag');
+    }
+    return etag;
+}
 function sanitizeSimulatorFileName(fileName) {
     return fileName.replace(/[^a-zA-Z0-9._-]/g, '-');
 }
@@ -234,11 +253,99 @@ function pickDocument() {
                     return [2 /*return*/, {
                             uri: asset.uri,
                             name: asset.name,
-                            mimeType: (_a = asset.mimeType) !== null && _a !== void 0 ? _a : 'application/octet-stream',
+                            mimeType: (_a = asset.mimeType) !== null && _a !== void 0 ? _a : guessMimeType(asset.name),
                             size: (_b = asset.size) !== null && _b !== void 0 ? _b : 0,
                         }];
             }
         });
+    });
+}
+function uploadSinglePartFile(file, uploadUrl, onProgress) {
+    return __awaiter(this, void 0, void 0, function () {
+        var uploadTask, result;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    uploadTask = LegacyFileSystem.createUploadTask(uploadUrl, file.uri, {
+                        httpMethod: 'PUT',
+                        uploadType: LegacyFileSystem.FileSystemUploadType.BINARY_CONTENT,
+                        headers: {
+                            'Content-Type': file.mimeType || RAW_UPLOAD_CONTENT_TYPE,
+                        },
+                    }, function (progressEvent) {
+                        if (!onProgress || !progressEvent.totalBytesExpectedToSend) {
+                            return;
+                        }
+                        onProgress(progressEvent.totalBytesSent / progressEvent.totalBytesExpectedToSend);
+                    });
+                    return [4 /*yield*/, uploadTask.uploadAsync()];
+                case 1:
+                    result = _a.sent();
+                    if (!result) {
+                        throw new Error('Upload failed');
+                    }
+                    if (result.status === 429) {
+                        throw new api_1.ApiError(429, 'Too many requests', 'RATE_LIMITED');
+                    }
+                    if (result.status < 200 || result.status >= 300) {
+                        throw new Error("Upload failed with status ".concat(result.status));
+                    }
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+async function uploadMultipartFile(file, presign, onProgress) {
+    if (!presign.partSize || !presign.partCount || presign.partCount < 1) {
+        throw new Error('Multipart upload is missing part metadata');
+    }
+    var _a = await (0, api_1.api)("/api/upload/sessions/".concat(presign.uploadSessionId, "/parts"), {
+        method: 'POST',
+        body: {
+            partNumbers: Array.from({ length: presign.partCount }, function (_, index) { return index + 1; }),
+        },
+    }), parts = _a.parts;
+    var nativeFile = new expo_file_system_1.File(file.uri);
+    var completedParts = [];
+    for (var _i = 0, parts_1 = parts; _i < parts_1.length; _i++) {
+        var part = parts_1[_i];
+        var start = (part.partNumber - 1) * presign.partSize;
+        var end = Math.min(start + presign.partSize, file.size);
+        var chunkFile = nativeFile.slice(start, end, file.mimeType || RAW_UPLOAD_CONTENT_TYPE);
+        var chunkBase64 = await chunkFile.base64();
+        var chunkUri = "".concat(LegacyFileSystem.cacheDirectory, "multipart-").concat(presign.uploadSessionId, "-").concat(part.partNumber);
+        await LegacyFileSystem.writeAsStringAsync(chunkUri, chunkBase64, {
+            encoding: LegacyFileSystem.EncodingType.Base64,
+        });
+        var uploadResult = void 0;
+        try {
+            uploadResult = await LegacyFileSystem.uploadAsync(resolveUploadUrl(part.uploadUrl), chunkUri, {
+                httpMethod: 'PUT',
+                uploadType: LegacyFileSystem.FileSystemUploadType.BINARY_CONTENT,
+                headers: {
+                    'Content-Type': file.mimeType || RAW_UPLOAD_CONTENT_TYPE,
+                },
+            });
+        }
+        finally {
+            await LegacyFileSystem.deleteAsync(chunkUri, { idempotent: true }).catch(function () { return undefined; });
+        }
+        if (uploadResult.status < 200 || uploadResult.status >= 300) {
+            throw new Error("Upload failed with status ".concat(uploadResult.status));
+        }
+        completedParts.push({
+            partNumber: part.partNumber,
+            etag: getMultipartUploadEtagFromHeaders(uploadResult.headers),
+        });
+        if (onProgress) {
+            onProgress(part.partNumber / presign.partCount);
+        }
+    }
+    await (0, api_1.api)("/api/upload/sessions/".concat(presign.uploadSessionId, "/complete"), {
+        method: 'POST',
+        body: {
+            parts: completedParts,
+        },
     });
 }
 /**
@@ -249,7 +356,7 @@ function pickDocument() {
  */
 function uploadFile(file, target, onProgress) {
     return __awaiter(this, void 0, void 0, function () {
-        var presign, uploadUrl, token;
+        var presign, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, (0, api_1.api)('/api/upload/presign', {
@@ -258,53 +365,47 @@ function uploadFile(file, target, onProgress) {
                     })];
                 case 1:
                     presign = _a.sent();
-                    uploadUrl = presign.uploadUrl.startsWith('http')
-                        ? presign.uploadUrl
-                        : "".concat(network_config_1.API_ORIGIN).concat(presign.uploadUrl);
-                    return [4 /*yield*/, (0, storage_1.getToken)()];
+                    _a.label = 2;
                 case 2:
-                    token = _a.sent();
-                    // Use XMLHttpRequest with FormData for React Native file upload compatibility.
-                    // Plain object { uri, type, name } only works as a FormData part in RN.
-                    return [4 /*yield*/, new Promise(function (resolve, reject) {
-                            var xhr = new XMLHttpRequest();
-                            if (onProgress) {
-                                xhr.upload.addEventListener('progress', function (event) {
-                                    if (event.lengthComputable) {
-                                        onProgress(event.loaded / event.total);
-                                    }
-                                });
-                            }
-                            xhr.addEventListener('load', function () {
-                                if (xhr.status >= 200 && xhr.status < 300) {
-                                    resolve();
-                                }
-                                else {
-                                    if (xhr.status === 429) {
-                                        reject(new api_1.ApiError(429, 'Too many requests', 'RATE_LIMITED'));
-                                        return;
-                                    }
-                                    reject(new Error("Upload failed with status ".concat(xhr.status)));
-                                }
-                            });
-                            xhr.addEventListener('error', function () {
-                                reject(new Error('Upload failed'));
-                            });
-                            xhr.open('PUT', uploadUrl);
-                            xhr.setRequestHeader('Content-Type', RAW_UPLOAD_CONTENT_TYPE);
-                            if (token) {
-                                xhr.setRequestHeader('Authorization', "Bearer ".concat(token));
-                            }
-                            // React Native XHR supports sending a { uri, type, name } blob-like object
-                            // directly without FormData for PUT requests.
-                            var body = { uri: file.uri, type: file.mimeType, name: file.name };
-                            xhr.send(body);
-                        })];
+                    _a.trys.push([2, 8, , 12]);
+                    if (!(presign.uploadMode === 'multipart')) return [3 /*break*/, 4];
+                    return [4 /*yield*/, uploadMultipartFile(file, presign, onProgress)];
                 case 3:
-                    // Use XMLHttpRequest with FormData for React Native file upload compatibility.
-                    // Plain object { uri, type, name } only works as a FormData part in RN.
                     _a.sent();
+                    return [3 /*break*/, 7];
+                case 4: return [4 /*yield*/, uploadSinglePartFile(file, resolveUploadUrl(presign.uploadUrl), onProgress)];
+                case 5:
+                    _a.sent();
+                    return [4 /*yield*/, (0, api_1.api)("/api/upload/sessions/".concat(presign.uploadSessionId, "/complete"), {
+                            method: 'POST',
+                            body: {
+                                parts: [{ partNumber: 1, etag: 'single-part' }],
+                            },
+                        })];
+                case 6:
+                    _a.sent();
+                    _a.label = 7;
+                case 7: return [3 /*break*/, 12];
+                case 8:
+                    error_1 = _a.sent();
+                    _a.label = 9;
+                case 9:
+                    _a.trys.push([9, 11, , 12]);
+                    return [4 /*yield*/, (0, api_1.api)("/api/upload/sessions/".concat(presign.uploadSessionId, "/abort"), {
+                            method: 'POST',
+                        })];
+                case 10:
+                    _a.sent();
+                    return [3 /*break*/, 12];
+                case 11:
+                    _a.sent();
+                    return [3 /*break*/, 12];
+                case 12:
+                    if (error_1) {
+                        throw error_1;
+                    }
                     return [2 /*return*/, {
+                            uploadSessionId: presign.uploadSessionId,
                             storageKey: presign.storageKey,
                             fileName: file.name,
                             mimeType: file.mimeType,
@@ -316,7 +417,7 @@ function uploadFile(file, target, onProgress) {
 }
 function uploadImageAsset(file, scope, communityId) {
     return __awaiter(this, void 0, void 0, function () {
-        var presign, uploadUrl, token;
+        var presign, uploadUrl, uploadResult;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, (0, api_1.api)('/api/upload/assets/presign', {
@@ -334,35 +435,21 @@ function uploadImageAsset(file, scope, communityId) {
                     uploadUrl = presign.uploadUrl.startsWith('http')
                         ? presign.uploadUrl
                         : "".concat(network_config_1.API_ORIGIN).concat(presign.uploadUrl);
-                    return [4 /*yield*/, (0, storage_1.getToken)()];
-                case 2:
-                    token = _a.sent();
-                    return [4 /*yield*/, new Promise(function (resolve, reject) {
-                            var xhr = new XMLHttpRequest();
-                            xhr.addEventListener('load', function () {
-                                if (xhr.status >= 200 && xhr.status < 300) {
-                                    resolve();
-                                }
-                                else {
-                                    if (xhr.status === 429) {
-                                        reject(new api_1.ApiError(429, 'Too many requests', 'RATE_LIMITED'));
-                                        return;
-                                    }
-                                    reject(new Error("Upload failed with status ".concat(xhr.status)));
-                                }
-                            });
-                            xhr.addEventListener('error', function () {
-                                reject(new Error('Upload failed'));
-                            });
-                            xhr.open('PUT', uploadUrl);
-                            xhr.setRequestHeader('Content-Type', file.mimeType);
-                            if (token) {
-                                xhr.setRequestHeader('Authorization', "Bearer ".concat(token));
-                            }
-                            xhr.send({ uri: file.uri, type: file.mimeType, name: file.name });
+                    return [4 /*yield*/, LegacyFileSystem.uploadAsync(uploadUrl, file.uri, {
+                            httpMethod: 'PUT',
+                            uploadType: LegacyFileSystem.FileSystemUploadType.BINARY_CONTENT,
+                            headers: {
+                                'Content-Type': file.mimeType,
+                            },
                         })];
-                case 3:
-                    _a.sent();
+                case 2:
+                    uploadResult = _a.sent();
+                    if (uploadResult.status === 429) {
+                        throw new api_1.ApiError(429, 'Too many requests', 'RATE_LIMITED');
+                    }
+                    if (uploadResult.status < 200 || uploadResult.status >= 300) {
+                        throw new Error("Upload failed with status ".concat(uploadResult.status));
+                    }
                     return [2 /*return*/, presign.assetUrl.startsWith('http')
                             ? presign.assetUrl
                             : "".concat(network_config_1.API_ORIGIN).concat(presign.assetUrl)];
@@ -421,10 +508,31 @@ function guessMimeType(fileName) {
         heic: 'image/heic',
         mp4: 'video/mp4',
         mov: 'video/quicktime',
+        txt: 'text/plain',
+        md: 'text/markdown',
+        csv: 'text/csv',
+        json: 'application/json',
         pdf: 'application/pdf',
+        dmg: 'application/x-apple-diskimage',
+        iso: 'application/x-iso9660-image',
+        pkg: 'application/vnd.apple.installer+xml',
+        tar: 'application/x-tar',
+        gz: 'application/gzip',
+        tgz: 'application/gzip',
+        bz2: 'application/x-bzip2',
+        xz: 'application/x-xz',
         doc: 'application/msword',
         docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        xls: 'application/vnd.ms-excel',
+        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ppt: 'application/vnd.ms-powerpoint',
+        pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         zip: 'application/zip',
+        rar: 'application/vnd.rar',
+        '7z': 'application/x-7z-compressed',
+        exe: 'application/vnd.microsoft.portable-executable',
+        msi: 'application/x-msi',
+        apk: 'application/vnd.android.package-archive',
     };
     return (_b = mimeMap[ext !== null && ext !== void 0 ? ext : '']) !== null && _b !== void 0 ? _b : 'application/octet-stream';
 }

@@ -9,6 +9,16 @@ const desktopDir = path.resolve(__dirname, '..');
 const distDir = path.join(desktopDir, 'dist');
 const blockersPath = path.join(distDir, 'signing-blockers.json');
 const snapshotPath = path.join(distDir, 'release-next.json');
+const repoRoot = path.resolve(desktopDir, '..', '..');
+const docsDir = path.join(repoRoot, 'docs');
+const docsIndexPath = path.join(docsDir, 'README.md');
+const currentStatusPath = path.join(docsDir, 'CURRENT_STATUS.md');
+const repoSnapshotPath = path.join(docsDir, 'current-release-next.json');
+const blockerSummaryPath = path.join(docsDir, 'current-blockers-2026-03-25.md');
+const runtimeRunbookPath = path.join(docsDir, 'production-runtime-runbook.md');
+const commercializationPlanPath = path.join(docsDir, 'COMMERCIALIZATION_PLAN.md');
+const implementationPlanPath = path.join(docsDir, 'IMPLEMENTATION_PLAN.md');
+const desktopReleasePath = path.join(desktopDir, 'RELEASE.md');
 const wantsJson = process.argv.includes('--json');
 
 function refreshBlockers() {
@@ -67,6 +77,16 @@ if (wantsJson) {
       signingEnvExample:
         typeof paths.signingEnvExample === 'string' ? paths.signingEnvExample : null,
     },
+    sourceOfTruth: {
+      docsIndex: docsIndexPath,
+      currentStatus: currentStatusPath,
+      repoSnapshot: repoSnapshotPath,
+      blockerSummary: blockerSummaryPath,
+      runtimeRunbook: runtimeRunbookPath,
+      commercializationPlan: commercializationPlanPath,
+      implementationPlan: implementationPlanPath,
+      desktopReleaseRunbook: desktopReleasePath,
+    },
   };
   writeFileSync(snapshotPath, `${JSON.stringify(payload, null, 2)}\n`);
   process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
@@ -108,6 +128,16 @@ writeFileSync(
       signingEnv: typeof paths.signingEnv === 'string' ? paths.signingEnv : null,
       signingEnvExample:
         typeof paths.signingEnvExample === 'string' ? paths.signingEnvExample : null,
+    },
+    sourceOfTruth: {
+      docsIndex: docsIndexPath,
+      currentStatus: currentStatusPath,
+      repoSnapshot: repoSnapshotPath,
+      blockerSummary: blockerSummaryPath,
+      runtimeRunbook: runtimeRunbookPath,
+      commercializationPlan: commercializationPlanPath,
+      implementationPlan: implementationPlanPath,
+      desktopReleaseRunbook: desktopReleasePath,
     },
   }, null, 2)}\n`,
 );
@@ -168,5 +198,18 @@ if (typeof paths.markdown === 'string' || typeof paths.releaseStatus === 'string
   }
   lines.push(`- Snapshot JSON: ${snapshotPath}`);
 }
+
+lines.push(
+  '',
+  'Source of truth:',
+  `- Docs index: ${docsIndexPath}`,
+  `- Current status: ${currentStatusPath}`,
+  `- Repo release snapshot: ${repoSnapshotPath}`,
+  `- Blocker summary: ${blockerSummaryPath}`,
+  `- Runtime runbook: ${runtimeRunbookPath}`,
+  `- Commercialization plan: ${commercializationPlanPath}`,
+  `- Implementation plan: ${implementationPlanPath}`,
+  `- Desktop release runbook: ${desktopReleasePath}`,
+);
 
 process.stdout.write(`${lines.join('\n')}\n`);

@@ -16,6 +16,11 @@ const LARGE_ATTACHMENT_SIZE = 12 * 1024 * 1024;
 const apiBaseUrl =
   process.env.ZKTALK_BASE_URL ?? `http://127.0.0.1:${process.env.ZKTALK_API_PORT ?? '4000'}`;
 
+interface CommunityChannelsResponse {
+  uncategorized: Array<{ id: string; name: string; type?: string }>;
+  categories: Array<{ channels: Array<{ id: string; name: string; type?: string }> }>;
+}
+
 async function openChannelComposerAction(page: Parameters<typeof bootstrapAuthenticatedPage>[0], testId: string) {
   await page.getByTestId('channel-composer-more-button').click();
   await expect(page.getByTestId('channel-composer-more-menu')).toBeVisible();
@@ -51,6 +56,32 @@ function createPdfBuffer(size: number): Buffer {
   const fillerSize = Math.max(size - header.length - footer.length, 0);
 
   return Buffer.concat([header, Buffer.alloc(fillerSize, 0x20), footer], size);
+}
+
+async function getSeedVoiceChannel(
+  request: APIRequestContext,
+  communityId: string,
+  sessionToken: string,
+): Promise<{ id: string; name: string }> {
+  const response = await request.get(`${apiBaseUrl}/api/communities/${communityId}/channels`, {
+    headers: {
+      Authorization: `Bearer ${sessionToken}`,
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+
+  const payload = (await response.json()) as CommunityChannelsResponse;
+  const allChannels = [
+    ...(payload.uncategorized ?? []),
+    ...(payload.categories ?? []).flatMap((category) => category.channels ?? []),
+  ];
+  const voiceChannel = allChannels.find((channel) => channel.type === 'voice');
+  expect(voiceChannel).toBeTruthy();
+
+  return {
+    id: voiceChannel!.id,
+    name: voiceChannel!.name,
+  };
 }
 
 async function apiRequestWithRetry(
@@ -101,6 +132,37 @@ test.describe('channel smoke', () => {
       new RegExp(`/communities/${seed.communitySlug}/channels/${seed.channelId}`),
     );
     await expect(page.getByRole('heading', { name: seed.channelName })).toBeVisible();
+  });
+
+  test('voice join exposes the connected state for a seeded voice channel', async ({ page, request }) => {
+    const seed = await getSeedData();
+    const voiceChannel = await getSeedVoiceChannel(request, seed.communityId, seed.userA.sessionToken);
+
+    await bootstrapAuthenticatedPage(
+      page,
+      seed.userA.sessionToken,
+      `/communities/${seed.communitySlug}/channels/${voiceChannel.id}`,
+    );
+
+    await expect(page.getByRole('heading', { name: voiceChannel.name })).toBeVisible();
+    await page.getByTestId('voice-room-join-button').click();
+
+    await expect(page.getByTestId('voice-room-leave-button')).toBeVisible();
+    await expect
+      .poll(async () => {
+        const response = await request.get(
+          `${apiBaseUrl}/api/channels/${voiceChannel.id}/voice/participants`,
+          {
+            headers: {
+              Authorization: `Bearer ${seed.userA.sessionToken}`,
+            },
+          },
+        );
+        expect(response.ok()).toBeTruthy();
+        const payload = await response.json();
+        return payload.participants?.some((participant: { userId?: string }) => participant.userId === seed.userA.id) ?? false;
+      })
+      .toBe(true);
   });
 
   test('channel message can be sent, edited, threaded, and deleted', async ({ page, request }) => {

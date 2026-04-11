@@ -1,12 +1,17 @@
 'use client';
 
+import React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { useCommunityRole } from '@/hooks/useCommunityRole';
-import type { Community } from '@zktalk/shared';
+import {
+  canUseChannelAsOnboardingStarter,
+  getChannelAccessSummaryKey,
+} from '@zktalk/shared';
+import type { ChannelAccessPolicy, Community } from '@zktalk/shared';
 
 interface OnboardingConfig {
   id?: string;
@@ -20,6 +25,19 @@ interface OnboardingConfig {
 interface CommunityChannel {
   id: string;
   name: string;
+  accessPolicy: ChannelAccessPolicy;
+}
+
+function getAccessPolicyBadgeClassName(accessPolicy: ChannelAccessPolicy) {
+  if (accessPolicy === 'public') {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200';
+  }
+
+  if (accessPolicy === 'invite_only') {
+    return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200';
+  }
+
+  return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200';
 }
 
 function parseJsonArray(value: string | null | undefined): string[] {
@@ -92,12 +110,15 @@ export default function OnboardingSettingsPage() {
 
   const filteredChannels = useMemo(() => {
     const normalizedQuery = channelSearchQuery.trim().toLowerCase();
+    const eligibleChannels = channels.filter((channel) =>
+      canUseChannelAsOnboardingStarter(channel.accessPolicy),
+    );
 
     if (!normalizedQuery) {
-      return channels;
+      return eligibleChannels;
     }
 
-    return channels.filter((channel) => channel.name.toLowerCase().includes(normalizedQuery));
+    return eligibleChannels.filter((channel) => channel.name.toLowerCase().includes(normalizedQuery));
   }, [channelSearchQuery, channels]);
 
   const saveMutation = useMutation({
@@ -245,6 +266,9 @@ export default function OnboardingSettingsPage() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {t('community.onboardingDefaultChannelsHint')}
           </p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {t('community.onboardingDefaultChannelsPolicyHint')}
+          </p>
           <input
             value={channelSearchQuery}
             onChange={(e) => setChannelSearchQuery(e.target.value)}
@@ -272,7 +296,14 @@ export default function OnboardingSettingsPage() {
                       : 'border-gray-300 text-gray-700 hover:border-gray-400 dark:border-gray-600 dark:text-gray-300 dark:hover:border-gray-500'
                   }`}
                 >
-                  # {channel.name}
+                  <span># {channel.name}</span>
+                  {getChannelAccessSummaryKey(channel.accessPolicy) ? (
+                  <span
+                    className={`ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getAccessPolicyBadgeClassName(channel.accessPolicy)}`}
+                  >
+                    {t(getChannelAccessSummaryKey(channel.accessPolicy)!)}
+                  </span>
+                  ) : null}
                 </button>
               );
             })}

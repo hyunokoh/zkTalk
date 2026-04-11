@@ -1,0 +1,8 @@
+[core]
+workspace_base = "/Users/hyunokoh/Documents/Projects/zkTalk"
+cache_dir = "/Users/hyunokoh/Documents/Projects/zkTalk/.zkcoder/cache"
+file_store = "local"
+file_store_path = "/Users/hyunokoh/Documents/Projects/zkTalk/.zkcoder/file-store"
+save_trajectory_path = "/Users/hyunokoh/Documents/Projects/zkTalk/.zkcoder/trajectories"
+runtime = "cli"
+default_agent = "CodeActAgent"

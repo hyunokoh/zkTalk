@@ -2,25 +2,40 @@
 
 'use client';
 
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, assertOkResponse } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { AI_SETTINGS_UPDATED_EVENT, isAiChannelSummaryEnabled, isAiComposerActionsEnabled } from '@/lib/ai-settings';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
-import { getApiBaseUrl } from '@/lib/runtime-config';
-import { getSessionToken } from '@/lib/session-token';
 import { PollCreator } from '@/components/PollCreator';
-import { pickDesktopFiles } from '@/lib/desktop-files';
+import {
+  isDesktopPickedFile,
+  pickDesktopFiles,
+  readDesktopFileChunk,
+  type ComposerPickedFile,
+} from '@/lib/desktop-files';
 import { resolveFileMimeType } from '@/lib/file-mime';
 import { createFilePreviewUrl, revokeFilePreviewUrl } from '@/lib/file-preview';
 import { enqueueMessage } from '@/lib/offline-queue';
 import { ensureOfflineQueueAutoRetry, flushOfflineQueueForChannel, refreshOfflineChannelCounts } from '@/lib/offline-message-sync';
+import { devLogError } from '@/lib/client-log';
+import { getAttachmentSendErrorMessage } from '@/lib/error-copy';
+import { createUploadRequestInit, resolveUploadUrl } from '@/lib/upload-request';
 import { useToastStore } from '@/stores/toast';
 import {
+  getAiRuntimePresentation,
+  isAiRuntimeUsable,
+  type AIRuntimeSummary,
+} from '@/lib/ai-runtime';
+import {
+  buildSelectedMessageAiContract,
+  getSelectedMessageAiSuccessKey,
   hasOnlyImageAttachments,
   type Attachment,
   type Message,
+  type SelectedMessageAiAction,
+  type SelectedMessageAiSurface,
   type User,
 } from '@zktalk/shared';
 
@@ -29,14 +44,32 @@ const RAW_UPLOAD_CONTENT_TYPE = 'application/octet-stream';
 const MAX_MESSAGE_LENGTH = 32000;
 const LONG_MESSAGE_SOFT_WARNING = 8000;
 
-function generateRequestId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+function getComposerErrorMessage(
+  t: (key: string) => string,
+  error: unknown,
+  context: 'attachment' | 'audio' | 'ai' | 'summary',
+): string {
+  if (context === 'attachment') {
+    return getAttachmentSendErrorMessage(t, error);
+  }
+
+  switch (context) {
+    case 'audio':
+      return getAttachmentSendErrorMessage(t, error, {
+        genericKey: 'attachment.audioUploadError',
+        networkKey: 'attachment.audioUploadError',
+      });
+    case 'ai':
+      return t('ai.requestError');
+    case 'summary':
+      return t('ai.summaryError');
+    default:
+      return t('attachment.sendError');
+  }
 }
 
-function resolveUploadUrl(uploadUrl: string): string {
-  return uploadUrl.startsWith('http')
-    ? uploadUrl
-    : `${getApiBaseUrl()}${uploadUrl}`;
+function generateRequestId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
 async function wait(ms: number): Promise<void> {
@@ -70,13 +103,13 @@ async function uploadWithRateLimitRetry(
   attempts = 3,
 ): Promise<Response> {
   let lastResponse: Response | null = null;
-  const isAbsoluteStorageUrl = /^https?:\/\//i.test(uploadUrl);
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const response = await fetch(resolveUploadUrl(uploadUrl), {
-      method: 'PUT',
-      body,
-      headers,
-      credentials: isAbsoluteStorageUrl ? 'omit' : 'include',
+      ...createUploadRequestInit(uploadUrl, {
+        method: 'PUT',
+        body,
+        headers,
+      }),
     });
     lastResponse = response;
     if (response.status !== 429 || attempt === attempts - 1) {
@@ -93,7 +126,7 @@ function formatPendingFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getPendingAttachmentKindLabel(file: File): string {
+function getPendingAttachmentKindLabel(file: Pick<ComposerPickedFile, 'name' | 'type'>): string {
   const extension = file.name.split('.').pop()?.trim();
   if (extension) {
     return extension.toUpperCase().slice(0, 6);
@@ -130,6 +163,92 @@ function hasDraggedFiles(dataTransfer: DataTransfer | null): boolean {
   return dataTransfer.files.length > 0 || Array.from(dataTransfer.types ?? []).includes('Files');
 }
 
+function getMultipartUploadEtag(response: Response): string {
+  const etag = response.headers.get('etag');
+  if (!etag) {
+    throw new Error('Multipart upload did not return an ETag');
+  }
+  return etag;
+}
+
+async function uploadAttachmentWithMultipartSupport({
+  attachment,
+  presign,
+  onProgress,
+}: {
+  attachment: PendingAttachment;
+  presign: UploadPresignResponse;
+  onProgress: (progress: number) => void;
+}): Promise<void> {
+  const mimeType = resolveFileMimeType(attachment.file);
+
+  if (presign.uploadMode === 'single') {
+    const singlePartBody = isDesktopPickedFile(attachment.file)
+      ? await readDesktopFileChunk(attachment.file, 0, attachment.file.size)
+      : attachment.file;
+    const uploadRes = await uploadWithRateLimitRetry(
+      presign.uploadUrl!,
+      singlePartBody,
+      {
+        'Content-Type': mimeType,
+      },
+    );
+    await assertOkResponse(uploadRes, `Attachment upload failed with status ${uploadRes.status}`);
+    onProgress(0.75);
+    await apiWithRateLimitRetry(`/api/upload/sessions/${presign.uploadSessionId}/complete`, {
+      method: 'POST',
+      body: {
+        parts: [{ partNumber: 1, etag: 'single-part' }],
+      },
+    });
+    return;
+  }
+
+  const partSize = presign.partSize;
+  if (!partSize || presign.partCount < 1) {
+    throw new Error('Multipart upload is missing part metadata');
+  }
+
+  const { parts } = await apiWithRateLimitRetry<MultipartUploadPartUrlsResponse>(
+    `/api/upload/sessions/${presign.uploadSessionId}/parts`,
+    {
+      method: 'POST',
+      body: {
+        partNumbers: Array.from({ length: presign.partCount }, (_, index) => index + 1),
+      },
+    },
+  );
+
+  const completedParts: Array<{ partNumber: number; etag: string }> = [];
+  for (const part of parts) {
+    const start = (part.partNumber - 1) * partSize;
+    const end = Math.min(start + partSize, attachment.file.size);
+    const partBody = isDesktopPickedFile(attachment.file)
+      ? await readDesktopFileChunk(attachment.file, start, end)
+      : attachment.file.slice(start, end, mimeType);
+    const uploadRes = await uploadWithRateLimitRetry(
+      part.uploadUrl,
+      partBody,
+      {
+        'Content-Type': mimeType,
+      },
+    );
+    await assertOkResponse(uploadRes, `Attachment upload failed with status ${uploadRes.status}`);
+    completedParts.push({
+      partNumber: part.partNumber,
+      etag: getMultipartUploadEtag(uploadRes),
+    });
+    onProgress(0.15 + (part.partNumber / presign.partCount) * 0.6);
+  }
+
+  await apiWithRateLimitRetry(`/api/upload/sessions/${presign.uploadSessionId}/complete`, {
+    method: 'POST',
+    body: {
+      parts: completedParts,
+    },
+  });
+}
+
 interface MemberInfo {
   userId: string;
   displayName: string;
@@ -139,6 +258,17 @@ interface MemberInfo {
 interface ReplyTarget {
   message: { id: string; bodyMarkdown: string; authorUserId: string };
   author?: { displayName: string } | null;
+}
+
+export interface ComposerAiActionRequest {
+  requestId: string;
+  action: SelectedMessageAiAction;
+  surface: SelectedMessageAiSurface;
+  sourceMessage: {
+    id: string;
+    bodyText: string;
+    authorDisplayName?: string | null;
+  };
 }
 
 interface TopicInfo {
@@ -151,13 +281,32 @@ type PendingAttachmentStatus = 'queued' | 'uploading' | 'uploaded' | 'failed';
 
 interface PendingAttachment {
   id: string;
-  file: File;
+  file: ComposerPickedFile;
   previewUrl: string | null;
   uploadSessionId?: string;
   storageKey?: string;
   status: PendingAttachmentStatus;
   progress: number;
   errorMessage?: string | null;
+}
+
+interface MultipartUploadPartUrl {
+  partNumber: number;
+  uploadUrl: string;
+}
+
+interface MultipartUploadPartUrlsResponse {
+  sessionId: string;
+  parts: MultipartUploadPartUrl[];
+}
+
+interface UploadPresignResponse {
+  uploadSessionId: string;
+  uploadUrl: string | null;
+  storageKey: string;
+  uploadMode: 'single' | 'multipart';
+  partSize: number | null;
+  partCount: number;
 }
 
 interface MessageRow {
@@ -188,6 +337,18 @@ interface MessageComposerProps {
   requireTopic?: boolean;
   /** Currently selected topic filter (Zulip-style) */
   currentTopic?: string;
+  aiActionRequest?: ComposerAiActionRequest | null;
+  onAiActionRequestHandled?: () => void;
+  aiRuntime?: AIRuntimeSummary | null;
+}
+
+async function requestAiChat(messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>) {
+  const result = await api<{ reply: string }>('/api/ai/chat', {
+    method: 'POST',
+    body: { messages },
+  });
+
+  return result.reply;
 }
 
 export function MessageComposer({
@@ -202,8 +363,11 @@ export function MessageComposer({
   isE2eeEnabled = false,
   requireTopic = false,
   currentTopic,
+  aiActionRequest,
+  onAiActionRequestHandled,
+  aiRuntime,
 }: MessageComposerProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const queryClient = useQueryClient();
   const showToast = useToastStore((s) => s.showToast);
   const [body, setBody] = useState('');
@@ -221,13 +385,15 @@ export function MessageComposer({
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [isDraggingAttachments, setIsDraggingAttachments] = useState(false);
   const [errorDialogTitle, setErrorDialogTitle] = useState<string | null>(null);
+  const aiRuntimePresentation = useMemo(() => getAiRuntimePresentation(t, aiRuntime), [aiRuntime, t]);
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const [isAiWorking, setIsAiWorking] = useState(false);
   const [channelSummary, setChannelSummary] = useState<string | null>(null);
-  const [aiComposerActionsEnabled, setAiComposerActionsEnabled] = useState(true);
-  const [aiChannelSummaryEnabled, setAiChannelSummaryEnabled] = useState(true);
+  const [aiComposerActionsEnabled, setAiComposerActionsEnabled] = useState(false);
+  const [aiChannelSummaryEnabled, setAiChannelSummaryEnabled] = useState(false);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const attachmentDragDepthRef = useRef(0);
+  const handledAiActionRequestRef = useRef<string | null>(null);
 
   // Schedule state
   const [showSchedule, setShowSchedule] = useState(false);
@@ -267,7 +433,9 @@ export function MessageComposer({
   const canCreatePoll = !threadId && !replyTo;
   const canRecordAudio = !disabled && (!requireTopic || !!topic.trim());
   const hasPendingAttachments = pendingAttachments.length > 0;
+  const aiRuntimeUsable = aiRuntime ? isAiRuntimeUsable(aiRuntime) : true;
   const composerTestIdPrefix = threadId ? 'thread-composer' : 'channel-composer';
+  const numberLocale = locale === 'ko' ? 'ko-KR' : 'en-US';
 
   const buildMessagePayload = useCallback(
     (bodyMarkdown: string) => ({
@@ -278,66 +446,175 @@ export function MessageComposer({
     [replyTo, topic],
   );
 
-  const runAiAction = useCallback(async (instruction: string) => {
-    const source = body.trim();
-    if (!source) {
+  const applyAiResult = useCallback((nextBody: string) => {
+    setBody(nextBody);
+    bodyRef.current = nextBody;
+    if (textareaRef.current) {
+      textareaRef.current.value = nextBody;
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, []);
+
+  const runAiAction = useCallback(async ({
+    instruction,
+    source,
+    emptyMessage = t('composer.emptyAiInput'),
+    successMessage = t('ai.applySuccess'),
+  }: {
+    instruction: string;
+    source: string;
+    emptyMessage?: string;
+    successMessage?: string;
+  }) => {
+    const trimmedSource = source.trim();
+    if (!trimmedSource) {
       showToast({
         tone: 'info',
-        message: '먼저 메시지 내용을 입력하세요.',
+        message: emptyMessage,
       });
-      return;
+      return false;
+    }
+
+    if (aiRuntime && !aiRuntimeUsable) {
+      showToast({
+        tone: 'info',
+        message: aiRuntimePresentation?.description ?? t('ai.runtimeUnavailableHint'),
+      });
+      return false;
     }
 
     setIsAiWorking(true);
     try {
-      const res = await api<{ reply: string }>('/api/ai/chat', {
-        method: 'POST',
-        body: {
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a writing assistant inside zkTalk. Follow the user instruction exactly. Return only the requested output text with no extra framing.',
-            },
-            {
-              role: 'user',
-              content: `${instruction}\n\nText:\n${source}`,
-            },
-          ],
+      const reply = await requestAiChat([
+        {
+          role: 'system',
+          content: 'You are a writing assistant inside zkTalk. Follow the user instruction exactly. Return only the requested output text with no extra framing.',
         },
-      });
-      setBody(res.reply);
-      bodyRef.current = res.reply;
-      if (textareaRef.current) {
-        textareaRef.current.value = res.reply;
-        textareaRef.current.style.height = 'auto';
-        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-      }
+        {
+          role: 'user',
+          content: `${instruction}\n\n${trimmedSource}`,
+        },
+      ]);
+      applyAiResult(reply);
       setShowSecondaryActionsMenu(false);
-      showToast({ tone: 'success', message: 'AI 결과를 입력창에 적용했습니다.' });
+      showToast({
+        tone: aiRuntimePresentation?.mock ? 'info' : 'success',
+        message: successMessage,
+      });
+      return true;
     } catch (error) {
       showToast({
         tone: 'error',
-        message: error instanceof Error ? error.message : 'AI 요청에 실패했습니다.',
+        message: getComposerErrorMessage(t, error, 'ai'),
       });
+      return false;
     } finally {
       setIsAiWorking(false);
     }
-  }, [body, showToast]);
+  }, [aiRuntime, aiRuntimePresentation, aiRuntimeUsable, applyAiResult, showToast, t]);
 
   const handleAiReplySuggestion = useCallback(() => {
-    void runAiAction('Write a concise helpful reply suggestion in the same language as the text.');
+    void runAiAction({
+      instruction: 'Write a concise helpful reply suggestion in the same language as the text.',
+      source: `Text:\n${body.trim()}`,
+    });
   }, [runAiAction]);
 
   const handleAiTranslate = useCallback(() => {
-    void runAiAction('Translate this text into natural English. Preserve meaning and tone.');
+    void runAiAction({
+      instruction: 'Translate this text into natural English. Preserve meaning and tone.',
+      source: `Text:\n${body.trim()}`,
+    });
   }, [runAiAction]);
 
   const handleAiRewrite = useCallback(() => {
-    void runAiAction('Rewrite this text to be clearer and more polished in the same language. Keep it concise.');
+    void runAiAction({
+      instruction: 'Rewrite this text to be clearer and more polished in the same language. Keep it concise.',
+      source: `Text:\n${body.trim()}`,
+    });
   }, [runAiAction]);
+
+  useEffect(() => {
+    if (!aiActionRequest) {
+      return;
+    }
+
+    if (handledAiActionRequestRef.current === aiActionRequest.requestId) {
+      return;
+    }
+
+    handledAiActionRequestRef.current = aiActionRequest.requestId;
+
+    const handleRequest = async () => {
+      const contract = buildSelectedMessageAiContract({
+        action: aiActionRequest.action,
+        surface: aiActionRequest.surface,
+        sourceMessage: {
+          authorDisplayName: aiActionRequest.sourceMessage.authorDisplayName,
+          bodyText: aiActionRequest.sourceMessage.bodyText,
+        },
+        currentDraft: body,
+      });
+
+      if (contract.errorKey || !contract.chatMessages) {
+        showToast({
+          tone: 'info',
+          message: t(contract.errorKey ?? 'ai.selectedMessageUnavailable'),
+        });
+        onAiActionRequestHandled?.();
+        return;
+      }
+
+      if (aiRuntime && !isAiRuntimeUsable(aiRuntime)) {
+        showToast({
+          tone: 'info',
+          message: aiRuntimePresentation?.description ?? t('ai.runtimeUnavailableHint'),
+        });
+        onAiActionRequestHandled?.();
+        return;
+      }
+
+      setIsAiWorking(true);
+      try {
+        const reply = await requestAiChat(contract.chatMessages);
+        applyAiResult(reply);
+        showToast({
+          tone: aiRuntimePresentation?.mock ? 'info' : 'success',
+          message: t(
+            getSelectedMessageAiSuccessKey(
+              aiActionRequest.action === 'rewrite-draft' ? 'rewrite-draft' : 'reply-draft',
+              {
+                mock: aiRuntimePresentation?.mock,
+              },
+            ),
+          ),
+        });
+      } catch (error) {
+        showToast({
+          tone: 'error',
+          message: getComposerErrorMessage(t, error, 'ai'),
+        });
+      } finally {
+        setIsAiWorking(false);
+      }
+      onAiActionRequestHandled?.();
+    };
+
+    void handleRequest();
+  }, [aiActionRequest, aiRuntime, aiRuntimePresentation, body, onAiActionRequestHandled, applyAiResult, showToast, t]);
 
   const handleAiSummarizeChannel = useCallback(async () => {
     if (threadId) return;
+
+    if (aiRuntime && !aiRuntimeUsable) {
+      showToast({
+        tone: 'info',
+        message: aiRuntimePresentation?.description ?? t('ai.runtimeUnavailableHint'),
+      });
+      return;
+    }
+
     setIsAiWorking(true);
     try {
       const res = await api<{ summary: string }>(`/api/channels/${channelId}/ai/summarize`, {
@@ -346,16 +623,16 @@ export function MessageComposer({
       });
       setChannelSummary(res.summary);
       setShowSecondaryActionsMenu(false);
-      showToast({ tone: 'success', message: '채널 요약을 불러왔습니다.' });
+      showToast({ tone: 'success', message: t('ai.summaryLoaded') });
     } catch (error) {
       showToast({
         tone: 'error',
-        message: error instanceof Error ? error.message : '채널 요약에 실패했습니다.',
+        message: getComposerErrorMessage(t, error, 'summary'),
       });
     } finally {
       setIsAiWorking(false);
     }
-  }, [channelId, showToast, threadId]);
+  }, [aiRuntime, aiRuntimePresentation, aiRuntimeUsable, channelId, showToast, t, threadId]);
 
   const dismissChannelSummary = useCallback(() => {
     setChannelSummary(null);
@@ -488,14 +765,7 @@ export function MessageComposer({
             : item,
         ));
 
-        const presign = await apiWithRateLimitRetry<{
-          uploadSessionId: string;
-          uploadUrl: string;
-          storageKey: string;
-          uploadMode: 'single' | 'multipart';
-          partSize: number | null;
-          partCount: number;
-        }>(
+        const presign = await apiWithRateLimitRetry<UploadPresignResponse>(
           '/api/upload/presign',
           {
             method: 'POST',
@@ -508,48 +778,33 @@ export function MessageComposer({
           },
         );
 
-        const sessionToken = getSessionToken();
-        const uploadRes = await uploadWithRateLimitRetry(
-          presign.uploadUrl,
-          attachment.file,
-          {
-            'Content-Type': RAW_UPLOAD_CONTENT_TYPE,
-            ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-          },
-        );
-
-        if (!uploadRes.ok) {
+        try {
+          await uploadAttachmentWithMultipartSupport({
+            attachment,
+            presign,
+            onProgress: (progress) => {
+              setPendingAttachments((prev) => prev.map((item) =>
+                item.id === attachment.id
+                  ? { ...item, status: 'uploading', progress, errorMessage: null }
+                  : item,
+              ));
+            },
+          });
+        } catch (error) {
+          try {
+            await apiWithRateLimitRetry(`/api/upload/sessions/${presign.uploadSessionId}/abort`, {
+              method: 'POST',
+            });
+          } catch {
+            // Best effort cleanup for partially uploaded sessions.
+          }
+          const uploadErrorMessage = getComposerErrorMessage(t, error, 'attachment');
           setPendingAttachments((prev) => prev.map((item) =>
             item.id === attachment.id
-              ? { ...item, status: 'failed', progress: 0, errorMessage: `Upload failed with status ${uploadRes.status}` }
+              ? { ...item, status: 'failed', progress: 0, errorMessage: uploadErrorMessage }
               : item,
           ));
-          throw new Error(`Attachment upload failed with status ${uploadRes.status}`);
-        }
-
-        setPendingAttachments((prev) => prev.map((item) =>
-          item.id === attachment.id
-            ? { ...item, status: 'uploading', progress: 0.75, errorMessage: null }
-            : item,
-        ));
-
-        if (presign.uploadMode === 'multipart') {
-          await apiWithRateLimitRetry(`/api/upload/sessions/${presign.uploadSessionId}/complete`, {
-            method: 'POST',
-            body: {
-              parts: Array.from({ length: presign.partCount }, (_, index) => ({
-                partNumber: index + 1,
-                etag: `etag-${index + 1}`,
-              })),
-            },
-          });
-        } else {
-          await apiWithRateLimitRetry(`/api/upload/sessions/${presign.uploadSessionId}/complete`, {
-            method: 'POST',
-            body: {
-              parts: [{ partNumber: 1, etag: 'single-part' }],
-            },
-          });
+          throw error;
         }
 
         setPendingAttachments((prev) => prev.map((item) =>
@@ -666,7 +921,7 @@ export function MessageComposer({
         return;
       }
       setErrorDialogMessage(
-        error instanceof Error ? error.message : t('attachment.sendError'),
+        getComposerErrorMessage(t, error, 'attachment'),
       );
     },
   });
@@ -725,19 +980,15 @@ export function MessageComposer({
             },
           );
 
-          const sessionToken = getSessionToken();
           const uploadRes = await uploadWithRateLimitRetry(
             presign.uploadUrl,
             blob,
             {
               'Content-Type': 'audio/webm',
-              ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
             },
           );
 
-          if (!uploadRes.ok) {
-            throw new Error(`Audio upload failed with status ${uploadRes.status}`);
-          }
+          await assertOkResponse(uploadRes, `Attachment upload failed with status ${uploadRes.status}`);
 
           await apiWithRateLimitRetry(`/api/upload/sessions/${presign.uploadSessionId}/complete`, {
             method: 'POST',
@@ -768,16 +1019,24 @@ export function MessageComposer({
 
           queryClient.invalidateQueries({ queryKey: ['messages', channelId, threadId ?? 'main'] });
         } catch (err) {
-          console.error('Audio upload failed:', err);
+          devLogError('Audio upload failed:', err);
+          showToast({
+            tone: 'error',
+            message: getComposerErrorMessage(t, err, 'audio'),
+          });
         }
       };
 
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      console.error('Failed to start recording:', err);
+      devLogError('Failed to start recording:', err);
+      showToast({
+        tone: 'error',
+        message: t('attachment.audioPermissionError'),
+      });
     }
-  }, [basePath, buildMessagePayload, canRecordAudio, channelId, queryClient, threadId]);
+  }, [basePath, buildMessagePayload, canRecordAudio, channelId, queryClient, showToast, t, threadId]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -786,7 +1045,7 @@ export function MessageComposer({
     }
   }, []);
 
-  const appendPendingFiles = useCallback((files: File[]) => {
+  const appendPendingFiles = useCallback((files: ComposerPickedFile[]) => {
     if (files.length === 0) {
       return;
     }
@@ -808,7 +1067,9 @@ export function MessageComposer({
     void Promise.all(
       nextAttachments.map(async (attachment) => ({
         id: attachment.id,
-        previewUrl: await createFilePreviewUrl(attachment.file),
+        previewUrl: isDesktopPickedFile(attachment.file)
+          ? null
+          : await createFilePreviewUrl(attachment.file),
       })),
     ).then((resolvedAttachments) => {
       const resolvedPreviewMap = new Map(
@@ -1130,7 +1391,7 @@ export function MessageComposer({
   return (
     <div
       data-testid={`${composerTestIdPrefix}-drop-zone`}
-      className="relative border-t border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(8,17,29,0.94)_55%)] px-5 pb-6 pt-4 md:px-8"
+      className="relative border-t border-white/8 bg-[#0f1724] px-5 pb-5 pt-3 md:px-8"
       onDragEnter={handleAttachmentDragEnter}
       onDragLeave={handleAttachmentDragLeave}
       onDragOver={handleAttachmentDragOver}
@@ -1238,7 +1499,9 @@ export function MessageComposer({
                   }}
                 >
                   <span>{topicItem.topic}</span>
-                  <span className="text-[#72767d]">{topicItem.messageCount} msgs</span>
+                  <span className="text-[#72767d]">
+                    {t('composer.topicMessageCount', { count: topicItem.messageCount.toLocaleString(numberLocale) })}
+                  </span>
                 </button>
               ))}
             </div>
@@ -1277,10 +1540,13 @@ export function MessageComposer({
       {body.length >= LONG_MESSAGE_SOFT_WARNING ? (
         <div className="mb-3 flex items-center justify-between gap-3 rounded-[1.4rem] border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-xs shadow-[0_18px_40px_rgba(2,8,23,0.18)]">
           <span className="font-medium text-amber-100">
-            Long-form mode · {body.length.toLocaleString()} / {MAX_MESSAGE_LENGTH.toLocaleString()} chars
+            {t('composer.longFormMode', {
+              current: body.length.toLocaleString(numberLocale),
+              max: MAX_MESSAGE_LENGTH.toLocaleString(numberLocale),
+            })}
           </span>
           <span className="text-amber-200/80">
-            The channel feed will collapse long messages by default.
+            {t('composer.longFormHint')}
           </span>
         </div>
       ) : null}
@@ -1314,12 +1580,14 @@ export function MessageComposer({
                   </span>
                   <span className="text-[11px] font-medium text-white/52">
                     {attachment.status === 'uploading'
-                      ? `Uploading ${Math.round(attachment.progress * 100)}%`
+                      ? t('attachment.statusUploading', {
+                        progress: Math.round(attachment.progress * 100).toLocaleString(numberLocale),
+                      })
                       : attachment.status === 'uploaded'
-                        ? 'Uploaded'
+                        ? t('attachment.statusUploaded')
                         : attachment.status === 'failed'
-                          ? 'Upload failed'
-                          : 'Ready to send'}
+                          ? t('attachment.statusFailed')
+                          : t('attachment.statusReady')}
                   </span>
                 </div>
                 <p className="max-w-[13rem] truncate text-sm font-medium text-[#f2f3f5]">
@@ -1350,14 +1618,14 @@ export function MessageComposer({
                       }}
                       className="rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-[11px] font-semibold text-amber-100 hover:bg-amber-300/20"
                     >
-                      Retry
+                      {t('common.retry')}
                     </button>
                     <button
                       type="button"
                       onClick={() => removePendingAttachment(attachment.id)}
                       className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold text-white/72 hover:bg-white/[0.08]"
                     >
-                      Remove
+                      {t('attachment.remove')}
                     </button>
                   </div>
                 ) : null}
@@ -1392,13 +1660,13 @@ export function MessageComposer({
         <div className="mb-3 rounded-[1.5rem] border border-indigo-300/20 bg-indigo-500/10 p-4 text-sm text-white/85 shadow-[0_20px_45px_rgba(41,56,161,0.18)]">
           <div className="mb-2 flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-200/80">AI Channel Summary</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-200/80">{t('ai.summaryTitle')}</p>
             </div>
             <button
               type="button"
               onClick={dismissChannelSummary}
               className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
-              aria-label="Dismiss summary"
+              aria-label={t('ai.dismissSummary')}
             >
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -1471,18 +1739,35 @@ export function MessageComposer({
                 </button>
               ) : null}
 
+              {aiComposerActionsEnabled && aiRuntimePresentation ? (
+                <div
+                  data-testid={`${composerTestIdPrefix}-ai-runtime-status`}
+                  className={`mx-1 mb-1 rounded-xl border px-3 py-2 text-xs leading-5 ${
+                    aiRuntimePresentation.tone === 'live'
+                      ? 'border-emerald-700/40 bg-emerald-950/30 text-emerald-100'
+                      : aiRuntimePresentation.tone === 'mock'
+                        ? 'border-amber-700/40 bg-amber-950/30 text-amber-100'
+                        : 'border-rose-700/40 bg-rose-950/30 text-rose-100'
+                  }`}
+                >
+                  <p className="font-semibold uppercase tracking-[0.14em]">{aiRuntimePresentation.label}</p>
+                  <p className="mt-1 text-[11px] opacity-90">{aiRuntimePresentation.description}</p>
+                </div>
+              ) : null}
+
               {aiComposerActionsEnabled && !threadId && aiChannelSummaryEnabled ? (
                 <button
                   data-testid={`${composerTestIdPrefix}-ai-summary-button`}
                   type="button"
                   onClick={handleAiSummarizeChannel}
-                  disabled={isAiWorking}
+                  disabled={isAiWorking || !aiRuntimeUsable}
                   className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  title={aiRuntimePresentation ? `${aiRuntimePresentation.label}. ${aiRuntimePresentation.description}` : undefined}
                 >
                   <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.75 6.75h14.5M4.75 12h10.5M4.75 17.25h7.5" />
                   </svg>
-                  <span>{isAiWorking ? 'AI 작업 중…' : 'AI 채널 요약'}</span>
+                  <span>{isAiWorking ? t('ai.working') : t('ai.summaryMenuAction')}</span>
                 </button>
               ) : null}
 
@@ -1492,39 +1777,42 @@ export function MessageComposer({
                     data-testid={`${composerTestIdPrefix}-ai-reply-button`}
                     type="button"
                     onClick={handleAiReplySuggestion}
-                    disabled={isAiWorking}
+                    disabled={isAiWorking || !aiRuntimeUsable}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    title={aiRuntimePresentation ? `${aiRuntimePresentation.label}. ${aiRuntimePresentation.description}` : undefined}
                   >
                     <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                     </svg>
-                    <span>{isAiWorking ? 'AI 작업 중…' : 'AI 답장 추천'}</span>
+                    <span>{isAiWorking ? t('ai.working') : t('ai.replySuggestion')}</span>
                   </button>
 
                   <button
                     data-testid={`${composerTestIdPrefix}-ai-translate-button`}
                     type="button"
                     onClick={handleAiTranslate}
-                    disabled={isAiWorking}
+                    disabled={isAiWorking || !aiRuntimeUsable}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    title={aiRuntimePresentation ? `${aiRuntimePresentation.label}. ${aiRuntimePresentation.description}` : undefined}
                   >
                     <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 5.25h12M9 3v2.25m-2.25 0c0 4.107 1.684 7.82 4.4 10.5m0 0A17.925 17.925 0 0015.75 9m-4.6 6.75L21 21" />
                     </svg>
-                    <span>{isAiWorking ? 'AI 작업 중…' : 'AI 번역(영문)'}</span>
+                    <span>{isAiWorking ? t('ai.working') : t('ai.translateToEnglish')}</span>
                   </button>
 
                   <button
                     data-testid={`${composerTestIdPrefix}-ai-rewrite-button`}
                     type="button"
                     onClick={handleAiRewrite}
-                    disabled={isAiWorking}
+                    disabled={isAiWorking || !aiRuntimeUsable}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    title={aiRuntimePresentation ? `${aiRuntimePresentation.label}. ${aiRuntimePresentation.description}` : undefined}
                   >
                     <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                     </svg>
-                    <span>{isAiWorking ? 'AI 작업 중…' : 'AI 문장 다듬기'}</span>
+                    <span>{isAiWorking ? t('ai.working') : t('ai.rewrite')}</span>
                   </button>
                 </>
               ) : null}
@@ -1559,7 +1847,7 @@ export function MessageComposer({
           ) : null}
         </div>
 
-          <div className="relative flex-1 rounded-[1.4rem] border border-white/8 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="relative flex-1 rounded-[1.4rem] border border-white/8 bg-white/[0.03]">
           {/* @Mention autocomplete dropdown */}
           {mentionQuery !== null && filteredMembers.length > 0 && (
             <div
@@ -1613,20 +1901,18 @@ export function MessageComposer({
           data-testid={`${composerTestIdPrefix}-emoji-button`}
           type="button"
           onClick={() => setShowEmojiPicker((prev) => !prev)}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] border border-white/10 bg-white/[0.04] text-xl text-white/44 hover:bg-white/[0.08] hover:text-white"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[1rem] border border-white/10 bg-white/[0.03] text-lg text-white/55 hover:bg-white/[0.08] hover:text-white"
         >
-          {showEmojiPicker ? '⌨️' : '😊'}
+          {showEmojiPicker ? '⌨️' : '☺'}
         </button>
 
         <button
           data-testid={`${composerTestIdPrefix}-send-button`}
           type="submit"
           disabled={(!body.trim() && !hasPendingAttachments) || sendMessage.isPending || disabled || (requireTopic && !topic.trim()) || pendingAttachments.some((attachment) => attachment.status === 'failed')}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] border border-sky-300/30 bg-[linear-gradient(180deg,rgba(76,107,255,0.96),rgba(57,84,206,0.96))] text-white shadow-[0_18px_38px_rgba(41,56,161,0.32)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[1rem] border border-sky-300/25 bg-[#4f6fff] text-white hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <svg className="h-[1.15rem] w-[1.15rem]" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-          </svg>
+          <span className="text-base leading-none">➤</span>
         </button>
       </form>
 

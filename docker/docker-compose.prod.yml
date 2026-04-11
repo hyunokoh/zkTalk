@@ -93,12 +93,21 @@ services:
       S3_REGION: ${S3_REGION:-us-east-1}
       PORT: '4000'
       HOST: '0.0.0.0'
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+      # Production must name the exact browser origin explicitly.
+      CORS_ORIGIN: ${CORS_ORIGIN:?set to the exact public web origin}
       COOKIE_SECRET: ${COOKIE_SECRET:-change-this-in-production}
       MAGIC_LINK_SECRET: ${MAGIC_LINK_SECRET:-change-this-in-production}
+      EMAIL_LINK_SECRET: ${EMAIL_LINK_SECRET:-change-this-in-production}
       LIVEKIT_URL: http://livekit:7880
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-secret}
+      AI_PROVIDER: ${AI_PROVIDER:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_SITE_URL: ${OPENROUTER_SITE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      TRANSLATION_API_KEY: ${TRANSLATION_API_KEY:-}
+      ZKTALK_PUBLIC_APP_URL: ${ZKTALK_PUBLIC_APP_URL:-}
       NODE_ENV: production
     depends_on:
       postgres:

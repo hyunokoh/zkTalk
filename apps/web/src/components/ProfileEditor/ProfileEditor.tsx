@@ -5,42 +5,41 @@ import { useMutation } from '@tanstack/react-query';
 import { ApiError, api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
+import { getUploadErrorMessage } from '@/lib/error-copy';
 import { useTranslation } from '@/lib/i18n';
 import { isImageFileLike } from '@/lib/file-mime';
 import { UserAvatar } from '@/components/UserAvatar';
 import { uploadImageAsset } from '@/lib/upload-assets';
+import { devLogError } from '@/lib/client-log';
 import type { User } from '@zktalk/shared';
 
 const AVATAR_VERSION_STORAGE_KEY = 'zktalk-avatar-version';
 const AVATAR_VERSION_EVENT = 'zktalk-avatar-version-updated';
 const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
-const NETWORK_ERROR_PATTERN = /(failed to fetch|networkerror|load failed|connection refused)/i;
 
 function getProfileErrorMessage(
   t: (key: string) => string,
   error: unknown,
   context: 'upload' | 'save',
 ): string {
-  if (error instanceof ApiError) {
-    const message = error.message.toLowerCase();
-    if (message.includes('file size exceeds maximum') || error.status === 413) {
-      return t('profile.avatarUploadTooLarge');
-    }
-
-    if (message.includes('only image files can be uploaded') || message.includes('file type not allowed')) {
-      return t('profile.avatarUploadInvalidType');
-    }
-
-    if (error.status >= 500) {
-      return t('profile.connectionError');
-    }
+  if (context === 'upload') {
+    return getUploadErrorMessage(t, error, {
+      genericKey: 'profile.avatarUploadError',
+      tooLargeKey: 'profile.avatarUploadTooLarge',
+      invalidTypeKey: 'profile.avatarUploadInvalidType',
+      networkKey: 'profile.connectionError',
+    });
   }
 
-  if (error instanceof Error && NETWORK_ERROR_PATTERN.test(error.message)) {
+  if (error instanceof ApiError && error.status >= 500) {
     return t('profile.connectionError');
   }
 
-  return context === 'upload' ? t('profile.avatarUploadError') : t('profile.saveError');
+  if (error instanceof Error && /failed to fetch|networkerror|load failed|connection refused/i.test(error.message)) {
+    return t('profile.connectionError');
+  }
+
+  return t('profile.saveError');
 }
 
 interface ProfileEditorProps {
@@ -148,7 +147,7 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
       setAvatarUrl(uploadedUrl);
       avatarChangedRef.current = true;
     } catch (error) {
-      console.error('Avatar upload failed', error);
+      devLogError('Avatar upload failed', error);
       const message = getProfileErrorMessage(t, error, 'upload');
       setAvatarErrorMessage(message);
       showToast({ tone: 'error', message });

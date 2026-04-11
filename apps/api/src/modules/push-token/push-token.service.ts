@@ -1,4 +1,5 @@
 import { uuidv7 } from 'uuidv7';
+import { logServerError } from '../../lib/server-log.js';
 import * as repo from './push-token.repository.js';
 
 // ---------------------------------------------------------------------------
@@ -67,7 +68,9 @@ export async function sendPushToUsers(
         body: JSON.stringify(batch),
       });
     } catch (error) {
-      console.error('[Push] Failed to send batch:', error);
+      logServerError('Push', 'Failed to send batch', error, {
+        batchSize: batch.length,
+      });
       // Don't throw — push failures shouldn't break message sending
     }
   }

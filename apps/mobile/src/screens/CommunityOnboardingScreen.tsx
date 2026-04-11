@@ -23,6 +23,11 @@ import {
 } from '../lib/simulator-harness';
 import type { HomeStackParamList } from '../navigation/types';
 import { borderRadius, colors, fontSize as fs, spacing } from '../theme';
+import type { ChannelAccessPolicy } from '@zktalk/shared';
+import {
+  canUseChannelAsOnboardingStarter as canUseSharedOnboardingStarter,
+  getChannelAccessSummaryKey as getSharedChannelAccessSummaryKey,
+} from '@zktalk/shared';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'CommunityOnboarding'>;
 
@@ -30,6 +35,7 @@ interface Channel {
   id: string;
   name: string;
   type: string;
+  accessPolicy: ChannelAccessPolicy;
 }
 
 interface OnboardingRow {
@@ -44,6 +50,18 @@ interface OnboardingPayload {
   welcomeMessage?: string;
   rules: string[];
   defaultChannelIds: string[];
+}
+
+function getChannelAccessBadgeStyle(accessPolicy: ChannelAccessPolicy) {
+  if (accessPolicy === 'public') {
+    return styles.channelPolicyBadgeOpen;
+  }
+
+  if (accessPolicy === 'invite_only') {
+    return styles.channelPolicyBadgeInvite;
+  }
+
+  return styles.channelPolicyBadgeJoin;
 }
 
 function parseJsonArray(value: string | null | undefined): string[] {
@@ -130,12 +148,17 @@ export default function CommunityOnboardingScreen({ navigation, route }: Props) 
   const channels = channelsQuery.data ?? [];
   const filteredChannels = useMemo(() => {
     const normalizedQuery = channelSearchQuery.trim().toLowerCase();
+    const eligibleChannels = channels.filter((channel) =>
+      canUseSharedOnboardingStarter(channel.accessPolicy),
+    );
 
     if (!normalizedQuery) {
-      return channels;
+      return eligibleChannels;
     }
 
-    return channels.filter((channel) => channel.name.toLowerCase().includes(normalizedQuery));
+    return eligibleChannels.filter((channel) =>
+      channel.name.toLowerCase().includes(normalizedQuery),
+    );
   }, [channelSearchQuery, channels]);
   const hasLoaded = !onboardingQuery.isLoading && !channelsQuery.isLoading;
   const ruleCount = useMemo(
@@ -251,6 +274,7 @@ export default function CommunityOnboardingScreen({ navigation, route }: Props) 
           <View style={styles.section}>
             <Text style={styles.label}>{t('community.onboardingDefaultChannels')}</Text>
             <Text style={styles.helper}>{t('community.onboardingDefaultChannelsHint')}</Text>
+            <Text style={styles.helper}>{t('community.onboardingDefaultChannelsPolicyHint')}</Text>
             <TextInput
               style={styles.input}
               value={channelSearchQuery}
@@ -264,6 +288,7 @@ export default function CommunityOnboardingScreen({ navigation, route }: Props) 
             <View style={styles.channelWrap}>
               {filteredChannels.map((channel) => {
                 const selected = defaultChannelIds.includes(channel.id);
+                const accessSummaryKey = getSharedChannelAccessSummaryKey(channel.accessPolicy);
                 return (
                   <TouchableOpacity
                     key={channel.id}
@@ -276,9 +301,16 @@ export default function CommunityOnboardingScreen({ navigation, route }: Props) 
                       )
                     }
                   >
-                    <Text style={[styles.channelChipText, selected && styles.channelChipTextSelected]}>
-                      # {channel.name}
-                    </Text>
+                    <View style={styles.channelChipContent}>
+                      <Text style={[styles.channelChipText, selected && styles.channelChipTextSelected]}>
+                        # {channel.name}
+                      </Text>
+                      {accessSummaryKey ? (
+                        <View style={[styles.channelPolicyBadge, getChannelAccessBadgeStyle(channel.accessPolicy)]}>
+                          <Text style={styles.channelPolicyBadgeText}>{t(accessSummaryKey)}</Text>
+                        </View>
+                      ) : null}
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -393,6 +425,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
+  channelChipContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   channelChipSelected: {
     backgroundColor: colors.primary,
   },
@@ -403,6 +440,25 @@ const styles = StyleSheet.create({
   },
   channelChipTextSelected: {
     color: colors.white,
+  },
+  channelPolicyBadge: {
+    borderRadius: borderRadius.round,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+  },
+  channelPolicyBadgeOpen: {
+    backgroundColor: '#d1fae5',
+  },
+  channelPolicyBadgeJoin: {
+    backgroundColor: '#dbeafe',
+  },
+  channelPolicyBadgeInvite: {
+    backgroundColor: '#fef3c7',
+  },
+  channelPolicyBadgeText: {
+    color: '#1f2937',
+    fontSize: fs.xs,
+    fontWeight: '700',
   },
   saveButton: {
     backgroundColor: colors.primary,
