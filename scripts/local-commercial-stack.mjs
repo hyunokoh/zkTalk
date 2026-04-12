@@ -58,6 +58,23 @@ CREATE TABLE IF NOT EXISTS user_auth_methods (
 );
 CREATE INDEX IF NOT EXISTS user_auth_methods_user_id_idx ON user_auth_methods(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS user_auth_methods_type_identifier_idx ON user_auth_methods(type, identifier);
+CREATE TABLE IF NOT EXISTS otp_codes (
+  id text PRIMARY KEY,
+  phone_number text NOT NULL,
+  code text NOT NULL,
+  expires_at timestamp with time zone NOT NULL,
+  used_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS otp_codes_phone_number_idx ON otp_codes(phone_number);
+CREATE TABLE IF NOT EXISTS contact_hashes (
+  id text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id),
+  phone_hash text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS contact_hashes_phone_hash_idx ON contact_hashes(phone_hash);
+CREATE INDEX IF NOT EXISTS contact_hashes_user_id_idx ON contact_hashes(user_id);
 `;
   const result = spawnSync('docker', ['exec', '-i', 'docker-postgres-1', 'psql', '-U', 'zktalk', '-d', 'zktalk'], {
     cwd: repoRoot,

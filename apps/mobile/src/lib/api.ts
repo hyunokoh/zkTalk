@@ -1,4 +1,8 @@
 import { API_ORIGIN } from './network-config';
+import {
+  isSimulatorHarnessEnabled,
+  writeSimulatorHarnessJson,
+} from './simulator-harness';
 import { getToken } from './storage';
 
 export class ApiError extends Error {
@@ -14,6 +18,36 @@ export class ApiError extends Error {
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
+}
+
+async function recordSimulatorApiIssue(payload: Record<string, unknown>): Promise<void> {
+  if (!isSimulatorHarnessEnabled) {
+    return;
+  }
+
+  await writeSimulatorHarnessJson(
+    'last-api-error.json',
+    {
+      timestamp: new Date().toISOString(),
+      ...payload,
+    },
+    true,
+  );
+}
+
+async function recordSimulatorApiRequest(payload: Record<string, unknown>): Promise<void> {
+  if (!isSimulatorHarnessEnabled) {
+    return;
+  }
+
+  await writeSimulatorHarnessJson(
+    'last-api-request.json',
+    {
+      timestamp: new Date().toISOString(),
+      ...payload,
+    },
+    true,
+  );
 }
 
 export function createRequestId(): string {
@@ -35,14 +69,33 @@ export async function api<T = unknown>(
   const headers: HeadersInit = {
     ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(token ? { 'x-zktalk-auth-mode': 'bearer' } : {}),
     ...customHeaders,
   };
 
-  const res = await fetch(`${API_ORIGIN}${path}`, {
-    headers,
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-    ...rest,
+  await recordSimulatorApiRequest({
+    path,
+    method: rest.method ?? 'GET',
+    hasToken: Boolean(token),
+    tokenLength: token?.length ?? 0,
   });
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_ORIGIN}${path}`, {
+      headers,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...rest,
+    });
+  } catch (error) {
+    await recordSimulatorApiIssue({
+      kind: 'network',
+      path,
+      method: rest.method ?? 'GET',
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 
   if (!res.ok) {
     let message = res.statusText;
@@ -54,6 +107,14 @@ export async function api<T = unknown>(
     } catch {
       // keep statusText
     }
+    await recordSimulatorApiIssue({
+      kind: 'http',
+      path,
+      method: rest.method ?? 'GET',
+      status: res.status,
+      message,
+      code,
+    });
     throw new ApiError(res.status, message, code);
   }
 

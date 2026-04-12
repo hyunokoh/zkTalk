@@ -85,7 +85,8 @@ Queue discipline:
   - [final-operator-checklist-2026-04-07.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/final-operator-checklist-2026-04-07.md)
   - Use section `3b. Operator-owned blocker ledger` there for the shortest owner/unblock/evidence split before reopening engineering work.
 - Feature-specific operator gates:
-  - Storage / voice readiness stays outside baseline `/api/health/ready`; use section `3a` in [final-operator-checklist-2026-04-07.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/final-operator-checklist-2026-04-07.md) before reopening engineering work for attachments or voice
+  - Storage readiness stays outside baseline `/api/health/ready`; use section `3a` in [final-operator-checklist-2026-04-07.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/final-operator-checklist-2026-04-07.md) before reopening engineering work for hosted attachments
+  - Voice/video readiness is now treated as zkMeet scope rather than zkTalk core smoke scope
 - Operator smoke shortlist:
   - `cd /Users/hyunokoh/Documents/Projects/zkTalk && npm run operator:smoke:inventory`
   - Use this before widening scope when the operator needs the current repo-local automation shortlist without reopening external-only blockers.

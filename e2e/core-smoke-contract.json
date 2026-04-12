@@ -1,6 +1,6 @@
 {
   "id": "web-core-release-readiness",
-  "updatedAt": "2026-04-07T12:05:00Z",
+  "updatedAt": "2026-04-12T00:00:00Z",
   "command": "pnpm e2e:smoke:web:core",
   "suite": "web-core",
   "specs": [
@@ -13,8 +13,7 @@
     "session restore",
     "community open",
     "channel send message",
-    "channel attachment send",
-    "thin seeded voice join"
+    "channel attachment send"
   ],
   "excludedJourneys": [
     "attachment open/save",
@@ -22,14 +21,14 @@
     "DM",
     "inbox",
     "profile",
-    "discover"
+    "discover",
+    "voice/video join"
   ],
   "prerequisites": [
     "pnpm local:commercial:stack",
     "PostgreSQL on postgresql://zktalk:zktalk@localhost:5432/zktalk",
     "Redis on redis://localhost:6379",
-    "MinIO/S3 on http://localhost:9000 with bucket zktalk-uploads",
-    "LiveKit on ws://127.0.0.1:7880 for the thin seeded voice join"
+    "MinIO/S3 on http://localhost:9000 with bucket zktalk-uploads"
   ],
-  "failureBoundary": "A failure in this suite should be treated as a regression in a covered core journey or a missing local stack prerequisite. Gaps outside the listed journeys stay in docs/COMMERCIALIZATION_PLAN.md until they have a deterministic repo-local check."
+  "failureBoundary": "A failure in this suite should be treated as a regression in a covered core messaging journey or a missing local stack prerequisite. Voice/video readiness is intentionally tracked outside zkTalk core smoke because that path now belongs with zkMeet-specific validation."
 }

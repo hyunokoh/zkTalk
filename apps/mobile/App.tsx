@@ -135,6 +135,14 @@ export default function App() {
       autoLoginInFlightRef.current = true;
 
       try {
+        await writeSimulatorHarnessJson(
+          'auto-login-marker.txt',
+          {
+            apiOrigin: API_ORIGIN,
+            stage: 'started',
+          },
+        );
+
       const configuredToken = (
         (process.env.EXPO_PUBLIC_DEV_SESSION_TOKEN as string | undefined) ??
         (typeof Constants.expoConfig?.extra?.devSessionToken === 'string'
@@ -146,11 +154,28 @@ export default function App() {
 
         const token = configuredToken || fileToken;
         if (!token) {
+          await writeSimulatorHarnessJson(
+            'auto-login-marker.txt',
+            {
+              apiOrigin: API_ORIGIN,
+              stage: 'no-token',
+              configuredTokenLength: configuredToken.length,
+              fileTokenLength: fileToken.length,
+            },
+          );
           return;
         }
 
         const storedToken = await getToken();
         if (storedToken === token && user) {
+          await writeSimulatorHarnessJson(
+            'auto-login-marker.txt',
+            {
+              apiOrigin: API_ORIGIN,
+              stage: 'already-logged-in',
+              loggedIn: true,
+            },
+          );
           return;
         }
 

@@ -36,9 +36,44 @@ export function useE2EE({ otherUserId }: UseE2EEOptions): UseE2EEReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const sharedSecretRef = useRef<CryptoKey | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const privateKeyRef = useRef<string | null>(null);
+
+  const refreshSharedSecret = useCallback(async (): Promise<CryptoKey> => {
+    if (!currentUserId || !otherUserId) {
+      throw new Error('E2EE not ready');
+    }
+
+    let privateKeyBase64 = privateKeyRef.current ?? await getPrivateKey(currentUserId);
+    if (!privateKeyBase64) {
+      const keyPair = await generateKeyPair();
+      privateKeyBase64 = keyPair.privateKey;
+      privateKeyRef.current = privateKeyBase64;
+      await storePrivateKey(currentUserId, privateKeyBase64);
+      await api('/api/me/keys', {
+        method: 'PUT',
+        body: { publicKey: keyPair.publicKey },
+      });
+    }
+
+    const { publicKey: otherPublicKey } = await api<{ publicKey: string | null }>(
+      `/api/users/${otherUserId}/keys`,
+    );
+    if (!otherPublicKey) {
+      throw new Error('Peer E2EE key is not available');
+    }
+
+    const sharedSecret = await deriveSharedSecret(privateKeyBase64, otherPublicKey);
+    sharedSecretRef.current = sharedSecret;
+    return sharedSecret;
+  }, [currentUserId, otherUserId]);
 
   useEffect(() => {
     if (!currentUserId || !otherUserId) {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
       sharedSecretRef.current = null;
       setIsReady(false);
       setIsLoading(false);
@@ -70,6 +105,7 @@ export function useE2EE({ otherUserId }: UseE2EEOptions): UseE2EEReturn {
             body: { publicKey: keyPair.publicKey },
           });
         }
+        privateKeyRef.current = privateKeyBase64;
 
         // 2. Fetch the other user's public key
         const { publicKey: otherPublicKey } = await api<{ publicKey: string | null }>(
@@ -81,6 +117,12 @@ export function useE2EE({ otherUserId }: UseE2EEOptions): UseE2EEReturn {
           if (!cancelled) {
             setIsReady(false);
             setIsLoading(false);
+            retryTimerRef.current = setTimeout(() => {
+              retryTimerRef.current = null;
+              if (!cancelled) {
+                void initialize();
+              }
+            }, 1_500);
           }
           return;
         }
@@ -106,22 +148,29 @@ export function useE2EE({ otherUserId }: UseE2EEOptions): UseE2EEReturn {
 
     return () => {
       cancelled = true;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
   }, [currentUserId, otherUserId]);
 
   const encrypt = useCallback(async (plaintext: string): Promise<string> => {
-    if (!sharedSecretRef.current) {
-      throw new Error('E2EE not ready');
-    }
-    return cryptoEncrypt(plaintext, sharedSecretRef.current);
-  }, []);
+    const sharedSecret = await refreshSharedSecret();
+    return cryptoEncrypt(plaintext, sharedSecret);
+  }, [refreshSharedSecret]);
 
   const decrypt = useCallback(async (ciphertext: string): Promise<string> => {
-    if (!sharedSecretRef.current) {
-      throw new Error('E2EE not ready');
+    try {
+      const sharedSecret = await refreshSharedSecret();
+      return await cryptoDecrypt(ciphertext, sharedSecret);
+    } catch (error) {
+      if (sharedSecretRef.current) {
+        return cryptoDecrypt(ciphertext, sharedSecretRef.current);
+      }
+      throw error;
     }
-    return cryptoDecrypt(ciphertext, sharedSecretRef.current);
-  }, []);
+  }, [refreshSharedSecret]);
 
   return {
     isReady,

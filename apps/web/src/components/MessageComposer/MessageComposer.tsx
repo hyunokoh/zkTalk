@@ -184,7 +184,12 @@ async function uploadAttachmentWithMultipartSupport({
 
   if (presign.uploadMode === 'single') {
     const singlePartBody = isDesktopPickedFile(attachment.file)
-      ? await readDesktopFileChunk(attachment.file, 0, attachment.file.size)
+      ? new Blob(
+        [Uint8Array.from(await readDesktopFileChunk(attachment.file, 0, attachment.file.size))],
+        {
+          type: mimeType,
+        },
+      )
       : attachment.file;
     const uploadRes = await uploadWithRateLimitRetry(
       presign.uploadUrl!,
@@ -224,7 +229,9 @@ async function uploadAttachmentWithMultipartSupport({
     const start = (part.partNumber - 1) * partSize;
     const end = Math.min(start + partSize, attachment.file.size);
     const partBody = isDesktopPickedFile(attachment.file)
-      ? await readDesktopFileChunk(attachment.file, start, end)
+      ? new Blob([Uint8Array.from(await readDesktopFileChunk(attachment.file, start, end))], {
+        type: mimeType,
+      })
       : attachment.file.slice(start, end, mimeType);
     const uploadRes = await uploadWithRateLimitRetry(
       part.uploadUrl,
@@ -807,14 +814,17 @@ export function MessageComposer({
           throw error;
         }
 
+        const uploadSessionId = presign.uploadSessionId;
+        const storageKey = presign.storageKey;
+
         setPendingAttachments((prev) => prev.map((item) =>
           item.id === attachment.id
             ? {
                 ...item,
                 status: 'uploaded',
                 progress: 1,
-                uploadSessionId: presign.uploadSessionId,
-                storageKey: presign.storageKey,
+                uploadSessionId,
+                storageKey,
                 errorMessage: null,
               }
             : item,
@@ -822,8 +832,8 @@ export function MessageComposer({
 
         uploadedAttachments.push({
           ...attachment,
-          uploadSessionId: presign.uploadSessionId,
-          storageKey: presign.storageKey,
+          uploadSessionId,
+          storageKey,
         });
       }
 
@@ -1068,7 +1078,14 @@ export function MessageComposer({
       nextAttachments.map(async (attachment) => ({
         id: attachment.id,
         previewUrl: isDesktopPickedFile(attachment.file)
-          ? null
+          ? attachment.file.bytes
+            ? await createFilePreviewUrl(
+              new File([Uint8Array.from(attachment.file.bytes)], attachment.file.name, {
+                type: attachment.file.type,
+                lastModified: attachment.file.lastModified,
+              }),
+            )
+            : null
           : await createFilePreviewUrl(attachment.file),
       })),
     ).then((resolvedAttachments) => {

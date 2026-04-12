@@ -41,6 +41,7 @@
     "mobile:maestro:selected-message-ai": "node scripts/mobile-maestro-smoke.mjs --app standalone --mode selected-message-ai --timeout-ms 120000 --maestro-timeout-ms 30000",
     "mobile:maestro:selected-message-ai:dm": "node scripts/mobile-maestro-smoke.mjs --app standalone --mode selected-message-ai-dm --timeout-ms 120000 --maestro-timeout-ms 30000",
     "mobile:maestro:selected-message-ai:thread": "node scripts/mobile-maestro-smoke.mjs --app standalone --mode selected-message-ai-thread --timeout-ms 120000 --maestro-timeout-ms 30000",
+    "nightly:stabilize": "node scripts/nightly-stabilize.mjs",
     "ui:smoke:all": "node scripts/run-ui-smoke-all.mjs",
     "ui:smoke:mobile": "node scripts/run-ui-smoke-mobile.mjs",
     "ui:smoke:macos": "node scripts/run-ui-smoke-macos.mjs",

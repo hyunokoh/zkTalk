@@ -51,6 +51,7 @@ const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🙏', '�
 const RECENT_ATTACHMENT_PROBE_WINDOW_MS = 60_000;
 const RAW_UPLOAD_CONTENT_TYPE = 'application/octet-stream';
 const REALTIME_FOLLOWUP_REFRESH_MS = 150;
+const DM_MESSAGES_FALLBACK_REFETCH_MS = 2_000;
 
 function generateRequestId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
@@ -175,7 +176,12 @@ async function uploadAttachmentWithMultipartSupport({
 
   if (presign.uploadMode === 'single') {
     const singlePartBody = isDesktopPickedFile(attachment.file)
-      ? await readDesktopFileChunk(attachment.file, 0, attachment.file.size)
+      ? new Blob(
+        [Uint8Array.from(await readDesktopFileChunk(attachment.file, 0, attachment.file.size))],
+        {
+          type: mimeType,
+        },
+      )
       : attachment.file;
     const uploadRes = await uploadWithRateLimitRetry(
       presign.uploadUrl!,
@@ -215,7 +221,9 @@ async function uploadAttachmentWithMultipartSupport({
     const start = (part.partNumber - 1) * partSize;
     const end = Math.min(start + partSize, attachment.file.size);
     const partBody = isDesktopPickedFile(attachment.file)
-      ? await readDesktopFileChunk(attachment.file, start, end)
+      ? new Blob([Uint8Array.from(await readDesktopFileChunk(attachment.file, start, end))], {
+        type: mimeType,
+      })
       : attachment.file.slice(start, end, mimeType);
     const uploadRes = await uploadWithRateLimitRetry(
       part.uploadUrl,
@@ -492,6 +500,8 @@ export function DmConversation({ conversationId }: DmConversationProps) {
       return lastPage.messages[lastPage.messages.length - 1].message.id;
     },
     initialPageParam: undefined as string | undefined,
+    refetchInterval: DM_MESSAGES_FALLBACK_REFETCH_MS,
+    refetchOnWindowFocus: true,
   });
 
   const allMessages = useMemo(() => {
@@ -550,7 +560,10 @@ export function DmConversation({ conversationId }: DmConversationProps) {
   useEffect(() => {
     if (!e2eeReady) return;
     const encrypted = allMessages.filter(
-      (r) => r.message.isEncrypted && !r.message.isDeleted && !decryptedCache[r.message.id],
+      (r) =>
+        r.message.isEncrypted
+        && !r.message.isDeleted
+        && (!decryptedCache[r.message.id] || decryptedCache[r.message.id] === '[decryption failed]'),
     );
     if (encrypted.length === 0) return;
 
@@ -774,6 +787,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
           if (!presign) {
             throw new Error('Upload session was not created');
           }
+          const uploadSessionId = presign.uploadSessionId;
 
           setPendingAttachments((prev) => prev.map((item) =>
             item.id === attachment.id
@@ -781,7 +795,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                   ...item,
                   status: 'uploaded',
                   progress: 1,
-                  uploadSessionId: presign.uploadSessionId,
+                  uploadSessionId,
                   errorMessage: null,
                 }
               : item,
@@ -789,7 +803,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
 
           uploadedAttachments.push({
             ...attachment,
-            uploadSessionId: presign.uploadSessionId,
+            uploadSessionId,
           });
         } catch (error) {
           if (presign) {
@@ -841,12 +855,20 @@ export function DmConversation({ conversationId }: DmConversationProps) {
         const hydratedMessage = await apiWithRateLimitRetry<MessageRow>(`/api/dm/messages/${message.message.id}`, {
           method: 'GET',
         });
-        return { message: hydratedMessage, attachmentsAttached: true };
+        return {
+          message: hydratedMessage,
+          attachmentsAttached: true,
+          plaintextBody: isEncrypted ? bodyMarkdown : null,
+        };
       }
 
-      return { message, attachmentsAttached: false };
+      return {
+        message,
+        attachmentsAttached: false,
+        plaintextBody: isEncrypted ? bodyMarkdown : null,
+      };
     },
-    onSuccess: ({ message }) => {
+    onSuccess: ({ message, plaintextBody }) => {
       queryClient.setQueriesData<{ pages?: Array<MessagesPage> }>(
         { queryKey: ['dm-messages', conversationId] },
         (old) => {
@@ -878,6 +900,12 @@ export function DmConversation({ conversationId }: DmConversationProps) {
           return { ...old, pages };
         },
       );
+      if (plaintextBody) {
+        setDecryptedCache((prev) => ({
+          ...prev,
+          [message.message.id]: plaintextBody,
+        }));
+      }
       queryClient.invalidateQueries({ queryKey: ['dm-messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
       pendingAttachments.forEach((attachment) => {

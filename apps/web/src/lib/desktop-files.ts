@@ -5,6 +5,7 @@ export interface DesktopPickedFile {
   type: string;
   size: number;
   lastModified: number;
+  bytes?: Uint8Array;
 }
 
 export type ComposerPickedFile = File | DesktopPickedFile;
@@ -32,6 +33,13 @@ export async function pickDesktopFiles(
     type: String(file.type ?? ''),
     size: Number(file.size ?? 0),
     lastModified: Number(file.lastModified ?? Date.now()),
+    bytes: Array.isArray(file.bytes)
+      ? Uint8Array.from(file.bytes)
+      : file.bytes instanceof Uint8Array
+        ? file.bytes
+        : file.bytes instanceof ArrayBuffer
+          ? new Uint8Array(file.bytes)
+          : undefined,
   }));
 }
 
@@ -40,6 +48,10 @@ export async function readDesktopFileChunk(
   start: number,
   end: number,
 ): Promise<Uint8Array> {
+  if (file.bytes) {
+    return file.bytes.slice(start, end);
+  }
+
   if (typeof window === 'undefined' || typeof window.zkTalkDesktop?.readFileChunk !== 'function') {
     throw new Error('Desktop file chunk reader is not available.');
   }

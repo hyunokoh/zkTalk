@@ -32,7 +32,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: 'PATH=/opt/homebrew/bin:$PATH pnpm exec tsx watch src/server.ts',
+      command: 'PATH=/opt/homebrew/bin:$PATH node --import tsx src/server.ts',
       cwd: path.join(repoRoot, 'apps', 'api'),
       env: {
         ...process.env,
@@ -41,11 +41,11 @@ export default defineConfig({
         PORT: String(apiPort),
       },
       url: `${apiBaseUrl}/api/health`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
     {
-      command: `PATH=/opt/homebrew/bin:$PATH NEXT_PUBLIC_API_URL=${apiBaseUrl} NEXT_PUBLIC_WS_URL=${wsBaseUrl} NEXT_PUBLIC_LIVEKIT_URL=ws://127.0.0.1:7880 pnpm exec next dev --port ${webPort}`,
+      command: `PATH=/opt/homebrew/bin:$PATH NEXT_PUBLIC_API_URL=${apiBaseUrl} NEXT_PUBLIC_WS_URL=${wsBaseUrl} NEXT_PUBLIC_LIVEKIT_URL=ws://127.0.0.1:7880 pnpm exec next start --port ${webPort}`,
       cwd: path.join(repoRoot, 'apps', 'web'),
       env: {
         ...process.env,
@@ -57,8 +57,8 @@ export default defineConfig({
         NEXT_PUBLIC_LIVEKIT_URL: 'ws://127.0.0.1:7880',
       },
       url: `${webBaseUrl}/login`,
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
+      reuseExistingServer: false,
+      timeout: 240_000,
     },
   ],
   projects: [

@@ -122,6 +122,7 @@ export async function getThreads(
 export async function getThreadSummaries(userId: string, rootMessageIds: string[]) {
   const summaries = await repo.findThreadsByRootMessageIds(rootMessageIds);
   const checkedChannels = new Set<string>();
+  const accessibleChannelIds = new Set<string>();
 
   for (const summary of summaries) {
     if (checkedChannels.has(summary.thread.channelId)) {
@@ -130,15 +131,23 @@ export async function getThreadSummaries(userId: string, rootMessageIds: string[
 
     const channel = await repo.findChannelById(summary.thread.channelId);
     if (!channel) {
-      throw AppError.notFound('Channel not found');
+      checkedChannels.add(summary.thread.channelId);
+      continue;
     }
 
-    await checkPermission(userId, channel.communityId, channel.id, 'view_channel');
+    try {
+      await checkPermission(userId, channel.communityId, channel.id, 'view_channel');
+      accessibleChannelIds.add(summary.thread.channelId);
+    } catch {
+      // Thread summaries are supplemental channel metadata. If a specific
+      // thread summary is no longer accessible, skip it instead of breaking
+      // the entire channel screen with a 403.
+    }
     checkedChannels.add(summary.thread.channelId);
   }
 
   return {
-    items: summaries,
+    items: summaries.filter((summary) => accessibleChannelIds.has(summary.thread.channelId)),
   };
 }
 

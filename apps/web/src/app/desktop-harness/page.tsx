@@ -9,28 +9,14 @@ import { getApiBaseUrl } from '@/lib/runtime-config';
 import { clearSessionToken, getSessionToken, setSessionToken } from '@/lib/session-token';
 import { useAuthStore } from '@/stores/auth';
 import type { User } from '@zktalk/shared';
+import {
+  DESKTOP_HARNESS_AUTH_OPTIONS,
+  buildDesktopHarnessSummary,
+  readDesktopHarnessRequest,
+  type DesktopHarnessSummary,
+} from './harness-helpers';
 
 type HarnessState = 'preparing' | 'sending' | 'redirecting' | 'error';
-type DesktopHarnessMode = 'channel' | 'dm';
-
-type DesktopHarnessRequest =
-  | {
-    mode: 'channel';
-    sessionToken: string;
-    body: string;
-    channelId: string;
-    communitySlug: string;
-  }
-  | {
-    mode: 'dm';
-    sessionToken: string;
-    body: string;
-    conversationId: string;
-    };
-
-export const DESKTOP_HARNESS_AUTH_OPTIONS = {
-  authMode: 'bearer' as const,
-};
 
 function sendDesktopHarnessMessage(path: string, body: Record<string, unknown>) {
   const apiBaseUrl = getApiBaseUrl();
@@ -50,86 +36,12 @@ function sendDesktopHarnessMessage(path: string, body: Record<string, unknown>) 
   });
 }
 
-type DesktopHarnessSummary = {
-  modeLabel: string;
-  destinationLabel: string;
-  messagePreview: string;
-};
-
 function readParams() {
   if (typeof window === 'undefined') {
     return new URLSearchParams();
   }
 
   return new URLSearchParams(window.location.search);
-}
-
-function requireTrimmedParam(params: URLSearchParams, key: string): string {
-  const value = params.get(key)?.trim();
-  if (!value) {
-    throw new Error(`Desktop harness is missing required ${key} query param.`);
-  }
-
-  return value;
-}
-
-function requireMode(mode: string | null): DesktopHarnessMode {
-  if (mode === 'channel' || mode === 'dm') {
-    return mode;
-  }
-
-  throw new Error(`Unsupported desktop harness mode: ${mode}`);
-}
-
-export function readDesktopHarnessRequest(params: URLSearchParams): DesktopHarnessRequest {
-  const mode = requireMode(params.get('mode')?.trim() ?? null);
-  const sessionToken = requireTrimmedParam(params, 'sessionToken');
-  const body = requireTrimmedParam(params, 'body');
-
-  if (mode === 'channel') {
-    return {
-      mode,
-      sessionToken,
-      body,
-      channelId: requireTrimmedParam(params, 'channelId'),
-      communitySlug: requireTrimmedParam(params, 'communitySlug'),
-    };
-  }
-
-  return {
-    mode,
-    sessionToken,
-    body,
-    conversationId: requireTrimmedParam(params, 'conversationId'),
-  };
-}
-
-function truncateMessagePreview(body: string): string {
-  return body.length > 96 ? `${body.slice(0, 93)}...` : body;
-}
-
-export function buildDesktopHarnessSummary(
-  request: DesktopHarnessRequest,
-  t: (key: string, params?: Record<string, string | number>) => string,
-): DesktopHarnessSummary {
-  if (request.mode === 'channel') {
-    return {
-      modeLabel: t('desktopHarness.modeChannel'),
-      destinationLabel: t('desktopHarness.destinationChannel', {
-        communitySlug: request.communitySlug,
-        channelId: request.channelId,
-      }),
-      messagePreview: truncateMessagePreview(request.body),
-    };
-  }
-
-  return {
-    modeLabel: t('desktopHarness.modeDm'),
-    destinationLabel: t('desktopHarness.destinationDm', {
-      conversationId: request.conversationId,
-    }),
-    messagePreview: truncateMessagePreview(request.body),
-  };
 }
 
 export default function DesktopHarnessPage() {

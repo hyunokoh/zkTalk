@@ -213,6 +213,7 @@ async function main() {
   const communityName = `QA ${communitySlug}`;
   const channelName = uniqueId('chat');
   const forumName = uniqueId('forum');
+  const voiceChannelName = uniqueId('voice');
 
   const createdCommunity = await request('/api/communities', {
     method: 'POST',
@@ -253,6 +254,19 @@ async function main() {
     },
   });
   const forumChannelId = createdForumChannel.id;
+
+  await request(`/api/communities/${communityId}/channels`, {
+    method: 'POST',
+    token: userA.token,
+    body: {
+      name: voiceChannelName,
+      description: 'QA voice channel',
+      type: 'voice',
+      visibility: 'public',
+      slowModeSeconds: 0,
+      requireTopic: false,
+    },
+  });
 
   await request(`/api/communities/${communityId}/join`, {
     method: 'POST',

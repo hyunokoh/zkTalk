@@ -139,13 +139,14 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
   return (
     <react_native_1.Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <react_native_1.TouchableWithoutFeedback onPress={onClose}>
-        <react_native_1.View style={styles.overlay}>
+        <react_native_1.View style={styles.overlay} accessible={false}>
           <react_native_1.TouchableWithoutFeedback>
-            <react_native_1.View style={styles.sheet}>
+            <react_native_1.View style={styles.sheet} accessible={false}>
               {(onAiReplyDraft || onAiRewriteDraft || aiStatusLabel) && (
                 <react_native_1.View
                   style={styles.aiSection}
                   testID="message-action-sheet-ai-section"
+                  accessible={false}
                 >
                   <react_native_1.View style={styles.aiHeaderRow}>
                     <react_native_1.Text style={styles.aiTitle}>
@@ -178,12 +179,18 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
                     {onAiReplyDraft ? (
                       <react_native_1.TouchableOpacity
                         testID="message-action-sheet-ai-reply-draft"
+                        accessible
                         style={[
                           styles.aiActionCard,
                           aiActionsDisabled && styles.aiActionCardDisabled,
                         ]}
                         onPress={handleAiReplyDraft}
                         disabled={aiActionsDisabled}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('ai.messageReplyDraft')}
+                        accessibilityHint={t('ai.messageReplyDraftHint')}
+                        accessibilityState={{ disabled: aiActionsDisabled }}
+                        importantForAccessibility="yes"
                       >
                         <react_native_1.Text style={styles.aiActionIcon}>
                           {'\u2728'}
@@ -199,12 +206,18 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
                     {onAiRewriteDraft ? (
                       <react_native_1.TouchableOpacity
                         testID="message-action-sheet-ai-rewrite-draft"
+                        accessible
                         style={[
                           styles.aiActionCard,
                           aiActionsDisabled && styles.aiActionCardDisabled,
                         ]}
                         onPress={handleAiRewriteDraft}
                         disabled={aiActionsDisabled}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('ai.messageRewriteDraft')}
+                        accessibilityHint={t('ai.messageRewriteDraftHint')}
+                        accessibilityState={{ disabled: aiActionsDisabled }}
+                        importantForAccessibility="yes"
                       >
                         <react_native_1.Text style={styles.aiActionIcon}>
                           {'\u270D\uFE0F'}
@@ -220,12 +233,18 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
                     {onTranslate ? (
                       <react_native_1.TouchableOpacity
                         testID="message-action-sheet-ai-translate-inline"
+                        accessible
                         style={[
                           styles.aiActionCard,
                           aiActionsDisabled && styles.aiActionCardDisabled,
                         ]}
                         onPress={handleTranslate}
                         disabled={aiActionsDisabled}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('ai.messageTranslateInline')}
+                        accessibilityHint={t('ai.messageTranslateInlineHint')}
+                        accessibilityState={{ disabled: aiActionsDisabled }}
+                        importantForAccessibility="yes"
                       >
                         <react_native_1.Text style={styles.aiActionIcon}>
                           {'\uD83C\uDF10'}
@@ -242,7 +261,7 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
                 </react_native_1.View>
               )}
               {onReact && (
-                <react_native_1.View style={styles.reactionSection}>
+                <react_native_1.View style={styles.reactionSection} accessible={false}>
                   <react_native_1.Text style={styles.reactionTitle}>
                     {t('message.react')}
                   </react_native_1.Text>
@@ -265,9 +284,14 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
                   </react_native_1.View>
                 </react_native_1.View>
               )}
-              <react_native_1.View style={styles.actionsGrid}>
+              <react_native_1.View style={styles.actionsGrid} accessible={false}>
                 {onReply && (
-                  <react_native_1.TouchableOpacity style={styles.actionItem} onPress={handleReply}>
+                  <react_native_1.TouchableOpacity
+                    testID="message-action-sheet-reply"
+                    style={styles.actionItem}
+                    onPress={handleReply}
+                    accessibilityRole="button"
+                  >
                     <react_native_1.View style={styles.actionIconBg}>
                       <react_native_1.Text style={styles.actionIcon}>
                         {'\uD83D\uDCAC'}
@@ -280,7 +304,12 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
                 )}
 
                 {isOwn && onEdit && (
-                  <react_native_1.TouchableOpacity style={styles.actionItem} onPress={handleEdit}>
+                  <react_native_1.TouchableOpacity
+                    testID="message-action-sheet-edit"
+                    style={styles.actionItem}
+                    onPress={handleEdit}
+                    accessibilityRole="button"
+                  >
                     <react_native_1.View style={styles.actionIconBg}>
                       <react_native_1.Text style={styles.actionIcon}>
                         {'\u270F\uFE0F'}
@@ -293,7 +322,12 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
                 )}
 
                 {onThread && (
-                  <react_native_1.TouchableOpacity style={styles.actionItem} onPress={handleThread}>
+                  <react_native_1.TouchableOpacity
+                    testID="message-action-sheet-thread"
+                    style={styles.actionItem}
+                    onPress={handleThread}
+                    accessibilityRole="button"
+                  >
                     <react_native_1.View style={styles.actionIconBg}>
                       <react_native_1.Text style={styles.actionIcon}>
                         {'\uD83E\uDDF5'}
@@ -305,7 +339,12 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
                   </react_native_1.TouchableOpacity>
                 )}
 
-                <react_native_1.TouchableOpacity style={styles.actionItem} onPress={handleCopy}>
+                <react_native_1.TouchableOpacity
+                  testID="message-action-sheet-copy"
+                  style={styles.actionItem}
+                  onPress={handleCopy}
+                  accessibilityRole="button"
+                >
                   <react_native_1.View style={styles.actionIconBg}>
                     <react_native_1.Text style={styles.actionIcon}>
                       {'\uD83D\uDCCB'}
@@ -317,7 +356,12 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
                 </react_native_1.TouchableOpacity>
 
                 {!isOwn && onReport && (
-                  <react_native_1.TouchableOpacity style={styles.actionItem} onPress={handleReport}>
+                  <react_native_1.TouchableOpacity
+                    testID="message-action-sheet-report"
+                    style={styles.actionItem}
+                    onPress={handleReport}
+                    accessibilityRole="button"
+                  >
                     <react_native_1.View style={[styles.actionIconBg, styles.deleteIconBg]}>
                       <react_native_1.Text style={styles.actionIcon}>
                         {'\uD83D\uDEA9'}
@@ -330,7 +374,12 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
                 )}
 
                 {onPin && (
-                  <react_native_1.TouchableOpacity style={styles.actionItem} onPress={handlePin}>
+                  <react_native_1.TouchableOpacity
+                    testID="message-action-sheet-pin"
+                    style={styles.actionItem}
+                    onPress={handlePin}
+                    accessibilityRole="button"
+                  >
                     <react_native_1.View style={styles.actionIconBg}>
                       <react_native_1.Text style={styles.actionIcon}>
                         {'\uD83D\uDCCC'}
@@ -344,8 +393,10 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
 
                 {onBookmark && (
                   <react_native_1.TouchableOpacity
+                    testID="message-action-sheet-bookmark"
                     style={styles.actionItem}
                     onPress={handleBookmark}
+                    accessibilityRole="button"
                   >
                     <react_native_1.View style={styles.actionIconBg}>
                       <react_native_1.Text style={styles.actionIcon}>
@@ -359,7 +410,12 @@ var MessageActionSheet = (0, react_1.memo)(function MessageActionSheet(_a) {
                 )}
 
                 {isOwn && onDelete && (
-                  <react_native_1.TouchableOpacity style={styles.actionItem} onPress={handleDelete}>
+                  <react_native_1.TouchableOpacity
+                    testID="message-action-sheet-delete"
+                    style={styles.actionItem}
+                    onPress={handleDelete}
+                    accessibilityRole="button"
+                  >
                     <react_native_1.View style={[styles.actionIconBg, styles.deleteIconBg]}>
                       <react_native_1.Text style={styles.actionIcon}>
                         {'\uD83D\uDDD1\uFE0F'}

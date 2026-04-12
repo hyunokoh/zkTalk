@@ -77,6 +77,7 @@ exports.ApiError = void 0;
 exports.createRequestId = createRequestId;
 exports.api = api;
 var network_config_1 = require("./network-config");
+var simulator_harness_1 = require("./simulator-harness");
 var storage_1 = require("./storage");
 var ApiError = /** @class */ (function (_super) {
     __extends(ApiError, _super);
@@ -90,16 +91,36 @@ var ApiError = /** @class */ (function (_super) {
     return ApiError;
 }(Error));
 exports.ApiError = ApiError;
+function recordSimulatorApiIssue(payload) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            if (!simulator_harness_1.isSimulatorHarnessEnabled) {
+                return [2 /*return*/];
+            }
+            return [2 /*return*/, (0, simulator_harness_1.writeSimulatorHarnessJson)('last-api-error.json', __assign({ timestamp: new Date().toISOString() }, payload), true)];
+        });
+    });
+}
+function recordSimulatorApiRequest(payload) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            if (!simulator_harness_1.isSimulatorHarnessEnabled) {
+                return [2 /*return*/];
+            }
+            return [2 /*return*/, (0, simulator_harness_1.writeSimulatorHarnessJson)('last-api-request.json', __assign({ timestamp: new Date().toISOString() }, payload), true)];
+        });
+    });
+}
 function createRequestId() {
     return "".concat(Date.now(), "-").concat(Math.random().toString(36).slice(2, 11));
 }
 function api(path_1) {
     return __awaiter(this, arguments, void 0, function (path, options) {
-        var body, customHeaders, rest, token, headers, res, message, code, json, _a;
-        var _b, _c;
+        var body, customHeaders, rest, token, headers, res, error_1, message, code, json, _a;
+        var _b, _c, _jsonError, _jsonMessage, _d, _f;
         if (options === void 0) { options = {}; }
-        return __generator(this, function (_d) {
-            switch (_d.label) {
+        return __generator(this, function (_e) {
+            switch (_e.label) {
                 case 0:
                     if (!network_config_1.API_ORIGIN) {
                         throw new Error('Mobile API URL is not configured. Set EXPO_PUBLIC_API_URL before building the app.');
@@ -107,28 +128,64 @@ function api(path_1) {
                     body = options.body, customHeaders = options.headers, rest = __rest(options, ["body", "headers"]);
                     return [4 /*yield*/, (0, storage_1.getToken)()];
                 case 1:
-                    token = _d.sent();
-                    headers = __assign(__assign(__assign({}, (body !== undefined ? { 'Content-Type': 'application/json' } : {})), (token ? { Authorization: "Bearer ".concat(token) } : {})), customHeaders);
-                    return [4 /*yield*/, fetch("".concat(network_config_1.API_ORIGIN).concat(path), __assign(__assign({ headers: headers }, (body !== undefined ? { body: JSON.stringify(body) } : {})), rest))];
+                    token = _e.sent();
+                    headers = __assign(__assign(__assign(__assign({}, (body !== undefined ? { 'Content-Type': 'application/json' } : {})), (token ? { Authorization: "Bearer ".concat(token) } : {})), (token ? { 'x-zktalk-auth-mode': 'bearer' } : {})), customHeaders);
+                    return [4 /*yield*/, recordSimulatorApiRequest({
+                            path: path,
+                            method: (_b = rest.method) !== null && _b !== void 0 ? _b : 'GET',
+                            hasToken: Boolean(token),
+                            tokenLength: (_c = token === null || token === void 0 ? void 0 : token.length) !== null && _c !== void 0 ? _c : 0,
+                        })];
                 case 2:
-                    res = _d.sent();
-                    if (!!res.ok) return [3 /*break*/, 7];
+                    _e.sent();
+                    _e.trys.push([2, 4, , 6]);
+                    return [4 /*yield*/, fetch("".concat(network_config_1.API_ORIGIN).concat(path), __assign(__assign({ headers: headers }, (body !== undefined ? { body: JSON.stringify(body) } : {})), rest))];
+                case 3:
+                    res = _e.sent();
+                    return [3 /*break*/, 6];
+                case 4:
+                    error_1 = _e.sent();
+                    return [4 /*yield*/, recordSimulatorApiIssue({
+                            kind: 'network',
+                            path: path,
+                            method: (_d = rest.method) !== null && _d !== void 0 ? _d : 'GET',
+                            message: error_1 instanceof Error ? error_1.message : String(error_1),
+                        })];
+                case 5:
+                    _e.sent();
+                    throw error_1;
+                case 6:
+                    if (!!res.ok) return [3 /*break*/, 11];
                     message = res.statusText;
                     code = void 0;
-                    _d.label = 3;
-                case 3:
-                    _d.trys.push([3, 5, , 6]);
-                    return [4 /*yield*/, res.json()];
-                case 4:
-                    json = _d.sent();
-                    message = (_c = (_b = json.error) !== null && _b !== void 0 ? _b : json.message) !== null && _c !== void 0 ? _c : message;
-                    code = typeof json.error === 'string' ? json.error : undefined;
-                    return [3 /*break*/, 6];
-                case 5:
-                    _a = _d.sent();
-                    return [3 /*break*/, 6];
-                case 6: throw new ApiError(res.status, message, code);
+                    _e.label = 7;
                 case 7:
+                    _e.trys.push([7, 9, , 10]);
+                    return [4 /*yield*/, res.json()];
+                case 8:
+                    json = _e.sent();
+                    _jsonError = json.error;
+                    _jsonMessage = json.message;
+                    message = (_f = (_d = _jsonError !== null && _jsonError !== void 0 ? _jsonError : _jsonMessage) !== null && _d !== void 0 ? _d : message) !== null && _f !== void 0 ? _f : message;
+                    code = typeof json.error === 'string' ? json.error : undefined;
+                    return [3 /*break*/, 10];
+                case 9:
+                    _a = _e.sent();
+                    return [3 /*break*/, 10];
+                case 10:
+                    return [4 /*yield*/, recordSimulatorApiIssue({
+                            kind: 'http',
+                            path: path,
+                            method: rest.method !== null && rest.method !== void 0 ? rest.method : 'GET',
+                            status: res.status,
+                            message: message,
+                            code: code,
+                        })];
+                case 11:
+                    _e.sent();
+                    if (res.ok) return [3 /*break*/, 12];
+                    throw new ApiError(res.status, message, code);
+                case 12:
                     // 204 No Content
                     if (res.status === 204)
                         return [2 /*return*/, undefined];

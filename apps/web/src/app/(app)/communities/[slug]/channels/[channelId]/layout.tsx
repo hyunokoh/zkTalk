@@ -88,6 +88,10 @@ export default function ChannelLayout({
   const lockedBrowsePresentation = lockedBrowseChannel
     ? getChannelBrowsePresentation(lockedBrowseChannel)
     : null;
+  const sourceDmName = channel?.sourceDmConversation?.name?.trim() ?? '';
+  const sourceDmFullLabel = sourceDmName
+    ? t('channel.sourceDmNameLabelWithName', { name: sourceDmName })
+    : t('dm.historyCompact');
 
   const joinCommunityMutation = useMutation({
     mutationFn: async () => {
@@ -209,7 +213,12 @@ export default function ChannelLayout({
               <span className="text-lg font-medium leading-none">#</span>
             )}
           </span>
-          <div className="truncate text-base font-semibold text-white">{channel.name}</div>
+          <h1
+            data-testid="channel-header-title"
+            className="truncate text-base font-semibold text-white"
+          >
+            {channel.name}
+          </h1>
         </div>
 
         {/* Action buttons */}

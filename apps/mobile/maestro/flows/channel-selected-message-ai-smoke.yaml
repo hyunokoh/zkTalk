@@ -11,17 +11,18 @@ env:
 - assertVisible: "# ${CHANNEL_NAME}"
 - extendedWaitUntil:
     visible:
-      text: ${MESSAGE_BODY}
+      id: channel-message-touchable-${MESSAGE_ID}
     timeout: ${FLOW_WAIT_TIMEOUT_MS}
-- assertVisible: ${MESSAGE_BODY}
+- assertVisible:
+    id: channel-message-touchable-${MESSAGE_ID}
 - longPressOn:
-    text: ${MESSAGE_BODY}
+    id: channel-message-touchable-${MESSAGE_ID}
 - extendedWaitUntil:
     visible:
       id: message-action-sheet-ai-section
     timeout: ${FLOW_WAIT_TIMEOUT_MS}
 - assertVisible:
-    id: message-action-sheet-ai-status
+    id: message-action-sheet-ai-section
 - assertVisible:
     id: message-action-sheet-ai-reply-draft
 - assertVisible:

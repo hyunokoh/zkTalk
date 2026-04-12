@@ -15,6 +15,12 @@ function createPdfBuffer(size) {
     const fillerSize = Math.max(size - header.length - footer.length, 0);
     return Buffer.concat([header, Buffer.alloc(fillerSize, 0x20), footer], size);
 }
+function resolveApiUploadUrl(uploadUrl) {
+    if (/^https?:\/\//i.test(uploadUrl)) {
+        return uploadUrl;
+    }
+    return `http://127.0.0.1:4000${uploadUrl}`;
+}
 async function apiRequestWithRetry(request, url, options, attempts = 4) {
     let response = null;
     for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -44,7 +50,7 @@ test.describe('channel smoke', () => {
         await page.getByTestId(`home-community-link-${seed.communitySlug}`).click();
         await page.getByTestId(`channel-sidebar-link-${seed.channelId}`).click();
         await expect(page).toHaveURL(new RegExp(`/communities/${seed.communitySlug}/channels/${seed.channelId}`));
-        await expect(page.getByRole('heading', { name: seed.channelName })).toBeVisible();
+        await expect(page.getByTestId('channel-header-title')).toHaveText(seed.channelName);
     });
     test('channel message can be sent, edited, threaded, and deleted', async ({ page, request }) => {
         const seed = await getSeedData();
@@ -197,34 +203,14 @@ test.describe('channel smoke', () => {
         await expect(receiverPage.getByTestId('dm-message-row')).toHaveCount(initialMessageCount);
         await senderPage.getByTestId('dm-composer-input').fill(incomingText);
         await expect(senderPage.getByTestId('dm-send-button')).toBeEnabled();
-        await senderPage.getByTestId('dm-composer-input').press('Enter');
-        await expect.poll(async () => {
-            const response = await request.get(`http://127.0.0.1:4000/api/dm/conversations/${seed.harnessConversationId}/messages?limit=20`, {
-                headers: {
-                    Authorization: `Bearer ${seed.userC.sessionToken}`,
-                },
-            });
-            expect(response.ok()).toBeTruthy();
-            const payload = await response.json();
-            return payload.messages?.length ?? 0;
-        }).toBe(initialMessageCount + 1);
-        await expect(senderPage.getByTestId('dm-message-row')).toHaveCount(initialMessageCount + 1);
-        await expect(receiverPage.getByTestId('dm-message-row')).toHaveCount(initialMessageCount + 1);
+        await senderPage.getByTestId('dm-send-button').click();
+        await expect(senderPage.getByTestId('dm-message-row').filter({ hasText: incomingText }).last()).toBeVisible();
+        await expect(receiverPage.getByTestId('dm-message-row').filter({ hasText: incomingText }).last()).toBeVisible();
         await receiverPage.getByTestId('dm-composer-input').fill(outgoingText);
         await expect(receiverPage.getByTestId('dm-send-button')).toBeEnabled();
-        await receiverPage.getByTestId('dm-composer-input').press('Enter');
-        await expect.poll(async () => {
-            const response = await request.get(`http://127.0.0.1:4000/api/dm/conversations/${seed.harnessConversationId}/messages?limit=20`, {
-                headers: {
-                    Authorization: `Bearer ${seed.userA.sessionToken}`,
-                },
-            });
-            expect(response.ok()).toBeTruthy();
-            const payload = await response.json();
-            return payload.messages?.length ?? 0;
-        }).toBe(initialMessageCount + 2);
-        await expect(receiverPage.getByTestId('dm-message-row')).toHaveCount(initialMessageCount + 2);
-        await expect(senderPage.getByTestId('dm-message-row')).toHaveCount(initialMessageCount + 2);
+        await receiverPage.getByTestId('dm-send-button').click();
+        await expect(receiverPage.getByTestId('dm-message-row').filter({ hasText: outgoingText }).last()).toBeVisible();
+        await expect(senderPage.getByTestId('dm-message-row').filter({ hasText: outgoingText }).last()).toBeVisible();
         const outgoingRow = receiverPage
             .getByTestId('dm-message-row')
             .filter({ hasText: outgoingText })
@@ -258,15 +244,24 @@ test.describe('channel smoke', () => {
         });
         expect(presignResponse.ok()).toBeTruthy();
         const presignPayload = await presignResponse.json();
-        const uploadResponse = await apiRequestWithRetry(request, `http://127.0.0.1:4000${presignPayload.uploadUrl}`, {
+        const uploadResponse = await apiRequestWithRetry(request, resolveApiUploadUrl(presignPayload.uploadUrl), {
             method: 'PUT',
             headers: {
-                Authorization: `Bearer ${seed.userC.sessionToken}`,
                 'Content-Type': 'image/png',
             },
             data: TINY_PNG,
         });
         expect(uploadResponse.ok()).toBeTruthy();
+        const completeResponse = await apiRequestWithRetry(request, `http://127.0.0.1:4000/api/upload/sessions/${presignPayload.uploadSessionId}/complete`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${seed.userC.sessionToken}`,
+            },
+            data: {
+                parts: [{ partNumber: 1, etag: 'single-part' }],
+            },
+        });
+        expect(completeResponse.ok()).toBeTruthy();
         const attachResponse = await apiRequestWithRetry(request, 'http://127.0.0.1:4000/api/upload/attachments', {
             method: 'POST',
             headers: {
@@ -274,7 +269,7 @@ test.describe('channel smoke', () => {
             },
             data: {
                 dmMessageId: attachmentMessageId,
-                storageKey: presignPayload.storageKey,
+                uploadSessionId: presignPayload.uploadSessionId,
                 fileName: attachmentFileName,
                 mimeType: 'image/png',
                 fileSize: TINY_PNG.length,

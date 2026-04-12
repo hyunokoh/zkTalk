@@ -165,34 +165,57 @@ function App() {
                             autoLoginInFlightRef.current = true;
                             _d.label = 1;
                         case 1:
-                            _d.trys.push([1, , 7, 8]);
+                            _d.trys.push([1, , 13, 14]);
+                            return [4 /*yield*/, (0, simulator_harness_1.writeSimulatorHarnessJson)('auto-login-marker.txt', {
+                                    apiOrigin: network_config_1.API_ORIGIN,
+                                    stage: 'started',
+                                })];
+                        case 2:
+                            _d.sent();
                             configuredToken = ((_a = process.env.EXPO_PUBLIC_DEV_SESSION_TOKEN) !== null && _a !== void 0 ? _a : (typeof ((_c = (_b = expo_constants_1.default.expoConfig) === null || _b === void 0 ? void 0 : _b.extra) === null || _c === void 0 ? void 0 : _c.devSessionToken) === 'string'
                                 ? expo_constants_1.default.expoConfig.extra.devSessionToken
                                 : '')).trim();
                             return [4 /*yield*/, (0, simulator_harness_1.readSimulatorHarnessFile)('dev-session-token.txt')];
-                        case 2:
+                        case 3:
                             fileToken = (_d.sent()).trim();
                             token = configuredToken || fileToken;
                             if (!token) {
-                                return [2 /*return*/];
+                                return [4 /*yield*/, (0, simulator_harness_1.writeSimulatorHarnessJson)('auto-login-marker.txt', {
+                                        apiOrigin: network_config_1.API_ORIGIN,
+                                        stage: 'no-token',
+                                        configuredTokenLength: configuredToken.length,
+                                        fileTokenLength: fileToken.length,
+                                    })];
                             }
-                            return [4 /*yield*/, (0, storage_1.getToken)()];
-                        case 3:
+                            return [3 /*break*/, 5];
+                        case 4:
+                            _d.sent();
+                            return [2 /*return*/];
+                        case 5: return [4 /*yield*/, (0, storage_1.getToken)()];
+                        case 6:
                             storedToken = _d.sent();
                             if (storedToken === token && user) {
-                                return [2 /*return*/];
+                                return [4 /*yield*/, (0, simulator_harness_1.writeSimulatorHarnessJson)('auto-login-marker.txt', {
+                                        apiOrigin: network_config_1.API_ORIGIN,
+                                        stage: 'already-logged-in',
+                                        loggedIn: true,
+                                    })];
                             }
-                            return [4 /*yield*/, (0, simulator_harness_1.writeSimulatorHarnessJson)('auto-login-marker.txt', {
+                            return [3 /*break*/, 8];
+                        case 7:
+                            _d.sent();
+                            return [2 /*return*/];
+                        case 8: return [4 /*yield*/, (0, simulator_harness_1.writeSimulatorHarnessJson)('auto-login-marker.txt', {
                                     apiOrigin: network_config_1.API_ORIGIN,
                                     configuredTokenLength: configuredToken.length,
                                     fileTokenLength: fileToken.length,
                                     hasToken: Boolean(token),
                                     replacingSession: Boolean(storedToken && storedToken !== token),
                                 })];
-                        case 4:
+                        case 9:
                             _d.sent();
                             return [4 /*yield*/, loginWithSessionToken(token)];
-                        case 5:
+                        case 10:
                             _d.sent();
                             return [4 /*yield*/, (0, simulator_harness_1.writeSimulatorHarnessJson)('auto-login-marker.txt', {
                                     apiOrigin: network_config_1.API_ORIGIN,
@@ -201,13 +224,16 @@ function App() {
                                     hasToken: Boolean(token),
                                     loggedIn: true,
                                 })];
-                        case 6:
+                        case 11:
                             _d.sent();
-                            return [3 /*break*/, 8];
-                        case 7:
+                            return [3 /*break*/, 14];
+                        case 12:
                             autoLoginInFlightRef.current = false;
                             return [7 /*endfinally*/];
-                        case 8: return [2 /*return*/];
+                        case 13:
+                            autoLoginInFlightRef.current = false;
+                            return [7 /*endfinally*/];
+                        case 14: return [2 /*return*/];
                     }
                 });
             });

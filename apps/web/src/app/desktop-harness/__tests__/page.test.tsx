@@ -2,11 +2,12 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
-import DesktopHarnessPage, {
-  DESKTOP_HARNESS_AUTH_OPTIONS,
+import DesktopHarnessPage from '../page';
+import {
   buildDesktopHarnessSummary,
+  DESKTOP_HARNESS_AUTH_OPTIONS,
   readDesktopHarnessRequest,
-} from '../page';
+} from '../harness-helpers';
 
 const mockApi = vi.fn();
 const mockCreateAuthHeaders = vi.fn(() => new Headers({ Authorization: 'Bearer desktop-session-token' }));

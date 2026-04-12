@@ -29,6 +29,10 @@ function loadContract() {
 function main() {
   const contract = loadContract();
   const passthrough = process.argv.slice(2);
+  const apiPort = String(process.env.ZKTALK_API_PORT ?? '4000');
+  const webPort = String(process.env.ZKTALK_WEB_PORT ?? '3000');
+  const apiBaseUrl = `http://127.0.0.1:${apiPort}`;
+  const wsBaseUrl = `ws://127.0.0.1:${apiPort}/api/ws`;
   const command = [
     '--dir',
     'e2e',
@@ -54,6 +58,32 @@ function main() {
       2,
     ),
   );
+
+  const buildResult = spawnSync(
+    'pnpm',
+    [
+      '--dir',
+      'apps/web',
+      'exec',
+      'next',
+      'build',
+      '--no-lint',
+    ],
+    {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        NEXT_PUBLIC_API_URL: apiBaseUrl,
+        NEXT_PUBLIC_WS_URL: wsBaseUrl,
+        NEXT_PUBLIC_LIVEKIT_URL: 'ws://127.0.0.1:7880',
+      },
+    },
+  );
+
+  if (buildResult.status !== 0) {
+    process.exit(typeof buildResult.status === 'number' ? buildResult.status : 1);
+  }
 
   const result = spawnSync('pnpm', command, {
     cwd: repoRoot,

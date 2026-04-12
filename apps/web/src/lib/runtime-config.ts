@@ -37,6 +37,7 @@ declare global {
       retryLoad?: () => Promise<unknown>;
       pickFiles?: (options?: { multiple?: boolean }) => Promise<
         Array<{
+          path?: string;
           name: string;
           type?: string;
           size: number;
@@ -44,6 +45,11 @@ declare global {
           bytes: Uint8Array | number[] | ArrayBuffer;
         }>
       >;
+      readFileChunk?: (payload: {
+        path: string;
+        start: number;
+        end: number;
+      }) => Promise<Uint8Array | number[] | ArrayBuffer>;
     };
   }
 }

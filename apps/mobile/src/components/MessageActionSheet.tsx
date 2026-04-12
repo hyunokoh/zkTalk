@@ -156,11 +156,15 @@ const MessageActionSheet = memo(function MessageActionSheet({
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
+        <View style={styles.overlay} accessible={false}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={styles.sheet} accessible={false}>
               {(onAiReplyDraft || onAiRewriteDraft || aiStatusLabel) && (
-                <View style={styles.aiSection} testID="message-action-sheet-ai-section">
+                <View
+                  style={styles.aiSection}
+                  testID="message-action-sheet-ai-section"
+                  accessible={false}
+                >
                   <View style={styles.aiHeaderRow}>
                     <Text style={styles.aiTitle}>{t('ai.messageActionsTitle')}</Text>
                     {aiStatusLabel ? (
@@ -186,12 +190,18 @@ const MessageActionSheet = memo(function MessageActionSheet({
                     {onAiReplyDraft ? (
                       <TouchableOpacity
                         testID="message-action-sheet-ai-reply-draft"
+                        accessible
                         style={[
                           styles.aiActionCard,
                           aiActionsDisabled && styles.aiActionCardDisabled,
                         ]}
                         onPress={handleAiReplyDraft}
                         disabled={aiActionsDisabled}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('ai.messageReplyDraft')}
+                        accessibilityHint={t('ai.messageReplyDraftHint')}
+                        accessibilityState={{ disabled: aiActionsDisabled }}
+                        importantForAccessibility="yes"
                       >
                         <Text style={styles.aiActionIcon}>{'\u2728'}</Text>
                         <Text style={styles.aiActionTitle}>{t('ai.messageReplyDraft')}</Text>
@@ -201,12 +211,18 @@ const MessageActionSheet = memo(function MessageActionSheet({
                     {onAiRewriteDraft ? (
                       <TouchableOpacity
                         testID="message-action-sheet-ai-rewrite-draft"
+                        accessible
                         style={[
                           styles.aiActionCard,
                           aiActionsDisabled && styles.aiActionCardDisabled,
                         ]}
                         onPress={handleAiRewriteDraft}
                         disabled={aiActionsDisabled}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('ai.messageRewriteDraft')}
+                        accessibilityHint={t('ai.messageRewriteDraftHint')}
+                        accessibilityState={{ disabled: aiActionsDisabled }}
+                        importantForAccessibility="yes"
                       >
                         <Text style={styles.aiActionIcon}>{'\u270D\uFE0F'}</Text>
                         <Text style={styles.aiActionTitle}>{t('ai.messageRewriteDraft')}</Text>
@@ -216,12 +232,18 @@ const MessageActionSheet = memo(function MessageActionSheet({
                     {onTranslate ? (
                       <TouchableOpacity
                         testID="message-action-sheet-ai-translate-inline"
+                        accessible
                         style={[
                           styles.aiActionCard,
                           aiActionsDisabled && styles.aiActionCardDisabled,
                         ]}
                         onPress={handleTranslate}
                         disabled={aiActionsDisabled}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('ai.messageTranslateInline')}
+                        accessibilityHint={t('ai.messageTranslateInlineHint')}
+                        accessibilityState={{ disabled: aiActionsDisabled }}
+                        importantForAccessibility="yes"
                       >
                         <Text style={styles.aiActionIcon}>{'\u{1F310}'}</Text>
                         <Text style={styles.aiActionTitle}>{t('ai.messageTranslateInline')}</Text>
@@ -232,7 +254,7 @@ const MessageActionSheet = memo(function MessageActionSheet({
                 </View>
               )}
               {onReact && (
-                <View style={styles.reactionSection}>
+                <View style={styles.reactionSection} accessible={false}>
                   <Text style={styles.reactionTitle}>{t('message.react')}</Text>
                   <View style={styles.reactionRow}>
                     {REACTION_EMOJIS.map((emoji) => (
@@ -247,12 +269,13 @@ const MessageActionSheet = memo(function MessageActionSheet({
                   </View>
                 </View>
               )}
-              <View style={styles.actionsGrid}>
+              <View style={styles.actionsGrid} accessible={false}>
                 {onReply && (
                   <TouchableOpacity
                     testID="message-action-sheet-reply"
                     style={styles.actionItem}
                     onPress={handleReply}
+                    accessibilityRole="button"
                   >
                     <View style={styles.actionIconBg}>
                       <Text style={styles.actionIcon}>{'\u{1F4AC}'}</Text>
@@ -262,7 +285,12 @@ const MessageActionSheet = memo(function MessageActionSheet({
                 )}
 
                 {isOwn && onEdit && (
-                  <TouchableOpacity style={styles.actionItem} onPress={handleEdit}>
+                  <TouchableOpacity
+                    testID="message-action-sheet-edit"
+                    style={styles.actionItem}
+                    onPress={handleEdit}
+                    accessibilityRole="button"
+                  >
                     <View style={styles.actionIconBg}>
                       <Text style={styles.actionIcon}>{'\u{270F}\u{FE0F}'}</Text>
                     </View>
@@ -271,7 +299,12 @@ const MessageActionSheet = memo(function MessageActionSheet({
                 )}
 
                 {onThread && (
-                  <TouchableOpacity style={styles.actionItem} onPress={handleThread}>
+                  <TouchableOpacity
+                    testID="message-action-sheet-thread"
+                    style={styles.actionItem}
+                    onPress={handleThread}
+                    accessibilityRole="button"
+                  >
                     <View style={styles.actionIconBg}>
                       <Text style={styles.actionIcon}>{'\u{1F9F5}'}</Text>
                     </View>
@@ -279,7 +312,12 @@ const MessageActionSheet = memo(function MessageActionSheet({
                   </TouchableOpacity>
                 )}
 
-                <TouchableOpacity style={styles.actionItem} onPress={handleCopy}>
+                <TouchableOpacity
+                  testID="message-action-sheet-copy"
+                  style={styles.actionItem}
+                  onPress={handleCopy}
+                  accessibilityRole="button"
+                >
                   <View style={styles.actionIconBg}>
                     <Text style={styles.actionIcon}>{'\u{1F4CB}'}</Text>
                   </View>
@@ -287,7 +325,12 @@ const MessageActionSheet = memo(function MessageActionSheet({
                 </TouchableOpacity>
 
                 {!isOwn && onReport && (
-                  <TouchableOpacity style={styles.actionItem} onPress={handleReport}>
+                  <TouchableOpacity
+                    testID="message-action-sheet-report"
+                    style={styles.actionItem}
+                    onPress={handleReport}
+                    accessibilityRole="button"
+                  >
                     <View style={[styles.actionIconBg, styles.deleteIconBg]}>
                       <Text style={styles.actionIcon}>{'\u{1F6A9}'}</Text>
                     </View>
@@ -298,7 +341,12 @@ const MessageActionSheet = memo(function MessageActionSheet({
                 )}
 
                 {onPin && (
-                  <TouchableOpacity style={styles.actionItem} onPress={handlePin}>
+                  <TouchableOpacity
+                    testID="message-action-sheet-pin"
+                    style={styles.actionItem}
+                    onPress={handlePin}
+                    accessibilityRole="button"
+                  >
                     <View style={styles.actionIconBg}>
                       <Text style={styles.actionIcon}>{'\u{1F4CC}'}</Text>
                     </View>
@@ -307,7 +355,12 @@ const MessageActionSheet = memo(function MessageActionSheet({
                 )}
 
                 {onBookmark && (
-                  <TouchableOpacity style={styles.actionItem} onPress={handleBookmark}>
+                  <TouchableOpacity
+                    testID="message-action-sheet-bookmark"
+                    style={styles.actionItem}
+                    onPress={handleBookmark}
+                    accessibilityRole="button"
+                  >
                     <View style={styles.actionIconBg}>
                       <Text style={styles.actionIcon}>{'\u{1F516}'}</Text>
                     </View>
@@ -316,7 +369,12 @@ const MessageActionSheet = memo(function MessageActionSheet({
                 )}
 
                 {isOwn && onDelete && (
-                  <TouchableOpacity style={styles.actionItem} onPress={handleDelete}>
+                  <TouchableOpacity
+                    testID="message-action-sheet-delete"
+                    style={styles.actionItem}
+                    onPress={handleDelete}
+                    accessibilityRole="button"
+                  >
                     <View style={[styles.actionIconBg, styles.deleteIconBg]}>
                       <Text style={styles.actionIcon}>{'\u{1F5D1}\u{FE0F}'}</Text>
                     </View>

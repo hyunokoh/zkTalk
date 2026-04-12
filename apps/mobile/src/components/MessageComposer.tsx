@@ -10,6 +10,7 @@ import {
   TextInputChangeEventData,
 } from 'react-native';
 import { colors, spacing, fontSize as fs, borderRadius } from '../theme';
+import { isSimulatorHarnessEnabled } from '../lib/simulator-harness';
 
 // Popular emojis for the picker
 const EMOJI_LIST = [
@@ -68,10 +69,23 @@ const MessageComposer = memo(function MessageComposer({
   const isTypingRef = useRef(false);
   const isSubmittingRef = useRef(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [controlledText, setControlledText] = useState('');
+
+  const getCurrentInputText = useCallback(() => {
+    const nativeText = (inputRef.current as (TextInput & { _lastNativeText?: string }) | null)?._lastNativeText;
+    if (typeof nativeText === 'string' && nativeText.length > 0) {
+      return nativeText;
+    }
+
+    return textRef.current;
+  }, []);
 
   const applyTextChange = useCallback(
     (nextText: string) => {
       textRef.current = nextText;
+      if (isSimulatorHarnessEnabled) {
+        setControlledText(nextText);
+      }
       onDraftChange?.(nextText);
       const hasText = nextText.trim().length > 0;
       if (hasText && !isTypingRef.current) {
@@ -100,7 +114,13 @@ const MessageComposer = memo(function MessageComposer({
   );
 
   const handleSend = useCallback(async () => {
-    const trimmed = textRef.current.trim();
+    const currentText = getCurrentInputText();
+    if (currentText !== textRef.current) {
+      textRef.current = currentText;
+      onDraftChange?.(currentText);
+    }
+
+    const trimmed = currentText.trim();
     if ((!trimmed && !allowEmptySubmit) || isSending || isSubmittingRef.current) return;
 
     isSubmittingRef.current = true;
@@ -108,6 +128,9 @@ const MessageComposer = memo(function MessageComposer({
       const shouldClear = await Promise.resolve(onSend(trimmed));
       if (shouldClear === false) return;
       textRef.current = '';
+      if (isSimulatorHarnessEnabled) {
+        setControlledText('');
+      }
       inputRef.current?.clear();
       onDraftChange?.('');
       isTypingRef.current = false;
@@ -116,10 +139,13 @@ const MessageComposer = memo(function MessageComposer({
     } finally {
       isSubmittingRef.current = false;
     }
-  }, [allowEmptySubmit, isSending, onSend, onTypingStop]);
+  }, [allowEmptySubmit, getCurrentInputText, isSending, onDraftChange, onSend, onTypingStop]);
 
   const handleEmojiPress = useCallback((emoji: string) => {
     textRef.current += emoji;
+    if (isSimulatorHarnessEnabled) {
+      setControlledText(textRef.current);
+    }
     // We need to set the native text value. Since we don't use controlled
     // value, we use setNativeProps.
     inputRef.current?.setNativeProps({ text: textRef.current });
@@ -138,6 +164,9 @@ const MessageComposer = memo(function MessageComposer({
     if (draftKey === undefined) return;
 
     textRef.current = draftText ?? '';
+    if (isSimulatorHarnessEnabled) {
+      setControlledText(textRef.current);
+    }
     onDraftChange?.(textRef.current);
     inputRef.current?.setNativeProps({
       text: textRef.current,
@@ -199,6 +228,7 @@ const MessageComposer = memo(function MessageComposer({
             placeholderTextColor={colors.talkSubtle}
             onChange={handleChange}
             onChangeText={handleChangeText}
+            value={isSimulatorHarnessEnabled ? controlledText : undefined}
             multiline
             maxLength={32000}
           />

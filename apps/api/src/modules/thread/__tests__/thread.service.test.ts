@@ -7,6 +7,7 @@ vi.mock('../thread.repository.js', () => ({
   findChannelById: vi.fn(),
   createThread: vi.fn(),
   findThreadById: vi.fn(),
+  findThreadsByRootMessageIds: vi.fn(),
   findThreadsByChannel: vi.fn(),
   getThreadMessages: vi.fn(),
   incrementReplyCount: vi.fn(),
@@ -201,6 +202,56 @@ describe('createForumPost', () => {
         bodyMarkdown: 'Content',
       }),
     ).rejects.toThrow('Channel not found');
+  });
+});
+
+describe('getThreadSummaries', () => {
+  it('returns summaries for accessible channels', async () => {
+    const summary = mockThreadResult();
+    mockedRepo.findThreadsByRootMessageIds.mockResolvedValue([summary] as any);
+    mockedRepo.findChannelById.mockResolvedValue(mockChannel() as any);
+
+    const result = await service.getThreadSummaries(USER_ID, [MESSAGE_ID]);
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toEqual(summary);
+    expect(mockedCheckPermission).toHaveBeenCalledWith(
+      USER_ID,
+      COMMUNITY_ID,
+      CHANNEL_ID,
+      'view_channel',
+    );
+  });
+
+  it('skips summaries for inaccessible channels instead of throwing', async () => {
+    const accessibleSummary = mockThreadResult();
+    const restrictedSummary = {
+      thread: {
+        ...mockThreadResult({ id: 'thread-2' }).thread,
+        channelId: 'channel-2',
+        rootMessageId: 'message-2',
+      },
+      creator: mockThreadResult().creator,
+    };
+
+    mockedRepo.findThreadsByRootMessageIds.mockResolvedValue(
+      [accessibleSummary, restrictedSummary] as any,
+    );
+    mockedRepo.findChannelById.mockImplementation(async (channelId: string) => {
+      if (channelId === 'channel-2') {
+        return mockChannel({ id: 'channel-2', communityId: 'community-2' }) as any;
+      }
+      return mockChannel() as any;
+    });
+    mockedCheckPermission.mockImplementation(async (_userId, communityId) => {
+      if (communityId === 'community-2') {
+        throw AppError.forbidden();
+      }
+    });
+
+    const result = await service.getThreadSummaries(USER_ID, [MESSAGE_ID, 'message-2']);
+
+    expect(result.items).toEqual([accessibleSummary]);
   });
 });
 

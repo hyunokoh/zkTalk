@@ -346,6 +346,7 @@ function getHarnessPaths(harnessDir) {
     routeResult: path.join(harnessDir, 'dev-route-result.json'),
     compose: path.join(harnessDir, 'dev-compose.json'),
     composeResult: path.join(harnessDir, 'dev-compose-result.json'),
+    lastApiError: path.join(harnessDir, 'last-api-error.json'),
     errorBoundary: path.join(harnessDir, 'error-boundary.json'),
   };
 }
@@ -372,6 +373,20 @@ async function routeAndWait(paths, routeData, matched, timeoutMs) {
   );
   removeIfExists(paths.routeResult);
   return result;
+}
+
+async function waitForAutoLogin(paths, timeoutMs) {
+  const marker = await waitForJsonFile(
+    paths.autoLoginMarker,
+    (data) => data?.loggedIn === true,
+    { timeoutMs, label: 'simulator auto login' },
+  );
+  return marker;
+}
+
+function resetAutoLoginState(paths) {
+  removeIfExists(paths.autoLoginMarker);
+  removeIfExists(paths.lastApiError);
 }
 
 function launchMobileApp({
@@ -995,7 +1010,10 @@ async function main() {
 
   let launchResult = null;
   if (shouldLaunch) {
+    resetAutoLoginState(harnessPaths);
     launchResult = launchMobileApp({ app, device, expoUrl });
+    await sleep(1_000);
+    await waitForAutoLogin(harnessPaths, timeoutMs);
   }
 
   const errorBoundary = readJsonIfExists(harnessPaths.errorBoundary);
@@ -1026,8 +1044,16 @@ async function main() {
     );
   const prepareMaestroAttempt = async () => {
     if (shouldLaunch) {
-      foregroundMobileApp({ app, device, expoUrl });
+      resetAutoLoginState(harnessPaths);
+      launchMobileApp({
+        app,
+        device,
+        expoUrl,
+        terminate: true,
+        cleanHarness: false,
+      });
       await sleep(1_000);
+      await waitForAutoLogin(harnessPaths, timeoutMs);
     }
 
     await bringAppToHome();
@@ -1056,8 +1082,16 @@ async function main() {
       skipLaunchApp: shouldLaunch,
       beforeAttempt: async () => {
         if (shouldLaunch) {
-          foregroundMobileApp({ app, device, expoUrl });
+          resetAutoLoginState(harnessPaths);
+          launchMobileApp({
+            app,
+            device,
+            expoUrl,
+            terminate: true,
+            cleanHarness: false,
+          });
           await sleep(1_000);
+          await waitForAutoLogin(harnessPaths, timeoutMs);
         }
 
         await bringAppToChannel();
@@ -1082,12 +1116,27 @@ async function main() {
       },
     });
 
-    const deliveredMessage = await waitForChannelMessage(
-      e2e.channelId,
-      e2e.userB.sessionToken,
-      messageBody,
-      timeoutMs,
-    );
+    let deliveredMessage;
+    try {
+      deliveredMessage = await waitForChannelMessage(
+        e2e.channelId,
+        e2e.userB.sessionToken,
+        messageBody,
+        timeoutMs,
+      );
+    } catch (error) {
+      const lastApiError = readJsonIfExists(harnessPaths.lastApiError);
+      if (lastApiError) {
+        throw new Error(
+          `Timed out waiting for channel message delivery.\nLast simulator API issue:\n${JSON.stringify(
+            lastApiError,
+            null,
+            2,
+          )}`,
+        );
+      }
+      throw error;
+    }
 
     steps.push({
       step,
@@ -1142,8 +1191,16 @@ async function main() {
       skipLaunchApp: shouldLaunch,
       beforeAttempt: async () => {
         if (shouldLaunch) {
-          foregroundMobileApp({ app, device, expoUrl });
+          resetAutoLoginState(harnessPaths);
+          launchMobileApp({
+            app,
+            device,
+            expoUrl,
+            terminate: true,
+            cleanHarness: false,
+          });
           await sleep(1_000);
+          await waitForAutoLogin(harnessPaths, timeoutMs);
         }
 
         await bringAppToChannel();

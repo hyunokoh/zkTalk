@@ -12,8 +12,11 @@ env:
 - tapOn:
     id: message-composer-input
 - inputText: ${MESSAGE_BODY}
+- assertVisible: ${MESSAGE_BODY}
+- waitForAnimationToEnd
 - tapOn:
     id: message-composer-send
+- takeScreenshot: after-send
 - extendedWaitUntil:
     visible:
       id: channel-message-list

@@ -117,7 +117,9 @@ export function getLockedChannelReason(
   return null;
 }
 
-export function getLockedChannelCopyKey(channel: ChannelBrowseVisibilityLike): string | null {
+export function getLockedChannelCopyKey(
+  channel: ChannelBrowseVisibilityLike,
+): LockedChannelCopyKey | null {
   const reason = getLockedChannelReason(channel);
   if (!reason) {
     return null;
@@ -128,7 +130,9 @@ export function getLockedChannelCopyKey(channel: ChannelBrowseVisibilityLike): s
     : 'channel.lockedJoinRequired';
 }
 
-export function getLockedChannelPromptBodyKey(channel: ChannelBrowseVisibilityLike): string | null {
+export function getLockedChannelPromptBodyKey(
+  channel: ChannelBrowseVisibilityLike,
+): LockedChannelPromptBodyKey | null {
   const reason = getLockedChannelReason(channel);
   if (!reason) {
     return null;

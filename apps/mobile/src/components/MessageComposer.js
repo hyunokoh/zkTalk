@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var react_1 = require("react");
 var react_native_1 = require("react-native");
 var theme_1 = require("../theme");
+var simulator_harness_1 = require("../lib/simulator-harness");
 // Popular emojis for the picker
 var EMOJI_LIST = [
     "\uD83D\uDE00",
@@ -86,15 +87,20 @@ var EMOJI_LIST = [
  */
 var MessageComposer = (0, react_1.memo)(function MessageComposer(_a) {
     var _this = this;
-    var placeholder = _a.placeholder, sendLabel = _a.sendLabel, sendingLabel = _a.sendingLabel, isSending = _a.isSending, onSend = _a.onSend, onTypingStart = _a.onTypingStart, onTypingStop = _a.onTypingStop, onPressAdd = _a.onPressAdd, _b = _a.allowEmptySubmit, allowEmptySubmit = _b === void 0 ? false : _b, draftText = _a.draftText, draftKey = _a.draftKey, _c = _a.testIDPrefix, testIDPrefix = _c === void 0 ? 'message-composer' : _c;
+    var placeholder = _a.placeholder, sendLabel = _a.sendLabel, sendingLabel = _a.sendingLabel, isSending = _a.isSending, onSend = _a.onSend, onTypingStart = _a.onTypingStart, onTypingStop = _a.onTypingStop, onPressAdd = _a.onPressAdd, _b = _a.allowEmptySubmit, allowEmptySubmit = _b === void 0 ? false : _b, draftText = _a.draftText, draftKey = _a.draftKey, _c = _a.testIDPrefix, testIDPrefix = _c === void 0 ? 'message-composer' : _c, onDraftChange = _a.onDraftChange;
     var textRef = (0, react_1.useRef)('');
     var inputRef = (0, react_1.useRef)(null);
     var isTypingRef = (0, react_1.useRef)(false);
     var isSubmittingRef = (0, react_1.useRef)(false);
     var _d = (0, react_1.useState)(false), showEmoji = _d[0], setShowEmoji = _d[1];
-    var handleChange = (0, react_1.useCallback)(function (e) {
-        textRef.current = e.nativeEvent.text;
-        var hasText = e.nativeEvent.text.trim().length > 0;
+    var _e = (0, react_1.useState)(''), controlledText = _e[0], setControlledText = _e[1];
+    var applyTextChange = (0, react_1.useCallback)(function (nextText) {
+        textRef.current = nextText;
+        if (simulator_harness_1.isSimulatorHarnessEnabled) {
+            setControlledText(nextText);
+        }
+        onDraftChange === null || onDraftChange === void 0 ? void 0 : onDraftChange(nextText);
+        var hasText = nextText.trim().length > 0;
         if (hasText && !isTypingRef.current) {
             isTypingRef.current = true;
             onTypingStart === null || onTypingStart === void 0 ? void 0 : onTypingStart();
@@ -103,14 +109,34 @@ var MessageComposer = (0, react_1.memo)(function MessageComposer(_a) {
             isTypingRef.current = false;
             onTypingStop === null || onTypingStop === void 0 ? void 0 : onTypingStop();
         }
-    }, [onTypingStart, onTypingStop]);
+    }, [onDraftChange, onTypingStart, onTypingStop]);
+    var handleChange = (0, react_1.useCallback)(function (e) {
+        applyTextChange(e.nativeEvent.text);
+    }, [applyTextChange]);
+    var handleChangeText = (0, react_1.useCallback)(function (nextText) {
+        applyTextChange(nextText);
+    }, [applyTextChange]);
+    var getCurrentInputText = (0, react_1.useCallback)(function () {
+        var _a;
+        var nativeText = (_a = inputRef.current) === null || _a === void 0 ? void 0 : _a._lastNativeText;
+        if (typeof nativeText === 'string' && nativeText.length > 0) {
+            return nativeText;
+        }
+        return textRef.current;
+    }, []);
     var handleSend = (0, react_1.useCallback)(function () { return __awaiter(_this, void 0, void 0, function () {
-        var trimmed, shouldClear;
+        var _a;
+        var currentText, trimmed, shouldClear;
         var _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    trimmed = textRef.current.trim();
+                    currentText = getCurrentInputText();
+                    if (currentText !== textRef.current) {
+                        textRef.current = currentText;
+                        onDraftChange === null || onDraftChange === void 0 ? void 0 : onDraftChange(currentText);
+                    }
+                    trimmed = currentText.trim();
                     if ((!trimmed && !allowEmptySubmit) || isSending || isSubmittingRef.current)
                         return [2 /*return*/];
                     isSubmittingRef.current = true;
@@ -123,7 +149,11 @@ var MessageComposer = (0, react_1.memo)(function MessageComposer(_a) {
                     if (shouldClear === false)
                         return [2 /*return*/];
                     textRef.current = '';
+                    if (simulator_harness_1.isSimulatorHarnessEnabled) {
+                        setControlledText('');
+                    }
                     (_a = inputRef.current) === null || _a === void 0 ? void 0 : _a.clear();
+                    onDraftChange === null || onDraftChange === void 0 ? void 0 : onDraftChange('');
                     isTypingRef.current = false;
                     setShowEmoji(false);
                     onTypingStop === null || onTypingStop === void 0 ? void 0 : onTypingStop();
@@ -134,18 +164,22 @@ var MessageComposer = (0, react_1.memo)(function MessageComposer(_a) {
                 case 4: return [2 /*return*/];
             }
         });
-    }); }, [allowEmptySubmit, isSending, onSend, onTypingStop]);
+    }); }, [allowEmptySubmit, getCurrentInputText, isSending, onDraftChange, onSend, onTypingStop]);
     var handleEmojiPress = (0, react_1.useCallback)(function (emoji) {
         var _a;
         textRef.current += emoji;
+        if (simulator_harness_1.isSimulatorHarnessEnabled) {
+            setControlledText(textRef.current);
+        }
         // We need to set the native text value. Since we don't use controlled
         // value, we use setNativeProps.
         (_a = inputRef.current) === null || _a === void 0 ? void 0 : _a.setNativeProps({ text: textRef.current });
+        onDraftChange === null || onDraftChange === void 0 ? void 0 : onDraftChange(textRef.current);
         if (!isTypingRef.current && textRef.current.trim().length > 0) {
             isTypingRef.current = true;
             onTypingStart === null || onTypingStart === void 0 ? void 0 : onTypingStart();
         }
-    }, [onTypingStart]);
+    }, [onDraftChange, onTypingStart]);
     var toggleEmoji = (0, react_1.useCallback)(function () {
         setShowEmoji(function (prev) { return !prev; });
     }, []);
@@ -154,6 +188,10 @@ var MessageComposer = (0, react_1.memo)(function MessageComposer(_a) {
         if (draftKey === undefined)
             return;
         textRef.current = draftText !== null && draftText !== void 0 ? draftText : '';
+        if (simulator_harness_1.isSimulatorHarnessEnabled) {
+            setControlledText(textRef.current);
+        }
+        onDraftChange === null || onDraftChange === void 0 ? void 0 : onDraftChange(textRef.current);
         (_a = inputRef.current) === null || _a === void 0 ? void 0 : _a.setNativeProps({
             text: textRef.current,
             selection: {
@@ -171,7 +209,7 @@ var MessageComposer = (0, react_1.memo)(function MessageComposer(_a) {
             isTypingRef.current = false;
             onTypingStop === null || onTypingStop === void 0 ? void 0 : onTypingStop();
         }
-    }, [draftKey, draftText, onTypingStart, onTypingStop]);
+    }, [draftKey, draftText, onDraftChange, onTypingStart, onTypingStop]);
     return (<react_native_1.View>
       {showEmoji && (<react_native_1.View style={styles.emojiPanel}>
           <react_native_1.ScrollView horizontal={false} contentContainerStyle={styles.emojiGrid} keyboardShouldPersistTaps="always">
@@ -185,7 +223,7 @@ var MessageComposer = (0, react_1.memo)(function MessageComposer(_a) {
             <react_native_1.Text style={styles.attachButtonText}>{"\uD83D\uDCCE"}</react_native_1.Text>
           </react_native_1.TouchableOpacity>)}
         <react_native_1.View style={styles.inputWrap}>
-          <react_native_1.TextInput testID={"".concat(testIDPrefix, "-input")} ref={inputRef} style={styles.input} placeholder={placeholder} placeholderTextColor={theme_1.colors.talkSubtle} onChange={handleChange} multiline maxLength={4000}/>
+          <react_native_1.TextInput testID={"".concat(testIDPrefix, "-input")} ref={inputRef} style={styles.input} placeholder={placeholder} placeholderTextColor={theme_1.colors.talkSubtle} onChange={handleChange} onChangeText={handleChangeText} value={simulator_harness_1.isSimulatorHarnessEnabled ? controlledText : undefined} multiline maxLength={32000}/>
         </react_native_1.View>
         <react_native_1.TouchableOpacity testID={"".concat(testIDPrefix, "-emoji")} style={styles.emojiToggle} onPress={toggleEmoji} activeOpacity={0.8}>
           <react_native_1.Text style={styles.emojiToggleText}>

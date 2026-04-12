@@ -183,8 +183,8 @@ Current canonical core-path smoke:
 - `pnpm e2e:smoke:web:core`
 - contract file: [e2e/core-smoke-contract.json](/Users/hyunokoh/Documents/Projects/zkTalk/e2e/core-smoke-contract.json)
 - companion coverage map: [docs/critical-path-verification-map-2026-04-07.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/critical-path-verification-map-2026-04-07.md)
-- current covered journeys: login, logout, session restore, community open, channel send message, channel attachment send, and thin seeded voice join
-- current boundary: DM, inbox, profile, discover, and hosted-media validation remain outside this smallest release-readiness smoke and can stay in broader suites
+- current covered journeys: login, logout, session restore, community open, channel send message, and channel attachment send
+- current boundary: DM, inbox, profile, discover, hosted-media validation, and voice/video validation remain outside this smallest release-readiness smoke and can stay in broader suites or zkMeet-specific suites
 
 ### Current validation gap ledger
 
@@ -194,8 +194,8 @@ Use [docs/critical-path-verification-map-2026-04-07.md](/Users/hyunokoh/Document
 
 - 2026-04-07: core smoke still covers attachment send, but it does not yet prove authenticated attachment open/save or hosted-media retrieval after upload.
   Next action: keep `apps/web/src/components/AttachmentPreview/AttachmentPreview.tsx` and `apps/web/src/app/api/public-assets/[...assetPath]/route.ts` on the targeted regression path, then add one deterministic repo-local smoke that exercises attachment open/save against the local commercial stack.
-- 2026-04-07: the current voice journey is only a thin seeded join check, so it does not prove a full operator-visible voice session against a real LiveKit dependency.
-  Next action: keep `apps/web/src/components/VoiceRoom/VoiceRoom.tsx` on targeted regression coverage and record any LiveKit-dependent failures as environment blockers unless they reproduce against the documented local `ws://127.0.0.1:7880` contract.
+- 2026-04-12: voice/video validation is no longer part of the zkTalk core commercialization smoke. Treat it as zkMeet-owned coverage, and only keep thin voice code paths on targeted regression checks if they directly affect zkTalk messaging UI stability.
+  Next action: keep `apps/web/src/components/VoiceRoom/VoiceRoom.tsx` out of the release-readiness core smoke and move future end-to-end voice/video confidence work into zkMeet-specific validation.
 - 2026-04-07: DM, inbox, and profile remain outside the smallest release-readiness smoke, so regressions there still depend on broader suites or manual spot checks.
 - 2026-04-10: public-community visibility policy now has targeted repo-local smoke coverage in `e2e/tests/community-visibility.smoke.spec.ts`, but it is still intentionally outside `pnpm e2e:smoke:web:core` until the core contract is expanded on purpose.
   Next action: keep those flows out of the blocker document, but promote the thinnest stable smoke slice into the release-readiness batch only after it can fail deterministically.
