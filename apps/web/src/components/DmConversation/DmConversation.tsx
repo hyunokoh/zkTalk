@@ -277,6 +277,23 @@ interface ConversationDetail {
   } | null;
 }
 
+interface DmConversationSummary {
+  conversation: {
+    id: string;
+    type: 'direct' | 'group';
+    name: string | null;
+  };
+  promotedCommunity?: {
+    id: string;
+    slug: string;
+    name: string;
+  } | null;
+  promotedChannel?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
 interface DmCallTarget {
   community: {
     id: string;
@@ -423,13 +440,23 @@ export function DmConversation({ conversationId }: DmConversationProps) {
   const [inlineTranslations, setInlineTranslations] = useState<Record<string, InlineTranslationState>>({});
 
   const loadConversationDetail = useCallback(
-    () => api<ConversationDetail>(`/api/dm/conversations/${conversationId}`),
+    () => api<ConversationDetail>(`/api/dm/conversations/${conversationId}`, { authMode: 'bearer' }),
     [conversationId],
   );
 
   const { data: convData } = useQuery({
     queryKey: ['dm-conversation', conversationId],
     queryFn: loadConversationDetail,
+  });
+  const { data: conversationSummaries = [] } = useQuery({
+    queryKey: ['dm-conversations'],
+    queryFn: async () => {
+      const result = await api<
+        DmConversationSummary[] | { conversations: DmConversationSummary[] }
+      >('/api/dm/conversations', { authMode: 'bearer' });
+      return Array.isArray(result) ? result : result.conversations ?? [];
+    },
+    enabled: !!currentUser,
   });
   const { data: aiRuntime } = useQuery<AIRuntimeSummary | null>({
     queryKey: ['ai-runtime'],
@@ -447,14 +474,32 @@ export function DmConversation({ conversationId }: DmConversationProps) {
   const isGroup = conv?.type === 'group';
   const isDirect = conv?.type === 'direct';
   const promotedTarget = useMemo(
-    () =>
-      convData?.promotedCommunity && convData?.promotedChannel
-        ? {
-            community: convData.promotedCommunity,
-            channel: convData.promotedChannel,
-          }
-        : null,
-    [convData?.promotedChannel, convData?.promotedCommunity],
+    () => {
+      if (convData?.promotedCommunity && convData?.promotedChannel) {
+        return {
+          community: convData.promotedCommunity,
+          channel: convData.promotedChannel,
+        };
+      }
+
+      const summary = conversationSummaries.find(
+        (entry) => entry.conversation.id === conversationId,
+      );
+      if (summary?.promotedCommunity && summary?.promotedChannel) {
+        return {
+          community: summary.promotedCommunity,
+          channel: summary.promotedChannel,
+        };
+      }
+
+      return null;
+    },
+    [convData?.promotedChannel, convData?.promotedCommunity, conversationId, conversationSummaries],
+  );
+  const hasPromotedConversationState = !!(
+    promotedTarget
+    || conv?.promotedCommunityId
+    || conv?.promotedChannelId
   );
 
   useEffect(() => {
@@ -492,6 +537,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
       if (pageParam) params.set('cursor', pageParam);
       const res = await api<MessagesPage>(
         `/api/dm/conversations/${conversationId}/messages?${params.toString()}`,
+        { authMode: 'bearer' },
       );
       return res;
     },
@@ -950,10 +996,10 @@ export function DmConversation({ conversationId }: DmConversationProps) {
           channelName,
         },
       }),
-    onSuccess: (result) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['communities'] });
-      setShowPromoteDialog(false);
-      router.push(`/communities/${result.community.slug}/channels/${result.channel.id}`);
+      queryClient.invalidateQueries({ queryKey: ['dm-conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
     },
   });
 
@@ -1367,17 +1413,19 @@ export function DmConversation({ conversationId }: DmConversationProps) {
     }
 
     try {
-      await promoteConversation.mutateAsync({
+      const result = await promoteConversation.mutateAsync({
         communityName: trimmedCommunityName,
         channelName: trimmedChannelName,
       });
+      setShowPromoteDialog(false);
+      router.push(`/communities/${result.community.slug}/channels/${result.channel.id}`);
     } catch (error) {
       setErrorDialogTitle(t('dm.promoteTitle'));
       setErrorDialogMessage(getActionErrorMessage(t, error, {
         genericKey: 'dm.promoteFailed',
       }));
     }
-  }, [promoteConversation, promotionChannelName, promotionCommunityName, t]);
+  }, [conversationId, promoteConversation, promotionChannelName, promotionCommunityName, queryClient, router, t]);
 
   const handleStartCall = useCallback(
     async (mode: 'voice' | 'video') => {
@@ -1401,7 +1449,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
       className="flex h-full flex-1 flex-col bg-[#36393f]"
       data-testid="dm-conversation"
       data-conversation-id={conversationId}
-      data-promoted={promotedTarget ? 'true' : 'false'}
+      data-promoted={hasPromotedConversationState ? 'true' : 'false'}
       data-conversation-type={conv?.type ?? 'unknown'}
     >
       {/* Header */}
@@ -1439,15 +1487,15 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                       {t('dm.groupMembers', { count: String(participants.length) })}
                     </span>
                   )}
-                  {promotedTarget && (
+                  {hasPromotedConversationState && (
                     <span className="inline-flex rounded-full border border-[#4f545c] bg-[#2b2d31] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#dbdee1]">
                       {t('dm.historyBadge')}
                     </span>
                   )}
-                  {!promotedTarget && isDirect && e2eeLoading && (
+                  {!hasPromotedConversationState && isDirect && e2eeLoading && (
                     <span className="text-xs text-[#b5bac1]">{t('e2ee.generating')}</span>
                   )}
-                  {!promotedTarget && isDirect && e2eeReady && (
+                  {!hasPromotedConversationState && isDirect && e2eeReady && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-semibold text-green-300">
                       <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM15.1 8H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z" />
@@ -1484,7 +1532,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
               <button
                 type="button"
                 onClick={promotedTarget ? openPromotedCommunity : openPromoteDialog}
-                disabled={promoteConversation.isPending}
+                disabled={promoteConversation.isPending || (hasPromotedConversationState && !promotedTarget)}
                 data-testid="dm-promote-button"
                 className="shrink-0 rounded-md border border-[#4f545c] bg-[#40444b] px-3 py-1.5 text-xs font-semibold text-[#dbdee1] transition-colors hover:bg-[#4f545c] disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -1492,13 +1540,15 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                   ? t('dm.promoting')
                   : promotedTarget
                     ? t('dm.goToCurrentChannel')
+                    : hasPromotedConversationState
+                      ? t('dm.promotedComposerTitle')
                     : t('dm.promote')}
               </button>
             </div>
         </div>
       </div>
 
-      {promotedTarget && (
+      {hasPromotedConversationState && (
         <div className="border-b border-[#202225] bg-[#2f3136] px-4 py-3">
           <div
             className="flex items-center gap-3 rounded-2xl border border-[#40444b] bg-[#313338] px-4 py-3"
@@ -1514,20 +1564,26 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 {t('dm.historyBadge')}
               </span>
               <p className="text-sm font-semibold text-white">
-                {t('dm.promotedBannerTitle', { community: promotedTarget.community.name })}
+                {promotedTarget
+                  ? t('dm.promotedBannerTitle', { community: promotedTarget.community.name })
+                  : t('dm.promotedComposerTitle')}
               </p>
               <p className="mt-0.5 text-xs text-[#b5bac1]">
-                {t('dm.promotedBannerBody', { channel: promotedTarget.channel.name })}
+                {promotedTarget
+                  ? t('dm.promotedBannerBody', { channel: promotedTarget.channel.name })
+                  : t('dm.promotedReadOnlyFallback')}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={openPromotedCommunity}
-              data-testid="dm-promoted-banner-open-channel-button"
-              className="shrink-0 rounded-md border border-[#4f545c] bg-[#40444b] px-3 py-2 text-xs font-semibold text-[#dbdee1] transition-colors hover:bg-[#4f545c]"
-            >
-              {t('dm.goToCurrentChannel')}
-            </button>
+            {promotedTarget ? (
+              <button
+                type="button"
+                onClick={openPromotedCommunity}
+                data-testid="dm-promoted-banner-open-channel-button"
+                className="shrink-0 rounded-md border border-[#4f545c] bg-[#40444b] px-3 py-2 text-xs font-semibold text-[#dbdee1] transition-colors hover:bg-[#4f545c]"
+              >
+                {t('dm.goToCurrentChannel')}
+              </button>
+            ) : null}
           </div>
         </div>
       )}
@@ -1549,7 +1605,9 @@ export function DmConversation({ conversationId }: DmConversationProps) {
             <p className="text-sm text-[#b5bac1]">
               {promotedTarget
                 ? t('dm.promotedNoHistory', { channel: promotedTarget.channel.name })
-                : t('dm.noMessages')}
+                : hasPromotedConversationState
+                  ? t('dm.promotedReadOnlyFallback')
+                  : t('dm.noMessages')}
             </p>
           </div>
         )}
@@ -1716,7 +1774,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
 
       {/* Composer */}
       <div className="border-t border-[#202225] bg-[#313338] px-4 py-3">
-        {promotedTarget ? (
+        {hasPromotedConversationState ? (
           <div
             className="flex items-center gap-3 rounded-[1.55rem] border border-[#40444b] bg-[#2f3136] px-4 py-3"
             data-testid="dm-promoted-composer"
@@ -1727,17 +1785,21 @@ export function DmConversation({ conversationId }: DmConversationProps) {
               </span>
               <p className="text-sm font-semibold text-white">{t('dm.promotedComposerTitle')}</p>
               <p className="mt-0.5 text-xs text-[#b5bac1]">
-                {t('dm.promotedComposerBody', { channel: promotedTarget.channel.name })}
+                {promotedTarget
+                  ? t('dm.promotedComposerBody', { channel: promotedTarget.channel.name })
+                  : t('dm.promotedReadOnlyFallback')}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={openPromotedCommunity}
-              data-testid="dm-promoted-composer-open-channel-button"
-              className="shrink-0 rounded-md border border-[#4f545c] bg-[#40444b] px-3 py-2 text-xs font-semibold text-[#dbdee1] transition-colors hover:bg-[#4f545c]"
-            >
-              {t('dm.goToCurrentChannel')}
-            </button>
+            {promotedTarget ? (
+              <button
+                type="button"
+                onClick={openPromotedCommunity}
+                data-testid="dm-promoted-composer-open-channel-button"
+                className="shrink-0 rounded-md border border-[#4f545c] bg-[#40444b] px-3 py-2 text-xs font-semibold text-[#dbdee1] transition-colors hover:bg-[#4f545c]"
+              >
+                {t('dm.goToCurrentChannel')}
+              </button>
+            ) : null}
           </div>
         ) : (
           <div

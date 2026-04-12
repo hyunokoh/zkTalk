@@ -1,16 +1,15 @@
 import { expect, test } from '@playwright/test';
-import { bootstrapAuthenticatedPage } from '../utils/auth';
+import { setSessionToken } from '../utils/auth';
 import { getSeedData } from '../utils/seed';
 
 test('bookmarked message can be reopened from the bookmarks page', async ({ page }) => {
   const seed = await getSeedData();
   const body = `playwright-bookmark-body-${Date.now()}`;
 
-  await bootstrapAuthenticatedPage(
-    page,
-    seed.userA.sessionToken,
-    `/communities/${seed.communitySlug}/channels/${seed.channelId}`,
-  );
+  await setSessionToken(page, seed.userA.sessionToken);
+  await page.goto(`/communities/${seed.communitySlug}/channels/${seed.channelId}`);
+  await expect(page.getByTestId('channel-header-title')).toBeVisible();
+  await expect(page.getByTestId('channel-composer-input')).toBeVisible();
 
   await page.getByTestId('channel-composer-input').fill(body);
   await page.getByTestId('channel-composer-send-button').click();

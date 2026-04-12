@@ -2,13 +2,11 @@
 
 import React from 'react';
 import { useEffect, useState } from 'react';
-import { api, createAuthHeaders } from '@/lib/api';
+import { createAuthHeaders } from '@/lib/api';
 import { getDesktopHarnessErrorMessage } from '@/lib/error-copy';
 import { useTranslation } from '@/lib/i18n';
 import { getApiBaseUrl } from '@/lib/runtime-config';
 import { clearSessionToken, getSessionToken, setSessionToken } from '@/lib/session-token';
-import { useAuthStore } from '@/stores/auth';
-import type { User } from '@zktalk/shared';
 import {
   DESKTOP_HARNESS_AUTH_OPTIONS,
   buildDesktopHarnessSummary,
@@ -18,7 +16,7 @@ import {
 
 type HarnessState = 'preparing' | 'sending' | 'redirecting' | 'error';
 
-function sendDesktopHarnessMessage(path: string, body: Record<string, unknown>) {
+async function sendDesktopHarnessMessage(path: string, body: Record<string, unknown>) {
   const apiBaseUrl = getApiBaseUrl();
   if (!apiBaseUrl) {
     throw new Error('Desktop harness could not resolve the API base URL.');
@@ -27,13 +25,17 @@ function sendDesktopHarnessMessage(path: string, body: Record<string, unknown>) 
   const headers = createAuthHeaders(apiBaseUrl, undefined, DESKTOP_HARNESS_AUTH_OPTIONS.authMode);
   headers.set('Content-Type', 'application/json');
 
-  void fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     method: 'POST',
     credentials: 'include',
     headers,
     body: JSON.stringify(body),
     keepalive: true,
   });
+
+  if (!response.ok) {
+    throw new Error(`Desktop harness request failed with status ${response.status}`);
+  }
 }
 
 function readParams() {
@@ -49,7 +51,6 @@ export default function DesktopHarnessPage() {
   const [state, setState] = useState<HarnessState>('preparing');
   const [message, setMessage] = useState(t('desktopHarness.preparing'));
   const [summary, setSummary] = useState<DesktopHarnessSummary | null>(null);
-  const setUser = useAuthStore((s) => s.setUser);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,20 +64,15 @@ export default function DesktopHarnessPage() {
         clearSessionToken();
         setSessionToken(request.sessionToken, { desktopHarness: true });
       }
-
-      const userResult = await api<{ user: User }>('/api/me', {
-        ...DESKTOP_HARNESS_AUTH_OPTIONS,
-      });
       if (cancelled) {
         return;
       }
 
-      setUser(userResult.user);
       setState('sending');
       setMessage(t('desktopHarness.sending'));
 
       if (request.mode === 'channel') {
-        sendDesktopHarnessMessage(`/api/channels/${request.channelId}/messages`, {
+        await sendDesktopHarnessMessage(`/api/channels/${request.channelId}/messages`, {
           bodyMarkdown: request.body,
         });
 
@@ -91,7 +87,7 @@ export default function DesktopHarnessPage() {
       }
 
       if (request.mode === 'dm') {
-        sendDesktopHarnessMessage(`/api/dm/conversations/${request.conversationId}/messages`, {
+        await sendDesktopHarnessMessage(`/api/dm/conversations/${request.conversationId}/messages`, {
           bodyMarkdown: request.body,
         });
 
@@ -115,7 +111,7 @@ export default function DesktopHarnessPage() {
     return () => {
       cancelled = true;
     };
-  }, [setUser, t]);
+  }, [t]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#b2c7d9] px-6 text-center">

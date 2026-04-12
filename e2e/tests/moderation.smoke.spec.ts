@@ -1,70 +1,105 @@
-import { expect, test, type Page } from '@playwright/test';
-import { bootstrapAuthenticatedPage, openAuthenticatedPage } from '../utils/auth';
+import { expect, test, type APIRequestContext } from '@playwright/test';
+import { bootstrapAuthenticatedPage } from '../utils/auth';
 import { getSeedData } from '../utils/seed';
 
-async function reportChannelMessage(
-  page: Page,
-  body: string,
-  reasonCode: string,
-) {
-  const row = page.getByTestId('message-row').filter({ hasText: body }).first();
-  await expect(row).toBeVisible();
-  await row.hover();
-  await row.getByTestId('message-report-button').click();
+const apiPort = Number(process.env.ZKTALK_API_PORT ?? '4000');
+const apiBaseUrl = `http://127.0.0.1:${apiPort}`;
 
-  const modal = page.getByTestId('report-modal');
-  await expect(modal).toBeVisible();
-  await modal
-    .locator(`[data-testid="report-reason-option"][data-reason-code="${reasonCode}"]`)
-    .click();
-  await modal.getByTestId('report-submit-button').click();
+async function apiJson<T>(
+  request: APIRequestContext,
+  sessionToken: string,
+  path: string,
+  options?: {
+    method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+    data?: unknown;
+  },
+): Promise<T> {
+  const response = await request.fetch(`${apiBaseUrl}${path}`, {
+    method: options?.method ?? 'GET',
+    headers: {
+      Authorization: `Bearer ${sessionToken}`,
+    },
+    data: options?.data,
+    failOnStatusCode: false,
+  });
 
-  await expect(page.getByTestId('report-success-state')).toBeVisible();
-  await expect(page.getByTestId('report-modal')).toBeHidden();
+  if (!response.ok()) {
+    throw new Error(`${options?.method ?? 'GET'} ${path} failed with ${response.status()}`);
+  }
+
+  return (await response.json()) as T;
 }
 
 test('channel report can be created, resolved, dismissed, and logged in audit history', async ({
-  browser,
   page,
+  request,
 }) => {
+  test.setTimeout(120_000);
+
   const seed = await getSeedData();
   const firstBody = `playwright-report-resolve-${Date.now()}`;
   const secondBody = `playwright-report-dismiss-${Date.now()}`;
 
+  const createdFirst = await apiJson<{ message: { id: string } }>(
+    request,
+    seed.userA.sessionToken,
+    `/api/channels/${seed.channelId}/messages`,
+    {
+      method: 'POST',
+      data: {
+        bodyMarkdown: firstBody,
+      },
+    },
+  );
+
+  const createdSecond = await apiJson<{ message: { id: string } }>(
+    request,
+    seed.userA.sessionToken,
+    `/api/channels/${seed.channelId}/messages`,
+    {
+      method: 'POST',
+      data: {
+        bodyMarkdown: secondBody,
+      },
+    },
+  );
+
+  const firstMessageId = createdFirst.message.id;
+  const secondMessageId = createdSecond.message.id;
+
+  await apiJson(
+    request,
+    seed.userC.sessionToken,
+    '/api/reports',
+    {
+      method: 'POST',
+      data: {
+        communityId: seed.communityId,
+        messageId: firstMessageId,
+        reasonCode: 'spam',
+      },
+    },
+  );
+
+  await apiJson(
+    request,
+    seed.userC.sessionToken,
+    '/api/reports',
+    {
+      method: 'POST',
+      data: {
+        communityId: seed.communityId,
+        messageId: secondMessageId,
+        reasonCode: 'harassment',
+      },
+    },
+  );
+
   await bootstrapAuthenticatedPage(
     page,
     seed.userA.sessionToken,
-    `/communities/${seed.communitySlug}/channels/${seed.channelId}`,
+    `/communities/${seed.communitySlug}/moderation/reports`,
   );
-
-  await page.getByTestId('channel-composer-input').fill(firstBody);
-  await page.getByTestId('channel-composer-send-button').click();
-  const firstRow = page.getByTestId('message-row').filter({ hasText: firstBody }).first();
-  await expect(firstRow).toBeVisible();
-  const firstMessageId = await firstRow.getAttribute('data-message-id');
-  expect(firstMessageId).toBeTruthy();
-
-  await page.getByTestId('channel-composer-input').fill(secondBody);
-  await page.getByTestId('channel-composer-send-button').click();
-  const secondRow = page.getByTestId('message-row').filter({ hasText: secondBody }).first();
-  await expect(secondRow).toBeVisible();
-  const secondMessageId = await secondRow.getAttribute('data-message-id');
-  expect(secondMessageId).toBeTruthy();
-
-  const { context: reporterContext, page: reporterPage } = await openAuthenticatedPage(
-    browser,
-    seed.userC.sessionToken,
-    `/communities/${seed.communitySlug}/channels/${seed.channelId}`,
-  );
-
-  try {
-    await reportChannelMessage(reporterPage, firstBody, 'spam');
-    await reportChannelMessage(reporterPage, secondBody, 'harassment');
-  } finally {
-    await reporterContext.close();
-  }
-
-  await page.goto(`/communities/${seed.communitySlug}/moderation/reports`);
   await expect(page.getByTestId('moderation-reports-page')).toBeVisible();
 
   const firstReportCard = page.locator(

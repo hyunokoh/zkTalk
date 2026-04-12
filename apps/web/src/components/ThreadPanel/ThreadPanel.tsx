@@ -70,12 +70,6 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
     },
   });
 
-  if (!activeThreadId) return null;
-
-  const isFollowing = threadData?.isFollowing ?? false;
-  const canPostReply = threadData?.permissions.canPostReply ?? true;
-  const thread = threadData?.thread;
-
   const handleReply = useCallback((message: Message, author?: User | null) => {
     setReplyTo({ message, author });
   }, []);
@@ -97,6 +91,12 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
     setReplyTo(composerState.replyTo);
     setAiActionRequest(composerState.aiActionRequest);
   }, []);
+
+  if (!activeThreadId) return null;
+
+  const isFollowing = threadData?.isFollowing ?? false;
+  const canPostReply = threadData?.permissions.canPostReply ?? true;
+  const thread = threadData?.thread;
 
   return (
     <aside data-testid="thread-panel" className="flex w-96 flex-col border-l border-gray-800 bg-gray-900">

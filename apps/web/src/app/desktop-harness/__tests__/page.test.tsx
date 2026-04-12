@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '@/lib/api';
 import DesktopHarnessPage from '../page';
 import {
   buildDesktopHarnessSummary,
@@ -9,12 +8,10 @@ import {
   readDesktopHarnessRequest,
 } from '../harness-helpers';
 
-const mockApi = vi.fn();
 const mockCreateAuthHeaders = vi.fn(() => new Headers({ Authorization: 'Bearer desktop-session-token' }));
 const mockClearSessionToken = vi.fn();
 const mockGetSessionToken = vi.fn();
 const mockSetSessionToken = vi.fn();
-const mockSetUser = vi.fn();
 const translate = (key: string) => key;
 
 vi.mock('next/navigation', () => ({
@@ -23,20 +20,13 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@/lib/api', () => ({
-  ApiError: class ApiError extends Error {
-    constructor(
-      public status: number,
-      message: string,
-      public code?: string,
-    ) {
-      super(message);
-      this.name = 'ApiError';
-    }
-  },
-  api: (...args: unknown[]) => mockApi(...args),
-  createAuthHeaders: (...args: unknown[]) => mockCreateAuthHeaders(...args),
-}));
+vi.mock('@/lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/api')>();
+  return {
+    ...actual,
+    createAuthHeaders: (...args: unknown[]) => mockCreateAuthHeaders(...args),
+  };
+});
 
 vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
@@ -50,30 +40,13 @@ vi.mock('@/lib/session-token', () => ({
   setSessionToken: (...args: unknown[]) => mockSetSessionToken(...args),
 }));
 
-vi.mock('@/stores/auth', () => ({
-  useAuthStore: (selector: (state: { setUser: typeof mockSetUser }) => unknown) =>
-    selector({ setUser: mockSetUser }),
-}));
-
 describe('DesktopHarnessPage', () => {
   beforeEach(() => {
-    mockApi.mockReset();
     mockCreateAuthHeaders.mockClear();
     mockClearSessionToken.mockReset();
     mockGetSessionToken.mockReset();
     mockSetSessionToken.mockReset();
-    mockSetUser.mockReset();
     mockGetSessionToken.mockReturnValue('stale-token');
-    mockApi
-      .mockResolvedValueOnce({
-        user: {
-          id: 'user-1',
-          email: 'user@example.com',
-          displayName: 'User',
-          username: 'user',
-        },
-      })
-      .mockResolvedValueOnce({});
 
     window.history.replaceState(
       null,
@@ -100,15 +73,13 @@ describe('DesktopHarnessPage', () => {
     render(<DesktopHarnessPage />);
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
     expect(mockClearSessionToken).toHaveBeenCalledTimes(1);
     expect(mockSetSessionToken).toHaveBeenCalledWith('desktop-session-token', {
       desktopHarness: true,
     });
-    expect(mockApi).toHaveBeenNthCalledWith(1, '/api/me', DESKTOP_HARNESS_AUTH_OPTIONS);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(mockCreateAuthHeaders).toHaveBeenCalledWith(
       'http://localhost:4000',
       undefined,
@@ -126,50 +97,28 @@ describe('DesktopHarnessPage', () => {
     expect(requestInit.body).toBe(JSON.stringify({ bodyMarkdown: 'hello' }));
     expect(requestInit.headers).toBeInstanceOf(Headers);
     expect((requestInit.headers as Headers).get('Authorization')).toBe('Bearer desktop-session-token');
-    expect(mockSetUser).toHaveBeenCalledWith({
-      id: 'user-1',
-      email: 'user@example.com',
-      displayName: 'User',
-      username: 'user',
-    });
     expect(screen.getByText('desktopHarness.modeLabel')).toBeTruthy();
     expect(screen.getByText('desktopHarness.modeChannel')).toBeTruthy();
-    expect(
-      screen.getByText('desktopHarness.destinationChannel'),
-    ).toBeTruthy();
+    expect(screen.getByText('desktopHarness.destinationChannel')).toBeTruthy();
     expect(screen.getByText('hello')).toBeTruthy();
     expect(screen.getByText('desktopHarness.redirectingChannel')).toBeTruthy();
   });
 
   it('maps internal harness failures to product copy instead of raw exception text', async () => {
-    mockApi.mockReset();
-    mockApi.mockRejectedValueOnce(new ApiError(403, 'forbidden: stack details'));
-    vi.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+    vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('networkerror: desktop handoff failed'));
 
     render(<DesktopHarnessPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('desktopHarness.failedTitle')).toBeTruthy();
+      expect(screen.getByText('desktopHarness.connectionError')).toBeTruthy();
     });
 
-    expect(screen.getByText('common.notAuthorized')).toBeTruthy();
-    expect(screen.queryByText('forbidden: stack details')).toBeNull();
+    expect(screen.getByText('desktopHarness.connectionError')).toBeTruthy();
+    expect(screen.queryByText('networkerror: desktop handoff failed')).toBeNull();
   });
 
   it('keeps DM handoff requests on the explicit bearer-only path', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
-
-    mockApi.mockReset();
-    mockApi
-      .mockResolvedValueOnce({
-        user: {
-          id: 'user-1',
-          email: 'user@example.com',
-          displayName: 'User',
-          username: 'user',
-        },
-      })
-      .mockResolvedValueOnce({});
 
     window.history.replaceState(
       null,
@@ -188,10 +137,9 @@ describe('DesktopHarnessPage', () => {
     render(<DesktopHarnessPage />);
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
-    expect(mockApi).toHaveBeenNthCalledWith(1, '/api/me', DESKTOP_HARNESS_AUTH_OPTIONS);
     expect(fetchSpy).toHaveBeenNthCalledWith(
       1,
       'http://localhost:4000/api/dm/conversations/dm-1/messages',
@@ -201,7 +149,6 @@ describe('DesktopHarnessPage', () => {
   });
 
   it('rejects incomplete links before any auth-bearing request is attempted', async () => {
-    mockApi.mockReset();
     const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
     window.history.replaceState(
       null,
@@ -220,10 +167,9 @@ describe('DesktopHarnessPage', () => {
     render(<DesktopHarnessPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('desktopHarness.failedTitle')).toBeTruthy();
+      expect(screen.getByText('desktopHarness.invalidLink')).toBeTruthy();
     });
 
-    expect(mockApi).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(screen.getByText('desktopHarness.invalidLink')).toBeTruthy();
   });

@@ -89,6 +89,7 @@ export default function ChannelLayout({
     ? getChannelBrowsePresentation(lockedBrowseChannel)
     : null;
   const sourceDmName = channel?.sourceDmConversation?.name?.trim() ?? '';
+  const sourceDmConversationId = channel?.sourceDmConversation?.id ?? channel?.sourceDmConversationId ?? null;
   const sourceDmFullLabel = sourceDmName
     ? t('channel.sourceDmNameLabelWithName', { name: sourceDmName })
     : t('dm.historyCompact');
@@ -233,16 +234,23 @@ export default function ChannelLayout({
               <VoiceRoomButton channelId={channelId} communityId={channel.communityId} compact />
             </div>
           )}
-          {channel.sourceDmConversation && (
-            <Link
-              href={`/dm/${channel.sourceDmConversation.id}`}
-              className="rounded-md p-1.5 text-[#72767d] hover:bg-white/10 hover:text-[#dcddde]"
-              title={sourceDmFullLabel}
+          {sourceDmConversationId && (
+            <span
+              data-testid="channel-source-dm-bar"
+              data-source-dm-id={sourceDmConversationId}
+              className="inline-flex"
             >
-              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5zm12 0v4a4 4 0 01-4 4h-.5l-.718.737A2 2 0 0012 15h2l3 3v-3h1a2 2 0 002-2V7a2 2 0 00-2-2h-4z" />
-              </svg>
-            </Link>
+              <Link
+                href={`/dm/${sourceDmConversationId}`}
+                data-testid="channel-source-dm-link"
+                className="rounded-md p-1.5 text-[#72767d] hover:bg-white/10 hover:text-[#dcddde]"
+                title={sourceDmFullLabel}
+              >
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5zm12 0v4a4 4 0 01-4 4h-.5l-.718.737A2 2 0 0012 15h2l3 3v-3h1a2 2 0 002-2V7a2 2 0 00-2-2h-4z" />
+                </svg>
+              </Link>
+            </span>
           )}
           <button
             onClick={() => setShowPinned(!showPinned)}

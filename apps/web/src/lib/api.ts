@@ -1,5 +1,9 @@
 import { getApiBaseUrl } from '@/lib/runtime-config';
-import { AuthMode, shouldAttachStoredSessionToken } from '@/lib/auth-mode';
+import {
+  AuthMode,
+  shouldAttachStoredSessionToken,
+  shouldUseCookieFirstTarget,
+} from '@/lib/auth-mode';
 import {
   clearSessionToken,
   emitAuthSessionLost,
@@ -59,6 +63,8 @@ export function createAuthHeaders(
   authMode: RequestOptions['authMode'] = 'auto',
 ): Headers {
   const headers = new Headers(customHeaders);
+  const shouldPreferBearerMode = authMode === 'bearer'
+    || (authMode === 'auto' && !shouldUseCookieFirstTarget(apiUrl));
 
   if (authMode === 'bearer') {
     headers.set(AUTH_MODE_HEADER, 'bearer');
@@ -71,6 +77,9 @@ export function createAuthHeaders(
     const sessionToken = getSessionToken();
     if (sessionToken) {
       headers.set('Authorization', `Bearer ${sessionToken}`);
+      if (shouldPreferBearerMode) {
+        headers.set(AUTH_MODE_HEADER, 'bearer');
+      }
     }
   }
 

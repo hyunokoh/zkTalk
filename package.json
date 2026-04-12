@@ -22,6 +22,7 @@
     "desktop:harness:regression": "node scripts/desktop-harness-regression.mjs",
     "e2e:smoke:desktop": "node scripts/local-commercial-stack.mjs && node scripts/run-playwright-smoke.mjs --suite desktop",
     "e2e:smoke:web:core": "node scripts/local-commercial-stack.mjs && node scripts/run-core-smoke.mjs",
+    "e2e:isolated": "node scripts/run-isolated-lanes.mjs",
     "e2e:smoke:web": "node scripts/run-playwright-smoke.mjs --suite web",
     "manual:smoke:brief": "node scripts/manual-smoke-brief.mjs",
     "manual:smoke:capture": "node scripts/manual-smoke-capture.mjs",

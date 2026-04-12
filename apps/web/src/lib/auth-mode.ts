@@ -55,6 +55,10 @@ export function shouldAttachStoredSessionToken(
     return true;
   }
 
+  if (!isSameOriginTarget(target)) {
+    return true;
+  }
+
   if (isDesktopRuntime()) {
     return true;
   }

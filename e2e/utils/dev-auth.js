@@ -1,19 +1,9 @@
 const apiPort = Number(process.env.ZKTALK_API_PORT ?? '4000');
 const apiBaseUrl = `http://127.0.0.1:${apiPort}`;
-export async function createDevAuthSession(request, label) {
-    const email = `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
-    const requestResponse = await request.post(`${apiBaseUrl}/api/auth/magic-link/request`, {
-        data: { email },
-    });
-    if (!requestResponse.ok()) {
-        throw new Error(`Magic link request failed with ${requestResponse.status()}`);
-    }
-    const requestPayload = (await requestResponse.json());
-    if (!requestPayload.token) {
-        throw new Error('Magic link token missing from dev auth response');
-    }
+async function createSessionForEmail(request, email) {
+    const token = await requestMagicLinkTokenForEmail(request, email);
     const verifyResponse = await request.post(`${apiBaseUrl}/api/auth/magic-link/verify`, {
-        data: { token: requestPayload.token },
+        data: { token },
     });
     if (!verifyResponse.ok()) {
         throw new Error(`Magic link verify failed with ${verifyResponse.status()}`);
@@ -38,4 +28,24 @@ export async function createDevAuthSession(request, label) {
         sessionToken: verifyPayload.sessionToken,
         user: mePayload.user,
     };
+}
+export async function requestMagicLinkTokenForEmail(request, email) {
+    const requestResponse = await request.post(`${apiBaseUrl}/api/auth/magic-link/request`, {
+        data: { email },
+    });
+    if (!requestResponse.ok()) {
+        throw new Error(`Magic link request failed with ${requestResponse.status()}`);
+    }
+    const requestPayload = (await requestResponse.json());
+    if (!requestPayload.token) {
+        throw new Error('Magic link token missing from dev auth response');
+    }
+    return requestPayload.token;
+}
+export async function createDevAuthSession(request, label) {
+    const email = `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+    return createSessionForEmail(request, email);
+}
+export async function createDevAuthSessionForEmail(request, email) {
+    return createSessionForEmail(request, email);
 }

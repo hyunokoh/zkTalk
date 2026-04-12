@@ -10,6 +10,41 @@ const webPort = Number(process.env.ZKTALK_WEB_PORT ?? '3000');
 const apiBaseUrl = `http://127.0.0.1:${apiPort}`;
 const wsBaseUrl = `ws://127.0.0.1:${apiPort}/api/ws`;
 const webBaseUrl = `http://127.0.0.1:${webPort}`;
+const skipWebServer = process.env.ZKTALK_SKIP_WEBSERVER === '1';
+const webServers = skipWebServer
+  ? undefined
+  : [
+      {
+        command: 'PATH=/opt/homebrew/bin:$PATH node --import tsx src/server.ts',
+        cwd: path.join(repoRoot, 'apps', 'api'),
+        env: {
+          ...process.env,
+          PATH: nodeBinPath,
+          NODE_ENV: 'test',
+          PORT: String(apiPort),
+        },
+        url: `${apiBaseUrl}/api/health`,
+        reuseExistingServer: false,
+        timeout: 120_000,
+      },
+      {
+        command: `PATH=/opt/homebrew/bin:$PATH PORT=${webPort} HOSTNAME=127.0.0.1 NEXT_PUBLIC_API_URL=${apiBaseUrl} NEXT_PUBLIC_WS_URL=${wsBaseUrl} NEXT_PUBLIC_LIVEKIT_URL=ws://127.0.0.1:7880 pnpm exec next dev --hostname 127.0.0.1 --port ${webPort}`,
+        cwd: path.join(repoRoot, 'apps', 'web'),
+        env: {
+          ...process.env,
+          PATH: nodeBinPath,
+          NODE_ENV: 'test',
+          PORT: String(webPort),
+          HOSTNAME: '127.0.0.1',
+          NEXT_PUBLIC_API_URL: apiBaseUrl,
+          NEXT_PUBLIC_WS_URL: wsBaseUrl,
+          NEXT_PUBLIC_LIVEKIT_URL: 'ws://127.0.0.1:7880',
+        },
+        url: `${webBaseUrl}/login`,
+        reuseExistingServer: false,
+        timeout: 180_000,
+      },
+    ];
 
 export default defineConfig({
   testDir: path.join(currentDir, 'tests'),
@@ -30,37 +65,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  webServer: [
-    {
-      command: 'PATH=/opt/homebrew/bin:$PATH node --import tsx src/server.ts',
-      cwd: path.join(repoRoot, 'apps', 'api'),
-      env: {
-        ...process.env,
-        PATH: nodeBinPath,
-        NODE_ENV: 'test',
-        PORT: String(apiPort),
-      },
-      url: `${apiBaseUrl}/api/health`,
-      reuseExistingServer: false,
-      timeout: 120_000,
-    },
-    {
-      command: `PATH=/opt/homebrew/bin:$PATH NEXT_PUBLIC_API_URL=${apiBaseUrl} NEXT_PUBLIC_WS_URL=${wsBaseUrl} NEXT_PUBLIC_LIVEKIT_URL=ws://127.0.0.1:7880 pnpm exec next start --port ${webPort}`,
-      cwd: path.join(repoRoot, 'apps', 'web'),
-      env: {
-        ...process.env,
-        PATH: nodeBinPath,
-        NODE_ENV: 'test',
-        PORT: String(webPort),
-        NEXT_PUBLIC_API_URL: apiBaseUrl,
-        NEXT_PUBLIC_WS_URL: wsBaseUrl,
-        NEXT_PUBLIC_LIVEKIT_URL: 'ws://127.0.0.1:7880',
-      },
-      url: `${webBaseUrl}/login`,
-      reuseExistingServer: false,
-      timeout: 240_000,
-    },
-  ],
+  webServer: webServers,
   projects: [
     {
       name: 'chromium',

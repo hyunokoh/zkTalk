@@ -25,26 +25,13 @@ export interface DevAuthSession {
   user: CurrentUserResponse['user'];
 }
 
-export async function createDevAuthSession(
+async function createSessionForEmail(
   request: APIRequestContext,
-  label: string,
+  email: string,
 ): Promise<DevAuthSession> {
-  const email = `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
-
-  const requestResponse = await request.post(`${apiBaseUrl}/api/auth/magic-link/request`, {
-    data: { email },
-  });
-  if (!requestResponse.ok()) {
-    throw new Error(`Magic link request failed with ${requestResponse.status()}`);
-  }
-
-  const requestPayload = (await requestResponse.json()) as MagicLinkRequestResponse;
-  if (!requestPayload.token) {
-    throw new Error('Magic link token missing from dev auth response');
-  }
-
+  const token = await requestMagicLinkTokenForEmail(request, email);
   const verifyResponse = await request.post(`${apiBaseUrl}/api/auth/magic-link/verify`, {
-    data: { token: requestPayload.token },
+    data: { token },
   });
   if (!verifyResponse.ok()) {
     throw new Error(`Magic link verify failed with ${verifyResponse.status()}`);
@@ -73,4 +60,37 @@ export async function createDevAuthSession(
     sessionToken: verifyPayload.sessionToken,
     user: mePayload.user,
   };
+}
+
+export async function requestMagicLinkTokenForEmail(
+  request: APIRequestContext,
+  email: string,
+): Promise<string> {
+  const requestResponse = await request.post(`${apiBaseUrl}/api/auth/magic-link/request`, {
+    data: { email },
+  });
+  if (!requestResponse.ok()) {
+    throw new Error(`Magic link request failed with ${requestResponse.status()}`);
+  }
+
+  const requestPayload = (await requestResponse.json()) as MagicLinkRequestResponse;
+  if (!requestPayload.token) {
+    throw new Error('Magic link token missing from dev auth response');
+  }
+  return requestPayload.token;
+}
+
+export async function createDevAuthSession(
+  request: APIRequestContext,
+  label: string,
+): Promise<DevAuthSession> {
+  const email = `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+  return createSessionForEmail(request, email);
+}
+
+export async function createDevAuthSessionForEmail(
+  request: APIRequestContext,
+  email: string,
+): Promise<DevAuthSession> {
+  return createSessionForEmail(request, email);
 }

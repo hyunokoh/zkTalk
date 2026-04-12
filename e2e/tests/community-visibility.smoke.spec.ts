@@ -1,8 +1,7 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
 import { getSeedData } from '../utils/seed';
 
-const apiBaseUrl =
-  process.env.ZKTALK_BASE_URL ?? `http://127.0.0.1:${process.env.ZKTALK_API_PORT ?? '4000'}`;
+const apiBaseUrl = `http://127.0.0.1:${process.env.ZKTALK_API_PORT ?? '4000'}`;
 
 type Visibility = 'public' | 'invite_only' | 'private';
 
@@ -29,6 +28,10 @@ interface MessagePayload {
   id: string;
   bodyMarkdown: string;
   bodyPlaintext: string;
+}
+
+interface CreatedMessagePayload {
+  message: MessagePayload;
 }
 
 interface ChannelMessagesPayload {
@@ -70,13 +73,17 @@ async function authedJson<T>(
     expectedStatus?: number;
   },
 ): Promise<{ status: number; body: T }> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+  };
+  if (options?.data !== undefined) {
+    headers['content-type'] = 'application/json';
+  }
+
   const response = await request.fetch(`${apiBaseUrl}${path}`, {
     method: options?.method ?? 'GET',
     failOnStatusCode: false,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'content-type': 'application/json',
-    },
+    headers,
     data: options?.data,
   });
 
@@ -177,7 +184,7 @@ test.describe('community visibility smoke', () => {
       },
     );
 
-    const publicMessage = await authedJson<{ id: string }>(
+    const publicMessage = await authedJson<CreatedMessagePayload>(
       request,
       `/api/channels/${publicChannel.body.id}/messages`,
       seed.userA.sessionToken,
@@ -190,7 +197,7 @@ test.describe('community visibility smoke', () => {
       },
     );
 
-    const membersOnlyMessage = await authedJson<{ id: string }>(
+    const membersOnlyMessage = await authedJson<CreatedMessagePayload>(
       request,
       `/api/channels/${membersOnlyChannel.body.id}/messages`,
       seed.userA.sessionToken,
@@ -248,7 +255,7 @@ test.describe('community visibility smoke', () => {
     );
     expect(
       publicMessagesBeforeJoin.body.messages.some(
-        (row) => row.message.id === publicMessage.body.id,
+        (row) => row.message.id === publicMessage.body.message.id,
       ),
     ).toBe(true);
 
@@ -264,7 +271,7 @@ test.describe('community visibility smoke', () => {
     expect(lockedMessagesBeforeJoin.status()).toBe(403);
 
     const lockedMessageFetchBeforeJoin = await request.get(
-      `${apiBaseUrl}/api/messages/${membersOnlyMessage.body.id}`,
+      `${apiBaseUrl}/api/messages/${membersOnlyMessage.body.message.id}`,
       {
         failOnStatusCode: false,
         headers: {
@@ -275,7 +282,7 @@ test.describe('community visibility smoke', () => {
     expect(lockedMessageFetchBeforeJoin.status()).toBe(403);
 
     const anonymousDiscover = await request.get(
-      `${apiBaseUrl}/api/discover?q=${encodeURIComponent(`Visibility ${suffix}`)}`,
+      `${apiBaseUrl}/api/discover?q=${encodeURIComponent(publicCommunity.body.community.name)}`,
       { failOnStatusCode: false },
     );
     expect(anonymousDiscover.status()).toBe(200);
@@ -332,7 +339,7 @@ test.describe('community visibility smoke', () => {
 
     await authedJson(
       request,
-      `/api/communities/${publicCommunity.body.community.slug}/join`,
+      `/api/communities/${publicCommunity.body.community.id}/join`,
       seed.userB.sessionToken,
       {
         method: 'POST',
@@ -379,7 +386,7 @@ test.describe('community visibility smoke', () => {
     );
     expect(
       unlockedMessagesAfterJoin.body.messages.some(
-        (row) => row.message.id === membersOnlyMessage.body.id,
+        (row) => row.message.id === membersOnlyMessage.body.message.id,
       ),
     ).toBe(true);
 

@@ -32,10 +32,11 @@ export interface UiSeedData {
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, '..', '..');
 const cacheDir = path.join(repoRoot, '.tmp', 'e2e');
-const cachePath = path.join(cacheDir, 'ui-seed-v3.json');
-const cacheMaxAgeMs = 10 * 60 * 1000;
 const apiPort = process.env.ZKTALK_API_PORT ?? '4000';
 const baseUrl = process.env.ZKTALK_BASE_URL ?? `http://127.0.0.1:${apiPort}`;
+const cacheKey = baseUrl.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase();
+const cachePath = path.join(cacheDir, `ui-seed-v3-${cacheKey}.json`);
+const cacheMaxAgeMs = 10 * 60 * 1000;
 
 let seedPromise: Promise<UiSeedData> | null = null;
 

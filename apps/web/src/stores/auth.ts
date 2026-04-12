@@ -20,7 +20,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
     try {
-      const res = await api<{ user: User }>('/api/me', { signal: controller.signal });
+      const res = await api<{ user: User }>('/api/me', {
+        signal: controller.signal,
+        authMode: 'bearer',
+      });
       set({ user: res.user, isLoading: false });
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {

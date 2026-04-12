@@ -520,6 +520,7 @@ export function MessageItem({
     mutationFn: () =>
       api(`/api/bookmarks/${message.id}`, {
         method: 'POST',
+        keepalive: true,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });

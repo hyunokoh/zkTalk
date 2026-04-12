@@ -37,7 +37,7 @@ export async function authenticate(
   const authModeHeader = request.headers[AUTH_MODE_HEADER];
   const wantsBearerOverride =
     typeof authModeHeader === 'string' && authModeHeader.toLowerCase() === 'bearer';
-  const token = wantsBearerOverride ? bearerToken : cookieToken ?? bearerToken;
+  const token = wantsBearerOverride ? bearerToken ?? cookieToken : bearerToken ?? cookieToken;
 
   if (!token) {
     throw AppError.unauthorized('Missing session cookie or authorization header');
