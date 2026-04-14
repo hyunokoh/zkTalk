@@ -49,8 +49,9 @@ try {
   // Ignore early boot log failures.
 }
 let buildGoMenuSubmenu;
+let getDesktopMenuLabels;
 try {
-  ({ buildGoMenuSubmenu } = require('./go-menu'));
+  ({ buildGoMenuSubmenu, getDesktopMenuLabels } = require('./go-menu'));
 } catch (error) {
   try {
     fs.appendFileSync(
@@ -96,6 +97,7 @@ try {
   // Ignore early boot log failures.
 }
 const { normalizeWindowState } = require('./window-state');
+const { createDesktopLoopbackBridge } = require('./local-machine-bridge');
 try {
   fs.appendFileSync(
     EARLY_BOOT_DEBUG_LOG_PATH,
@@ -107,6 +109,7 @@ try {
 
 const HOST = '127.0.0.1';
 const DEV_WEB_URL = 'http://localhost:3000';
+const DEV_WEB_URL_LOOPBACK = 'http://127.0.0.1:3000';
 const FILE_MIME_MAP = {
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
@@ -199,6 +202,7 @@ const LOCAL_AGENT_LANGUAGE_PRESET_IDS = new Set([
   'korean_preferred_english_readable',
   'manual_only',
 ]);
+const DESKTOP_APP_LOCALE_IDS = new Set(['en', 'ko']);
 
 let mainWindow = null;
 let webServerProcess = null;
@@ -210,6 +214,9 @@ let loadedDesktopConfigPath = null;
 let pendingProtocolUrl = null;
 let windowRecoveryInterval = null;
 let isRecoveringWindow = false;
+const desktopLocalMachineBridge = createDesktopLoopbackBridge({
+  statePath: path.join(app.getPath('userData'), 'local-machine-bridge.json'),
+});
 
 const DESKTOP_ROUTE_PREFIXES = [
   '/home',
@@ -1464,6 +1471,7 @@ function getDefaultDesktopConfig() {
     livekitUrl: 'ws://127.0.0.1:7880',
     webUrl: '',
     localAgentLanguagePreset: 'manual_only',
+    appLocale: 'ko',
   };
 }
 
@@ -1471,6 +1479,15 @@ function normalizeLocalAgentLanguagePreset(value) {
   return LOCAL_AGENT_LANGUAGE_PRESET_IDS.has(value)
     ? value
     : getDefaultDesktopConfig().localAgentLanguagePreset;
+}
+
+function normalizeDesktopAppLocale(value) {
+  if (typeof value !== 'string') {
+    return getDefaultDesktopConfig().appLocale;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return DESKTOP_APP_LOCALE_IDS.has(normalized) ? normalized : getDefaultDesktopConfig().appLocale;
 }
 
 function getDesktopConfigSnapshot() {
@@ -1483,6 +1500,7 @@ function getDesktopConfigSnapshot() {
       ...getDefaultDesktopConfig(),
       ...parsed,
       localAgentLanguagePreset: normalizeLocalAgentLanguagePreset(parsed.localAgentLanguagePreset),
+      appLocale: normalizeDesktopAppLocale(parsed.appLocale),
       path: configPath,
     };
   } catch (_) {
@@ -1516,6 +1534,7 @@ function ensureDesktopConfigFile() {
 
 function writeDesktopConfig(nextConfig) {
   const configPath = ensureDesktopConfigFile();
+  const currentConfig = getDesktopConfigSnapshot();
   const apiUrl = normalizeOptionalUrl(nextConfig.apiUrl) || getDefaultDesktopConfig().apiUrl;
   const wsUrl = normalizeOptionalUrl(nextConfig.wsUrl) || deriveWebSocketUrl(apiUrl);
   const livekitUrl =
@@ -1524,6 +1543,7 @@ function writeDesktopConfig(nextConfig) {
   const localAgentLanguagePreset = normalizeLocalAgentLanguagePreset(
     nextConfig.localAgentLanguagePreset,
   );
+  const appLocale = normalizeDesktopAppLocale(nextConfig.appLocale ?? currentConfig.appLocale);
 
   const payload = {
     apiUrl,
@@ -1531,6 +1551,7 @@ function writeDesktopConfig(nextConfig) {
     livekitUrl,
     webUrl,
     localAgentLanguagePreset,
+    appLocale,
   };
 
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
@@ -1583,6 +1604,7 @@ function loadDesktopConfig() {
       const localAgentLanguagePreset = normalizeLocalAgentLanguagePreset(
         config.localAgentLanguagePreset,
       );
+      const appLocale = normalizeDesktopAppLocale(config.appLocale);
       const openRouterApiKey =
         typeof process.env.OPENROUTER_API_KEY === 'string'
           ? process.env.OPENROUTER_API_KEY.trim()
@@ -1596,6 +1618,7 @@ function loadDesktopConfig() {
       setOptionalEnv('NEXT_PUBLIC_LIVEKIT_URL', livekitUrl);
       setOptionalEnv('ZKTALK_WEB_URL', webUrl);
       setOptionalEnv('ZKTALK_LOCAL_AGENT_LANGUAGE_PRESET', localAgentLanguagePreset);
+      setOptionalEnv('ZKTALK_APP_LOCALE', appLocale);
       setOptionalEnv('OPENROUTER_API_KEY', openRouterApiKey);
       appendDesktopLog(`Loaded desktop config from ${candidatePath}`);
 
@@ -1616,6 +1639,7 @@ function loadDesktopConfig() {
   setOptionalEnv('ZKTALK_LIVEKIT_URL', defaults.livekitUrl);
   setOptionalEnv('NEXT_PUBLIC_LIVEKIT_URL', defaults.livekitUrl);
   setOptionalEnv('ZKTALK_LOCAL_AGENT_LANGUAGE_PRESET', defaults.localAgentLanguagePreset);
+  setOptionalEnv('ZKTALK_APP_LOCALE', defaults.appLocale);
   if (typeof process.env.OPENROUTER_API_KEY === 'string') {
     setOptionalEnv('OPENROUTER_API_KEY', process.env.OPENROUTER_API_KEY.trim());
   }
@@ -3879,6 +3903,8 @@ function renderReleaseNotesPage() {
 }
 
 function installApplicationMenu() {
+  const { appLocale } = getDesktopConfigSnapshot();
+  const menuLabels = getDesktopMenuLabels(appLocale);
   const releaseItems = [
     {
       label: 'Open release dashboard',
@@ -4142,7 +4168,7 @@ function installApplicationMenu() {
         ]
       : []),
     {
-      label: 'Edit',
+      label: menuLabels.edit,
       submenu: [
         { role: 'undo' },
         { role: 'redo' },
@@ -4154,7 +4180,7 @@ function installApplicationMenu() {
       ],
     },
     {
-      label: 'View',
+      label: menuLabels.view,
       submenu: [
         { role: 'reload' },
         { role: 'forceReload' },
@@ -4167,7 +4193,7 @@ function installApplicationMenu() {
       ],
     },
     {
-      label: 'Window',
+      label: menuLabels.window,
       submenu: [
         { role: 'minimize' },
         { role: 'close' },
@@ -4175,57 +4201,57 @@ function installApplicationMenu() {
       ],
     },
     {
-      label: 'Go',
-      submenu: buildGoMenuSubmenu(handleDesktopAction),
+      label: menuLabels.go,
+      submenu: buildGoMenuSubmenu(handleDesktopAction, { locale: appLocale }),
     },
     {
-      label: 'Help',
+      label: menuLabels.help,
       submenu: [
         {
-          label: 'Connection settings',
+          label: menuLabels.connectionSettings,
           click: () => {
             renderConnectionSettingsPage();
           },
         },
         {
-          label: 'Open zkTalk website',
+          label: menuLabels.openWebsite,
           click: () => {
             shell.openExternal('https://zktalk.app').catch(() => {});
           },
         },
         {
-          label: 'Open desktop config',
+          label: menuLabels.openDesktopConfig,
           click: () => {
             const configPath = ensureDesktopConfigFile();
             shell.openPath(configPath).catch(() => {});
           },
         },
         {
-          label: 'Open desktop logs',
+          label: menuLabels.openDesktopLogs,
           click: () => {
             handleDesktopAction('zktalk://open-logs').catch(() => {});
           },
         },
         {
-          label: 'Open app data folder',
+          label: menuLabels.openAppDataFolder,
           click: () => {
             handleDesktopAction('zktalk://open-data-folder').catch(() => {});
           },
         },
         {
-          label: 'Export support bundle',
+          label: menuLabels.exportSupportBundle,
           click: () => {
             handleDesktopAction('zktalk://export-support-bundle').catch(() => {});
           },
         },
         {
-          label: 'Diagnostics',
+          label: menuLabels.diagnostics,
           click: () => {
             renderDiagnosticsPage();
           },
         },
         {
-          label: 'Copy diagnostics summary',
+          label: menuLabels.copyDiagnosticsSummary,
           click: () => {
             handleDesktopAction('zktalk://copy-diagnostics').catch(() => {});
           },
@@ -4648,6 +4674,8 @@ function renderStatusPage(title, body, options = {}) {
     return;
   }
 
+  const { appLocale } = getDesktopConfigSnapshot();
+  const menuLabels = getDesktopMenuLabels(appLocale);
   const config = options.config;
   const actions = options.actions ?? [];
   const actionsHtml =
@@ -4662,34 +4690,34 @@ function renderStatusPage(title, body, options = {}) {
   const configEditorHtml = config
     ? `<form id="desktop-config-form" class="config-form">
         <div class="field">
-          <label for="apiUrl">API URL</label>
+          <label for="apiUrl">${menuLabels.apiUrlLabel}</label>
           <input id="apiUrl" name="apiUrl" type="url" value="${escapeHtml(config.apiUrl || '')}" placeholder="http://localhost:4000" />
         </div>
         <div class="field">
-          <label for="wsUrl">WebSocket URL</label>
+          <label for="wsUrl">${menuLabels.wsUrlLabel}</label>
           <input id="wsUrl" name="wsUrl" type="url" value="${escapeHtml(config.wsUrl || '')}" placeholder="ws://localhost:4000/api/ws" />
         </div>
         <div class="field">
-          <label for="livekitUrl">LiveKit URL</label>
+          <label for="livekitUrl">${menuLabels.livekitUrlLabel}</label>
           <input id="livekitUrl" name="livekitUrl" type="url" value="${escapeHtml(config.livekitUrl || '')}" placeholder="ws://localhost:7880" />
         </div>
         <div class="field">
-          <label for="webUrl">Optional external web URL</label>
+          <label for="webUrl">${menuLabels.webUrlLabel}</label>
           <input id="webUrl" name="webUrl" type="url" value="${escapeHtml(config.webUrl || '')}" placeholder="https://app.example.com" />
         </div>
         <div class="field">
-          <label for="localAgentLanguagePreset">Local agent language preset</label>
+          <label for="localAgentLanguagePreset">${menuLabels.localAgentLanguagePresetLabel}</label>
           <select id="localAgentLanguagePreset" name="localAgentLanguagePreset">
             <option value="manual_only"${config.localAgentLanguagePreset === 'manual_only' ? ' selected' : ''}>manual_only</option>
             <option value="english_only"${config.localAgentLanguagePreset === 'english_only' ? ' selected' : ''}>english_only</option>
             <option value="korean_preferred_english_readable"${config.localAgentLanguagePreset === 'korean_preferred_english_readable' ? ' selected' : ''}>korean_preferred_english_readable</option>
           </select>
         </div>
-        <p class="hint">This preset is reserved for the desktop-first local Codex bridge so host and worker machines render predictable language output.</p>
-        <p class="hint">Desktop config: ${escapeHtml(config.path || '')}</p>
+        <p class="hint">${menuLabels.localAgentLanguagePresetHint}</p>
+        <p class="hint">${menuLabels.desktopConfigPathHint.replace('{{path}}', escapeHtml(config.path || ''))}</p>
         <div class="actions">
-          <button type="submit" class="button">Save and retry</button>
-          <button type="button" class="button secondary" id="open-config-button">Open config file</button>
+          <button type="submit" class="button">${menuLabels.saveAndRetry}</button>
+          <button type="button" class="button secondary" id="open-config-button">${menuLabels.openConfigFile}</button>
         </div>
         <p id="config-status" class="status"></p>
       </form>`
@@ -4823,8 +4851,8 @@ function renderStatusPage(title, body, options = {}) {
         <p>${body}</p>
         ${actionsHtml}
         <div class="meta">
-          <div class="meta-line">Desktop config: ${escapeHtml((config && config.path) || loadedDesktopConfigPath || getDesktopConfigPath())}</div>
-          <div class="meta-line">Desktop logs: ${escapeHtml(getDesktopLogPath())}</div>
+          <div class="meta-line">${menuLabels.desktopConfigMeta}: ${escapeHtml((config && config.path) || loadedDesktopConfigPath || getDesktopConfigPath())}</div>
+          <div class="meta-line">${menuLabels.desktopLogsMeta}: ${escapeHtml(getDesktopLogPath())}</div>
         </div>
         ${configEditorHtml}
       </div>
@@ -4850,7 +4878,7 @@ function renderStatusPage(title, body, options = {}) {
         if (openConfigButton && desktopApi?.openConfig) {
           openConfigButton.addEventListener('click', () => {
             desktopApi.openConfig().catch(() => {
-              setStatus('Could not open the desktop config file.', 'error');
+              setStatus(${JSON.stringify(menuLabels.openConfigFileError)}, 'error');
             });
           });
         }
@@ -4859,7 +4887,7 @@ function renderStatusPage(title, body, options = {}) {
           button.addEventListener('click', (event) => {
             event.preventDefault();
             desktopApi?.openLogs?.().catch(() => {
-              setStatus('Could not open the desktop log file.', 'error');
+              setStatus(${JSON.stringify(menuLabels.openLogsError)}, 'error');
             });
           });
         });
@@ -4871,7 +4899,7 @@ function renderStatusPage(title, body, options = {}) {
             if (submitButton) {
               submitButton.disabled = true;
             }
-            setStatus('Saving desktop connection settings...', '');
+            setStatus(${JSON.stringify(menuLabels.savingConnectionSettings)}, '');
 
             try {
               const formData = new FormData(form);
@@ -4882,10 +4910,10 @@ function renderStatusPage(title, body, options = {}) {
                 webUrl: formData.get('webUrl'),
                 localAgentLanguagePreset: formData.get('localAgentLanguagePreset'),
               });
-              setStatus('Saved. Reconnecting to zkTalk...', 'success');
+              setStatus(${JSON.stringify(menuLabels.savedConnectionSettings)}, 'success');
               await desktopApi.retryLoad();
             } catch (error) {
-              setStatus(error?.message || 'Could not save desktop settings.', 'error');
+              setStatus(error?.message || ${JSON.stringify(menuLabels.saveConnectionSettingsError)}, 'error');
               if (submitButton) {
                 submitButton.disabled = false;
               }
@@ -4900,23 +4928,21 @@ function renderStatusPage(title, body, options = {}) {
 }
 
 function renderConnectionSettingsPage() {
+  const { appLocale } = getDesktopConfigSnapshot();
+  const menuLabels = getDesktopMenuLabels(appLocale);
   const actions = [
-    { label: 'Retry connection', href: 'zktalk://retry' },
-    { label: 'Open config file', href: 'zktalk://open-config', variant: 'secondary' },
-    { label: 'Open logs', href: 'zktalk://open-logs', variant: 'secondary' },
+    { label: menuLabels.retryConnection, href: 'zktalk://retry' },
+    { label: menuLabels.openConfigFile, href: 'zktalk://open-config', variant: 'secondary' },
+    { label: menuLabels.openLogs, href: 'zktalk://open-logs', variant: 'secondary' },
   ];
 
   if (resolvedAppUrl) {
-    actions.push({ label: 'Back to app', href: 'zktalk://back-to-app', variant: 'secondary' });
+    actions.push({ label: menuLabels.backToApp, href: 'zktalk://back-to-app', variant: 'secondary' });
   }
 
   renderStatusPage(
-    'Desktop connection settings',
-    [
-      'Update the URLs zkTalk uses on this computer.',
-      '',
-      'Tip: You only need API URL for most local setups. WebSocket URL can usually be derived automatically.',
-    ].join('\n'),
+    menuLabels.connectionSettingsTitle,
+    menuLabels.connectionSettingsBody,
     {
       actions,
       config: getDesktopConfigSnapshot(),
@@ -5465,6 +5491,16 @@ async function ensureApiReachable() {
   return isReachable;
 }
 
+async function resolveReachableDevWebUrl() {
+  for (const candidate of [DEV_WEB_URL_LOOPBACK, DEV_WEB_URL]) {
+    if (await probeServer(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 async function startBundledServer() {
   if (webServerProcess && webServerProcess.exitCode === null && webServerUrl) {
     return webServerUrl;
@@ -5557,20 +5593,24 @@ async function loadApp() {
   }
 
   const configuredWebUrl = getConfiguredWebUrl();
-  const devWebUrlReachable = !configuredWebUrl && (await probeServer(DEV_WEB_URL));
+  const reachableDevWebUrl = configuredWebUrl ? null : await resolveReachableDevWebUrl();
   if (configuredWebUrl) {
     appendDesktopLog(`Using external web URL ${configuredWebUrl}`);
     stopBundledServer();
-  } else if (devWebUrlReachable) {
-    appendDesktopLog(`Using reachable dev web URL ${DEV_WEB_URL}`);
+  } else if (reachableDevWebUrl) {
+    appendDesktopLog(`Using reachable dev web URL ${reachableDevWebUrl}`);
     stopBundledServer();
   }
 
   try {
-    const standaloneEntry = configuredWebUrl || devWebUrlReachable ? null : getStandaloneEntry();
+    const standaloneEntry = configuredWebUrl || reachableDevWebUrl ? null : getStandaloneEntry();
     const bundledUrl = standaloneEntry ? await startBundledServer() : null;
     const fallbackUrl =
-      configuredWebUrl || (devWebUrlReachable ? DEV_WEB_URL : null) || bundledUrl || DEV_WEB_URL;
+      configuredWebUrl ||
+      reachableDevWebUrl ||
+      bundledUrl ||
+      DEV_WEB_URL_LOOPBACK ||
+      DEV_WEB_URL;
     const isApiReachable = await ensureApiReachable();
 
     if (!isApiReachable) {
@@ -5610,7 +5650,7 @@ async function loadApp() {
     await mainWindow.loadURL(initialUrl);
   } catch (error) {
     appendBootDebug(`loadApp error=${error instanceof Error ? error.message : String(error)}`);
-    const fallbackUrl = configuredWebUrl || DEV_WEB_URL;
+    const fallbackUrl = configuredWebUrl || reachableDevWebUrl || DEV_WEB_URL_LOOPBACK || DEV_WEB_URL;
     const isFallbackReady = await probeServer(fallbackUrl);
 
     if (isFallbackReady) {
@@ -5667,6 +5707,60 @@ ipcMain.handle('desktop-logs:open', async () => {
   await shell.openPath(logPath);
   return logPath;
 });
+ipcMain.handle('local-machine-bridge:get-state', () => desktopLocalMachineBridge.getSnapshot());
+ipcMain.handle('local-machine-bridge:register', (_event, payload) => {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Local machine bridge registration payload is missing.');
+  }
+
+  const snapshot = desktopLocalMachineBridge.registerMachine(payload);
+  appendDesktopLog(
+    `Registered local machine bridge ${snapshot.machine?.name || '(unknown)'} for ${snapshot.machine?.ownerUserId || '(unknown owner)'}`,
+  );
+  return snapshot;
+});
+ipcMain.handle('local-machine-bridge:heartbeat', (_event, payload) => {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Local machine bridge heartbeat payload is missing.');
+  }
+
+  const snapshot = desktopLocalMachineBridge.heartbeat(payload);
+  appendDesktopLog(
+    `Local machine heartbeat ${snapshot.machine?.id || '(unknown machine)'} => ${snapshot.presence?.status || 'unknown'}`,
+  );
+  return snapshot;
+});
+ipcMain.handle('local-machine-bridge:ensure-online', (_event, payload) => {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Local machine bridge ensure-online payload is missing.');
+  }
+
+  const snapshot = desktopLocalMachineBridge.ensureOnline(payload);
+  appendDesktopLog(
+    `Ensured local machine bridge ${snapshot.machine?.id || '(unknown machine)'} => ${snapshot.presence?.status || 'unknown'}`,
+  );
+  return snapshot;
+});
+ipcMain.handle('local-machine-bridge:disconnect', (_event, payload) => {
+  const snapshot = desktopLocalMachineBridge.disconnect(
+    payload && typeof payload === 'object' ? payload : {},
+  );
+  appendDesktopLog(
+    `Disconnected local machine bridge ${snapshot.machine?.id || '(unknown machine)'} => ${snapshot.presence?.status || 'unknown'}`,
+  );
+  return snapshot;
+});
+ipcMain.handle('local-machine-bridge:dispatch-command', async (_event, payload) => {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Local machine bridge dispatch payload is missing.');
+  }
+
+  const result = await desktopLocalMachineBridge.dispatchCommand(payload);
+  appendDesktopLog(
+    `Local machine command ${result.updates?.at(-1)?.commandId || '(unknown command)'} => ${result.updates?.at(-1)?.status || 'unknown'}`,
+  );
+  return result;
+});
 ipcMain.handle('desktop-config:save', (_event, config) => {
   if (!config || typeof config !== 'object') {
     throw new Error('Desktop config payload is missing.');
@@ -5675,6 +5769,7 @@ ipcMain.handle('desktop-config:save', (_event, config) => {
   const savedConfig = writeDesktopConfig(config);
   appendDesktopLog(`Saved desktop config to ${savedConfig.path}`);
   loadDesktopConfig();
+  installApplicationMenu();
   return savedConfig;
 });
 ipcMain.handle('desktop-files:pick', async (event, options) => {
@@ -5852,6 +5947,7 @@ app.on('activate', () => {
 app.on('before-quit', () => {
   isQuitting = true;
   stopWindowRecoveryMonitor();
+  desktopLocalMachineBridge.stopAutoHeartbeat();
   stopBundledServer();
 });
 

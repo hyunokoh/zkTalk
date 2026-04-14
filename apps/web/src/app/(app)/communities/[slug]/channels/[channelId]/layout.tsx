@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '@/lib/api';
@@ -15,6 +15,7 @@ import { useMobileNavStore } from '@/stores/mobile-nav';
 import {
   getChannelBrowsePresentation,
   isLockedBrowseChannel,
+  resolveChannelSurfaceActionOrder,
   shouldRenderBrowseChannel,
 } from '@zktalk/shared';
 import type { Channel, Community } from '@zktalk/shared';
@@ -31,11 +32,13 @@ export default function ChannelLayout({
   const slug = params.slug as string;
   const channelId = params.channelId as string;
   const [showPinned, setShowPinned] = useState(false);
+  const [showHeaderOverflow, setShowHeaderOverflow] = useState(false);
   const { isConnected, token, channelId: voiceChannelId, isVideoEnabled, disconnect } = useVoiceStore();
   const showVoiceRoom = isConnected && token && voiceChannelId === channelId;
   const toggleChannelSidebar = useMobileNavStore((s) => s.toggleChannelSidebar);
   const channelSidebarOpen = useMobileNavStore((s) => s.channelSidebarOpen);
   const livekitUrl = getLivekitUrl();
+  const headerOverflowRef = useRef<HTMLDivElement>(null);
 
   const { data: community } = useQuery({
     queryKey: ['community', slug],
@@ -93,6 +96,39 @@ export default function ChannelLayout({
   const sourceDmFullLabel = sourceDmName
     ? t('channel.sourceDmNameLabelWithName', { name: sourceDmName })
     : t('dm.historyCompact');
+  const channelSearchHref = `/communities/${slug}/search?channelId=${encodeURIComponent(channelId)}`;
+  const channelActionOrder = resolveChannelSurfaceActionOrder({
+    showSearch: true,
+    showPins: true,
+    showSourceDm: !!sourceDmConversationId,
+    showCommunitySettings: true,
+  });
+
+  useEffect(() => {
+    if (!showHeaderOverflow) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (headerOverflowRef.current && !headerOverflowRef.current.contains(event.target as Node)) {
+        setShowHeaderOverflow(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowHeaderOverflow(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [showHeaderOverflow]);
 
   const joinCommunityMutation = useMutation({
     mutationFn: async () => {
@@ -234,42 +270,85 @@ export default function ChannelLayout({
               <VoiceRoomButton channelId={channelId} communityId={channel.communityId} compact />
             </div>
           )}
-          {sourceDmConversationId && (
-            <span
-              data-testid="channel-source-dm-bar"
-              data-source-dm-id={sourceDmConversationId}
-              className="inline-flex"
+          {channelActionOrder.primary.includes('search') && (
+            <Link
+              href={channelSearchHref}
+              data-testid="channel-header-search-link"
+              className="rounded-md p-1.5 text-[#72767d] hover:bg-white/10 hover:text-[#dcddde]"
+              title={t('search.title')}
             >
-              <Link
-                href={`/dm/${sourceDmConversationId}`}
-                data-testid="channel-source-dm-link"
-                className="rounded-md p-1.5 text-[#72767d] hover:bg-white/10 hover:text-[#dcddde]"
-                title={sourceDmFullLabel}
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M8.5 3a5.5 5.5 0 104.032 9.24l2.614 2.614a1 1 0 001.414-1.414l-2.614-2.614A5.5 5.5 0 008.5 3zm-3.5 5.5a3.5 3.5 0 117 0 3.5 3.5 0 01-7 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </Link>
+          )}
+          {channelActionOrder.primary.includes('pins') && (
+            <button
+              data-testid="channel-header-pins-button"
+              onClick={() => setShowPinned(!showPinned)}
+              className={`rounded-md p-1.5 hover:bg-white/10 ${showPinned ? 'text-white' : 'text-[#72767d] hover:text-[#dcddde]'}`}
+              title={t('pin.pinned')}
+            >
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9.293 1.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-7 7a1 1 0 01-1.414-1.414L7 11.586V9a1 1 0 00-1-1H3a1 1 0 010-2h4V4.414l-.293-.293a1 1 0 010-1.414z" />
+              </svg>
+            </button>
+          )}
+          {channelActionOrder.overflow.length > 0 && (
+            <div className="relative" ref={headerOverflowRef}>
+              <button
+                type="button"
+                data-testid="channel-header-overflow-button"
+                onClick={() => setShowHeaderOverflow((prev) => !prev)}
+                className={`rounded-md p-1.5 hover:bg-white/10 ${showHeaderOverflow ? 'text-white' : 'text-[#72767d] hover:text-[#dcddde]'}`}
+                title={t('message.moreActions')}
+                aria-expanded={showHeaderOverflow}
               >
                 <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5zm12 0v4a4 4 0 01-4 4h-.5l-.718.737A2 2 0 0012 15h2l3 3v-3h1a2 2 0 002-2V7a2 2 0 00-2-2h-4z" />
+                  <path d="M10 4a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 4.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM8.5 14.5a1.5 1.5 0 103 0 1.5 1.5 0 00-3 0z" />
                 </svg>
-              </Link>
-            </span>
+              </button>
+              {showHeaderOverflow && (
+                <div
+                  data-testid="channel-header-overflow-menu"
+                  className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl border border-white/10 bg-[#1f2225] p-1.5 shadow-[0_20px_45px_rgba(0,0,0,0.35)]"
+                >
+                  {channelActionOrder.overflow.includes('source_dm') && sourceDmConversationId && (
+                    <Link
+                      href={`/dm/${sourceDmConversationId}`}
+                      data-testid="channel-source-dm-link"
+                      onClick={() => setShowHeaderOverflow(false)}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#dcddde] transition hover:bg-white/10"
+                      title={sourceDmFullLabel}
+                    >
+                      <svg className="h-4 w-4 shrink-0 text-[#72767d]" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5zm12 0v4a4 4 0 01-4 4h-.5l-.718.737A2 2 0 0012 15h2l3 3v-3h1a2 2 0 002-2V7a2 2 0 00-2-2h-4z" />
+                      </svg>
+                      <span className="truncate">{sourceDmFullLabel}</span>
+                    </Link>
+                  )}
+                  {channelActionOrder.overflow.includes('community_settings') && (
+                    <Link
+                      href={`/communities/${slug}/settings`}
+                      data-testid="channel-header-settings-link"
+                      onClick={() => setShowHeaderOverflow(false)}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#dcddde] transition hover:bg-white/10"
+                      title={t('nav.settings')}
+                    >
+                      <svg className="h-4 w-4 shrink-0 text-[#72767d]" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                      </svg>
+                      <span>{t('nav.settings')}</span>
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
           )}
-          <button
-            onClick={() => setShowPinned(!showPinned)}
-            className={`rounded-md p-1.5 hover:bg-white/10 ${showPinned ? 'text-white' : 'text-[#72767d] hover:text-[#dcddde]'}`}
-            title={t('pin.pinned')}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M9.293 1.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-7 7a1 1 0 01-1.414-1.414L7 11.586V9a1 1 0 00-1-1H3a1 1 0 010-2h4V4.414l-.293-.293a1 1 0 010-1.414z" />
-            </svg>
-          </button>
-          <Link
-            href={`/communities/${slug}/settings`}
-            className="rounded-md p-1.5 text-[#72767d] hover:bg-white/10 hover:text-[#dcddde]"
-            title={t('nav.settings')}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-            </svg>
-          </Link>
         </div>
       </div>
 

@@ -5,12 +5,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { fetchAiRuntime } from '@/lib/ai-runtime';
 import { useTranslation } from '@/lib/i18n';
+import { fetchUserSettings } from '@/lib/user-settings';
 import { buildComposerSelectedMessageAiState } from '@/lib/selected-message-ai';
 import { MessageList } from '@/components/MessageList';
 import { MessageComposer, type ComposerAiActionRequest } from '@/components/MessageComposer';
 import type { MessageAiActionKind } from '@/components/MessageItem';
 import { useThreadStore } from '@/stores/thread';
-import type { Message, Thread, User } from '@zktalk/shared';
+import type { Message, Thread, TranslationDisplayPreference, User } from '@zktalk/shared';
 
 interface ThreadPanelProps {
   channelId: string;
@@ -44,6 +45,12 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
   const { data: aiRuntime } = useQuery({
     queryKey: ['ai-runtime'],
     queryFn: fetchAiRuntime,
+    staleTime: 60_000,
+    enabled: !!activeThreadId,
+  });
+  const { data: userSettings } = useQuery({
+    queryKey: ['user-settings'],
+    queryFn: fetchUserSettings,
     staleTime: 60_000,
     enabled: !!activeThreadId,
   });
@@ -147,6 +154,9 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
         onReplyToMessage={handleReply}
         onRequestAiAction={handleAiAction}
         aiRuntime={aiRuntime}
+        translationDisplayPreference={
+          (userSettings?.translationDisplay as TranslationDisplayPreference | undefined) ?? undefined
+        }
       />
 
       {/* Thread composer */}

@@ -38,6 +38,19 @@ vi.mock('@tanstack/react-query', () => ({
       };
     }
 
+    if (key === 'user-settings') {
+      return {
+        data: {
+          translationDisplay: {
+            uiLocale: 'en',
+            mode: 'target_language_except_readable',
+            targetLanguage: 'en',
+            readableLanguages: ['en'],
+          },
+        },
+      };
+    }
+
     return { data: undefined };
   },
   useMutation: () => ({
@@ -75,6 +88,7 @@ vi.mock('@/components/MessageList', () => ({
   MessageList: ({
     onReplyToMessage,
     onRequestAiAction,
+    translationDisplayPreference,
   }: {
     onReplyToMessage?: (message: { id: string }, author: { displayName: string } | null) => void;
     onRequestAiAction?: (
@@ -82,8 +96,17 @@ vi.mock('@/components/MessageList', () => ({
       author: { displayName: string } | null,
       action: 'reply-draft' | 'rewrite-draft' | 'translate-inline'
     ) => void;
+    translationDisplayPreference?: {
+      mode?: string;
+      targetLanguage?: string | null;
+    };
   }) => (
     <div>
+      <div
+        data-testid="thread-message-list"
+        data-translation-mode={translationDisplayPreference?.mode ?? ''}
+        data-translation-target={translationDisplayPreference?.targetLanguage ?? ''}
+      />
       <button
         type="button"
         data-testid="thread-reply"
@@ -179,6 +202,17 @@ vi.mock('@/components/MessageComposer', () => ({
 }));
 
 describe('ThreadPanel selected-message AI wiring', () => {
+  it('passes the current translation display preference through to thread message rows', () => {
+    render(<ThreadPanel channelId="channel-1" />);
+
+    expect(screen.getByTestId('thread-message-list').getAttribute('data-translation-mode')).toBe(
+      'target_language_except_readable',
+    );
+    expect(screen.getByTestId('thread-message-list').getAttribute('data-translation-target')).toBe(
+      'en',
+    );
+  });
+
   it('keeps reply-draft on the reply path, clears it for rewrite, and leaves inline translation on the message surface', () => {
     render(<ThreadPanel channelId="channel-1" />);
 

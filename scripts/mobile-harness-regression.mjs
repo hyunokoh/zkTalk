@@ -3,6 +3,7 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   resolveSimulatorDevice,
   shutdownOtherBootedSimulators,
@@ -41,6 +42,26 @@ function sleep(ms) {
 
 const cacheDir = path.join(process.cwd(), '.tmp');
 const cachePath = path.join(cacheDir, 'mobile-harness-last-e2e.json');
+
+function readJsonIfExists(targetPath) {
+  if (!fs.existsSync(targetPath)) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(targetPath, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function removeIfExists(targetPath) {
+  if (!targetPath || !fs.existsSync(targetPath)) {
+    return;
+  }
+
+  fs.rmSync(targetPath, { force: true });
+}
 
 function loadCachedE2e(maxAgeMs) {
   if (!fs.existsSync(cachePath)) {
@@ -169,6 +190,103 @@ async function waitForHarnessConsumption(harnessDir, timeoutMs, pollMs) {
   };
 }
 
+async function waitForJsonFile(targetPath, predicate, timeoutMs, pollMs, label) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const parsed = readJsonIfExists(targetPath);
+    if (parsed && predicate(parsed)) {
+      return {
+        ok: true,
+        data: parsed,
+      };
+    }
+    await sleep(pollMs);
+  }
+
+  return {
+    ok: false,
+    data: readJsonIfExists(targetPath),
+    message: `Simulator did not produce ${label} within ${timeoutMs}ms`,
+  };
+}
+
+export function interpretAutoLoginMarker(data) {
+  if (!data || typeof data !== 'object') {
+    return {
+      terminal: false,
+      ok: false,
+      reason: null,
+    };
+  }
+
+  // Session restore success still hinges on `data?.loggedIn === true || data?.stage === 'already-logged-in'`.
+  if (data.loggedIn === true || data.stage === 'already-logged-in') {
+    return {
+      terminal: true,
+      ok: true,
+      reason: null,
+    };
+  }
+
+  if (typeof data.error === 'string' && data.error.trim().length > 0) {
+    return {
+      terminal: true,
+      ok: false,
+      reason: `Simulator auto-login failed: ${data.error.trim()}`,
+    };
+  }
+
+  const knownFailureStage = {
+    'failed-needs-new-token': 'Simulator auto-login failed and needs a fresh session token.',
+    'skipped-retrying-known-bad-token':
+      'Simulator auto-login skipped because the last seeded session token already failed.',
+    'no-token': 'Simulator auto-login could not start because no seeded session token was available.',
+  }[data.stage];
+
+  if (knownFailureStage) {
+    return {
+      terminal: true,
+      ok: false,
+      reason: knownFailureStage,
+    };
+  }
+
+  return {
+    terminal: false,
+    ok: false,
+    reason: null,
+  };
+}
+
+export async function waitForAutoLoginMarker(targetPath, timeoutMs, pollMs) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const parsed = readJsonIfExists(targetPath);
+    const markerState = interpretAutoLoginMarker(parsed);
+    if (markerState.terminal) {
+      return markerState.ok
+        ? {
+            ok: true,
+            data: parsed,
+          }
+        : {
+            ok: false,
+            data: parsed,
+            message: markerState.reason,
+          };
+    }
+    await sleep(pollMs);
+  }
+
+  return {
+    ok: false,
+    data: readJsonIfExists(targetPath),
+    message: `Simulator did not produce auto-login marker within ${timeoutMs}ms`,
+  };
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help === 'true') {
@@ -187,6 +305,11 @@ async function main() {
   const expoUrl = args['expo-url'] ?? process.env.EXPO_GO_URL ?? '';
   const timeoutMs = Number(args['timeout-ms'] ?? 60000);
   const pollMs = Number(args['poll-ms'] ?? 1000);
+
+  if (strictConsume && !shouldLaunch) {
+    throw new Error('--strict-consume requires --launch so route consumption is actually verified.');
+  }
+
   if (!['channel', 'dm', 'both'].includes(mode)) {
     throw new Error(`Unsupported mode: ${mode}`);
   }
@@ -232,25 +355,50 @@ async function main() {
 
   let consumeVerified = !shouldLaunch;
   let consumeWarning = null;
+  let autoLoginVerified = !shouldLaunch;
+  let autoLoginWarning = null;
+  let autoLoginMarker = null;
   const dmConversationId = getDmHarnessConversationId(e2e);
   const dmSender = getDmHarnessSender(e2e);
   const dmReceiver = getDmHarnessReceiver(e2e);
+  const autoLoginMarkerPath = path.join(harness.harnessDir, 'auto-login-marker.txt');
+
+  async function launchAndVerifyAutoLogin() {
+    removeIfExists(autoLoginMarkerPath);
+
+    const launchArgs = [
+      'scripts/launch-mobile-simulator-app.mjs',
+      '--app',
+      app,
+      '--device',
+      device,
+      '--terminate',
+    ];
+    if (expoUrl) {
+      launchArgs.push('--url', expoUrl);
+    }
+    runNode(launchArgs);
+
+    const markerResult = await waitForAutoLoginMarker(autoLoginMarkerPath, timeoutMs, pollMs);
+
+    if (!markerResult.ok) {
+      autoLoginVerified = false;
+      autoLoginWarning = markerResult.message;
+      autoLoginMarker = markerResult.data;
+      if (strictConsume) {
+        throw new Error(autoLoginWarning);
+      }
+      return;
+    }
+
+    autoLoginVerified = true;
+    autoLoginMarker = markerResult.data;
+  }
 
   if (mode === 'both') {
     queueRegressionMessage({ mode: 'channel', harnessDir: harness.harnessDir, e2e });
     if (shouldLaunch) {
-      const launchArgs = [
-        'scripts/launch-mobile-simulator-app.mjs',
-        '--app',
-        app,
-        '--device',
-        device,
-        '--terminate',
-      ];
-      if (expoUrl) {
-        launchArgs.push('--url', expoUrl);
-      }
-      runNode(launchArgs);
+      await launchAndVerifyAutoLogin();
     }
     const firstConsume = await waitForHarnessConsumption(harness.harnessDir, timeoutMs, pollMs);
     if (shouldLaunch && !firstConsume.ok) {
@@ -264,18 +412,7 @@ async function main() {
     }
     queueRegressionMessage({ mode: 'dm', harnessDir: harness.harnessDir, e2e });
     if (shouldLaunch) {
-      const secondLaunchArgs = [
-        'scripts/launch-mobile-simulator-app.mjs',
-        '--app',
-        app,
-        '--device',
-        device,
-        '--terminate',
-      ];
-      if (expoUrl) {
-        secondLaunchArgs.push('--url', expoUrl);
-      }
-      runNode(secondLaunchArgs);
+      await launchAndVerifyAutoLogin();
       const secondConsume = await waitForHarnessConsumption(harness.harnessDir, timeoutMs, pollMs);
       if (!secondConsume.ok) {
         consumeVerified = false;
@@ -290,18 +427,7 @@ async function main() {
   } else {
     queueRegressionMessage({ mode, harnessDir: harness.harnessDir, e2e });
     if (shouldLaunch) {
-      const launchArgs = [
-        'scripts/launch-mobile-simulator-app.mjs',
-        '--app',
-        app,
-        '--device',
-        device,
-        '--terminate',
-      ];
-      if (expoUrl) {
-        launchArgs.push('--url', expoUrl);
-      }
-      runNode(launchArgs);
+      await launchAndVerifyAutoLogin();
       const consumeResult = await waitForHarnessConsumption(harness.harnessDir, timeoutMs, pollMs);
       if (!consumeResult.ok) {
         consumeVerified = false;
@@ -337,6 +463,9 @@ async function main() {
         relaunchedApp: shouldLaunch,
         ...(expoUrl ? { expoUrl } : {}),
         consumeVerified,
+        autoLoginVerified,
+        ...(autoLoginWarning ? { autoLoginWarning } : {}),
+        ...(autoLoginMarker ? { autoLoginMarker } : {}),
         ...(e2eWarning ? { e2eWarning } : {}),
         ...(consumeWarning ? { consumeWarning } : {}),
         timeoutMs,
@@ -348,10 +477,16 @@ async function main() {
   );
 }
 
-try {
-  await main();
-} catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  printUsage();
-  process.exit(1);
+const entryFilePath = fileURLToPath(import.meta.url);
+const isDirectRun =
+  typeof process.argv[1] === 'string' && path.resolve(process.argv[1]) === entryFilePath;
+
+if (isDirectRun) {
+  try {
+    await main();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    printUsage();
+    process.exit(1);
+  }
 }

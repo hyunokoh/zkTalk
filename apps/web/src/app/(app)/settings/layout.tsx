@@ -1,18 +1,43 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
+import {
+  getSettingsSectionEntrypoint,
+  SETTINGS_SECTION_ORDER,
+  type SettingsSectionId,
+} from '@zktalk/shared';
 
-const NAV_ITEMS = [
-  { href: '/settings', labelKey: 'settings.overview' },
-  { href: '/settings/privacy', labelKey: 'privacy.metadata' },
-  { href: '/settings/backup', labelKey: 'backup.title' },
-] as const;
+const SECTION_LABEL_KEYS: Record<SettingsSectionId, string> = {
+  account: 'settings.accountSectionTitle',
+  notifications: 'settings.notificationsSectionTitle',
+  language: 'settings.languageSectionTitle',
+  ai_translation: 'settings.aiTranslationSectionTitle',
+  machine_control: 'settings.machineControlSectionTitle',
+  data_privacy: 'settings.dataPrivacySectionTitle',
+};
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { t } = useTranslation();
+  const navItems = [
+    { href: '/settings', label: t('settings.overview'), active: pathname === '/settings' },
+    ...SETTINGS_SECTION_ORDER.map((sectionId) => ({
+      href: getSettingsSectionEntrypoint(sectionId, 'web'),
+      label: t(SECTION_LABEL_KEYS[sectionId]),
+        active:
+        pathname === '/settings/ai'
+          ? sectionId === 'ai_translation' || sectionId === 'machine_control'
+          : pathname === '/settings'
+            ? sectionId === 'account' ||
+              sectionId === 'notifications' ||
+              sectionId === 'language' ||
+              sectionId === 'data_privacy'
+            : false,
+    })),
+  ];
 
   return (
     <div className="flex h-full w-full">
@@ -23,19 +48,18 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           <p className="mt-2 text-xs leading-5 text-gray-400">{t('settings.listSubtitle')}</p>
         </div>
         <ul className="space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const active = pathname === item.href;
+          {navItems.map((item) => {
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   className={`block rounded-md px-3 py-2 text-sm ${
-                    active
+                    item.active
                       ? 'bg-gray-800 text-white'
                       : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
                   }`}
                 >
-                  {t(item.labelKey)}
+                  {item.label}
                 </Link>
               </li>
             );

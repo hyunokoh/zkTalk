@@ -173,12 +173,17 @@ Primary touched files:
 - [`apps/mobile/src/components/MessageComposer.tsx`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/mobile/src/components/MessageComposer.tsx)
 - [`apps/mobile/src/screens/ChannelScreen.tsx`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/mobile/src/screens/ChannelScreen.tsx)
 - [`apps/mobile/src/screens/DmScreen.tsx`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/mobile/src/screens/DmScreen.tsx)
+- [`apps/mobile/src/screens/SettingsScreen.tsx`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/mobile/src/screens/SettingsScreen.tsx)
 - [`apps/mobile/src/screens/ThreadScreen.tsx`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/mobile/src/screens/ThreadScreen.tsx)
 - [`apps/mobile/src/lib/i18n/locales/en.ts`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/mobile/src/lib/i18n/locales/en.ts)
 - [`apps/mobile/src/lib/i18n/locales/ko.ts`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/mobile/src/lib/i18n/locales/ko.ts)
 - [`apps/web/src/components/MessageComposer/MessageComposer.tsx`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/web/src/components/MessageComposer/MessageComposer.tsx)
 - [`apps/web/src/app/desktop-harness/page.tsx`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/web/src/app/desktop-harness/page.tsx)
+- [`apps/web/src/app/(app)/settings/layout.tsx`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/web/src/app/(app)/settings/layout.tsx)
+- [`apps/web/src/app/(app)/settings/page.tsx`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/web/src/app/(app)/settings/page.tsx)
 - [`apps/web/src/app/(app)/settings/ai/page.tsx`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/web/src/app/(app)/settings/ai/page.tsx)
+- [`apps/desktop/go-menu.js`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/go-menu.js)
+- [`apps/desktop/main.js`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/main.js)
 - [`docs/IMPLEMENTATION_PLAN.md`](/Users/hyunokoh/Documents/Projects/zkTalk/docs/IMPLEMENTATION_PLAN.md)
 
 Current intent:
@@ -187,6 +192,7 @@ Current intent:
 - selected-message AI should write to a predictable target: reply draft goes into the composer as a reply path, rewrite replaces the active composer draft, and translation stays inline on the selected message
 - mobile should surface whether the backend AI runtime is live, mock, or unavailable before the user triggers an AI action
 - web and desktop selected-message AI follow-up work should stay aligned with the same output-target contract instead of inventing a different behavior per platform
+- web, desktop, and mobile settings language affordances should stay aligned enough that Korean and English selection changes the visible core settings entry points instead of leaving mixed-language navigation chrome
 
 Main regression risks:
 
@@ -242,6 +248,9 @@ Repo-local verification:
 
 Primary touched files:
 
+- [`apps/desktop/local-machine-bridge.js`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/local-machine-bridge.js)
+- [`apps/desktop/main.js`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/main.js)
+- [`apps/desktop/preload.js`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/preload.js)
 - [`docs/local-machine-bridge-trust-model-2026-04-10.md`](/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-trust-model-2026-04-10.md)
 - [`docs/LOCAL_AGENT_AND_TRANSLATION_PLAN_2026-04-10.md`](/Users/hyunokoh/Documents/Projects/zkTalk/docs/LOCAL_AGENT_AND_TRANSLATION_PLAN_2026-04-10.md)
 - [`docs/IMPLEMENTATION_PLAN.md`](/Users/hyunokoh/Documents/Projects/zkTalk/docs/IMPLEMENTATION_PLAN.md)
@@ -252,15 +261,18 @@ Current intent:
 - keep the zkTalk server limited to user auth, machine metadata, owner-only routing, and result persistence
 - constrain the first machine command envelope so later bridge work does not accidentally imply unrestricted history, secret, or filesystem access
 - force offline, busy, auth-missing, bridge-missing, and rejected states to stay user-visible instead of collapsing into a fake cloud fallback
+- the first packaged desktop loopback should persist a named machine registration and heartbeat snapshot without pretending a cloud bridge exists
 
 Main regression risks:
 
 - follow-up bridge work reintroducing the false idea that the server can act with the user's Codex identity
 - machine registration or presence being treated as permission escalation instead of owner-scoped metadata
 - mobile/web copy implying local Codex execution even though the first execution path is desktop-only
+- desktop loopback state silently drifting from the explicit `online`, `busy`, `auth_missing`, `bridge_missing`, and expired `offline` presence contract
 
 Repo-local verification:
 
+- [`apps/desktop/local-machine-bridge.test.js`](/Users/hyunokoh/Documents/Projects/zkTalk/apps/desktop/local-machine-bridge.test.js)
 - [`.zkcoder/scripts/verify.sh`](/Users/hyunokoh/Documents/Projects/zkTalk/.zkcoder/scripts/verify.sh)
 
 ## 9. Community Visibility And Restricted Channel Access

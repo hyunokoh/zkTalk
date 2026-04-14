@@ -53,6 +53,9 @@ interface MessageBubbleProps {
   replyBody?: string;
   translatedBody?: string;
   translatedLabel?: string;
+  translationVariant?: 'manual' | 'automatic';
+  translationStatusLabel?: string;
+  translationStatusIssue?: string;
   isEncrypted?: boolean;
   isEdited?: boolean;
   editedLabel?: string;
@@ -83,6 +86,9 @@ const MessageBubble = memo(function MessageBubble({
   replyBody,
   translatedBody,
   translatedLabel,
+  translationVariant,
+  translationStatusLabel,
+  translationStatusIssue,
   isEncrypted,
   isEdited,
   editedLabel,
@@ -242,11 +248,44 @@ const MessageBubble = memo(function MessageBubble({
                   ) : null}
 
                   {translatedBody ? (
-                    <View style={styles.translatedWrap}>
+                    <View
+                      style={[
+                        styles.translatedWrap,
+                        translationVariant === 'manual'
+                          ? styles.translatedWrapManual
+                          : translationVariant === 'automatic'
+                            ? styles.translatedWrapAutomatic
+                            : null,
+                      ]}
+                    >
                       {translatedLabel ? (
-                        <Text style={styles.translatedLabel}>{translatedLabel}</Text>
+                        <Text
+                          style={[
+                            styles.translatedLabel,
+                            translationVariant === 'manual'
+                              ? styles.translatedLabelManual
+                              : translationVariant === 'automatic'
+                                ? styles.translatedLabelAutomatic
+                                : null,
+                          ]}
+                        >
+                          {translatedLabel}
+                        </Text>
                       ) : null}
                       <Text style={styles.translatedBody}>{translatedBody}</Text>
+                    </View>
+                  ) : null}
+
+                  {translationStatusLabel ? (
+                    <View style={styles.translationStatusWrap}>
+                      <Text style={styles.translationStatusLabel}>
+                        {translationStatusLabel}
+                      </Text>
+                      {translationStatusIssue ? (
+                        <Text style={styles.translationStatusIssue}>
+                          {translationStatusIssue}
+                        </Text>
+                      ) : null}
                     </View>
                   ) : null}
 
@@ -512,6 +551,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.talkPanelBorder,
   },
+  translatedWrapManual: {
+    backgroundColor: 'rgba(14, 116, 144, 0.16)',
+    borderColor: 'rgba(125, 211, 252, 0.4)',
+  },
+  translatedWrapAutomatic: {
+    backgroundColor: 'rgba(6, 95, 70, 0.18)',
+    borderColor: 'rgba(110, 231, 183, 0.34)',
+  },
   translatedLabel: {
     marginBottom: 3,
     color: colors.talkMeta,
@@ -520,9 +567,37 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
+  translatedLabelManual: {
+    color: '#bae6fd',
+  },
+  translatedLabelAutomatic: {
+    color: '#a7f3d0',
+  },
   translatedBody: {
     color: colors.textPrimary,
     fontSize: fs.base,
+    lineHeight: 20,
+  },
+  translationStatusWrap: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 14,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+  },
+  translationStatusLabel: {
+    color: '#fef3c7',
+    fontSize: fs.xs,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  translationStatusIssue: {
+    marginTop: spacing.xs,
+    color: '#fef3c7',
+    fontSize: fs.sm,
     lineHeight: 20,
   },
   threadButton: {

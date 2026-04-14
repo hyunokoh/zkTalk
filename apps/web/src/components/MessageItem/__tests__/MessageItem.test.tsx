@@ -168,6 +168,10 @@ describe('MessageItem selected-message AI actions', () => {
     });
 
     expect(screen.getByText('The meeting starts at 3 PM.')).toBeTruthy();
+    expect(
+      screen.getByTestId('message-translation-panel').getAttribute('data-translation-variant'),
+    ).toBe('manual');
+    expect(screen.getByText('translate.showOriginal')).toBeTruthy();
   });
 
   it('disables selected-message inline translation when the AI runtime is unavailable', () => {
@@ -212,6 +216,10 @@ describe('MessageItem selected-message AI actions', () => {
       expect(screen.getByText('translate.autoTranslated')).toBeTruthy();
       expect(screen.getByText('The meeting starts at 3 PM.')).toBeTruthy();
     });
+
+    expect(
+      screen.getByTestId('message-translation-panel').getAttribute('data-translation-variant'),
+    ).toBe('automatic');
   });
 
   it('marks cached auto-translation stale after a message edit and refreshes it', async () => {

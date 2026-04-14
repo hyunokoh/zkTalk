@@ -264,7 +264,7 @@ function SettingsScreen(_a) {
     var showBackup = matchesSearch(t('settings.data'), t('settings.backup'));
     var showBookmarks = matchesSearch(t('settings.data'), t('settings.bookmarks'));
     var showTheme = matchesSearch(t('settings.preferences'), t('settings.theme'), t('settings.themeLockedHint'), t('settings.dark'));
-    var showLanguage = matchesSearch(t('settings.preferences'), t('settings.language'), i18n_1.localeNames[locale]);
+    var showLanguage = matchesSearch(t('settings.language'), i18n_1.localeNames[locale], 'korean', 'english', '한국어', '영어');
     var showNotifications = matchesSearch(t('settings.preferences'), t('settings.notifications'), notificationStatus === 'on'
         ? t('settings.on')
         : notificationStatus === 'off'
@@ -285,7 +285,8 @@ function SettingsScreen(_a) {
         showLinkedAccounts ||
         showLogout;
     var showDataSection = showBackup || showBookmarks;
-    var showPreferencesSection = showTheme || showLanguage || showNotifications;
+    var showLanguageSection = showLanguage;
+    var showPreferencesSection = showTheme || showNotifications;
     var showAiSection = showAi;
     var showAccountSection = showLinkedAccounts || showLogout;
     return (<react_native_1.ScrollView style={styles.container}>
@@ -335,6 +336,19 @@ function SettingsScreen(_a) {
             </react_native_1.TouchableOpacity>) : null}
         </react_native_1.View>) : null}
 
+      {/* Language Section */}
+      {showLanguageSection ? (<react_native_1.View style={styles.section}>
+          <react_native_1.Text style={styles.sectionTitle}>{t('settings.language')}</react_native_1.Text>
+          {showLanguage ? (<react_native_1.TouchableOpacity style={styles.menuItem} onPress={handleLanguage}>
+              <react_native_1.Text style={styles.menuIcon}>{'🌐'}</react_native_1.Text>
+              <react_native_1.View style={styles.staticMenuContent}>
+                <react_native_1.Text style={styles.menuText}>{t('settings.language')}</react_native_1.Text>
+                <react_native_1.Text style={styles.menuSubtext}>{t('settings.languageSectionHint')}</react_native_1.Text>
+              </react_native_1.View>
+              <react_native_1.Text style={styles.menuValue}>{i18n_1.localeNames[locale]}</react_native_1.Text>
+            </react_native_1.TouchableOpacity>) : null}
+        </react_native_1.View>) : null}
+
       {/* Preferences Section */}
       {showPreferencesSection ? (<react_native_1.View style={styles.section}>
           <react_native_1.Text style={styles.sectionTitle}>{t('settings.preferences')}</react_native_1.Text>
@@ -346,11 +360,6 @@ function SettingsScreen(_a) {
               </react_native_1.View>
               <react_native_1.Text style={styles.menuValue}>{t('settings.dark')}</react_native_1.Text>
             </react_native_1.View>) : null}
-          {showLanguage ? (<react_native_1.TouchableOpacity style={styles.menuItem} onPress={handleLanguage}>
-              <react_native_1.Text style={styles.menuIcon}>{'🌐'}</react_native_1.Text>
-              <react_native_1.Text style={styles.menuText}>{t('settings.language')}</react_native_1.Text>
-              <react_native_1.Text style={styles.menuValue}>{i18n_1.localeNames[locale]}</react_native_1.Text>
-            </react_native_1.TouchableOpacity>) : null}
           {showNotifications ? (<react_native_1.TouchableOpacity style={styles.menuItem} onPress={handleNotifications}>
               <react_native_1.Text style={styles.menuIcon}>{'🔔'}</react_native_1.Text>
               <react_native_1.Text style={styles.menuText}>{t('settings.notifications')}</react_native_1.Text>

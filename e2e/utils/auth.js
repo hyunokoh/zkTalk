@@ -5,6 +5,10 @@ const APP_SHELL_WAIT_MS = 15000;
 const APP_SHELL_RETRY_COUNT = 3;
 const WEB_PORT = Number(process.env.ZKTALK_WEB_PORT ?? '3000');
 const API_PORT = Number(process.env.ZKTALK_API_PORT ?? '4000');
+const WEB_BASE_URL = process.env.ZKTALK_WEB_URL ?? `http://127.0.0.1:${WEB_PORT}`;
+function toAbsoluteWebUrl(url) {
+    return new URL(url, WEB_BASE_URL).toString();
+}
 async function setSessionCookie(page, token) {
   await page.context().addCookies([
     {
@@ -46,7 +50,7 @@ export async function setSessionToken(page, token) {
 }
 export async function bootstrapAuthenticatedPage(page, token, url = '/home') {
     await setSessionToken(page, token);
-    await page.goto('/login');
+    await page.goto(toAbsoluteWebUrl('/login'));
     await page.evaluate(({ storageKey, sessionToken }) => {
         window.sessionStorage.setItem(storageKey, sessionToken);
         window.localStorage.setItem(storageKey, sessionToken);
@@ -60,7 +64,7 @@ async function waitForAuthenticatedShell(page, url) {
     let lastError;
     for (let attempt = 0; attempt < APP_SHELL_RETRY_COUNT; attempt += 1) {
         try {
-            await page.goto(url);
+            await page.goto(toAbsoluteWebUrl(url));
         }
         catch (error) {
             if (!(error instanceof Error) || !error.message.includes('net::ERR_ABORTED')) {
@@ -85,7 +89,7 @@ async function waitForAuthenticatedRoute(page, url) {
     let lastError;
     for (let attempt = 0; attempt < APP_SHELL_RETRY_COUNT; attempt += 1) {
         try {
-            await page.goto(url);
+            await page.goto(toAbsoluteWebUrl(url));
         }
         catch (error) {
             if (!(error instanceof Error) || !error.message.includes('net::ERR_ABORTED')) {

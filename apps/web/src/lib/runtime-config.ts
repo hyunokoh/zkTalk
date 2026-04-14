@@ -17,6 +17,12 @@ declare global {
       };
       getConfig?: () => Promise<unknown>;
       saveConfig?: (nextConfig: unknown) => Promise<unknown>;
+      getLocalMachineBridgeState?: () => Promise<unknown>;
+      registerLocalMachine?: (payload: unknown) => Promise<unknown>;
+      sendLocalMachineHeartbeat?: (payload: unknown) => Promise<unknown>;
+      ensureLocalMachineOnline?: (payload: unknown) => Promise<unknown>;
+      disconnectLocalMachineBridge?: (payload?: unknown) => Promise<unknown>;
+      dispatchLocalMachineCommand?: (payload: unknown) => Promise<unknown>;
       openConfig?: () => Promise<unknown>;
       openLogs?: () => Promise<unknown>;
       openFile?: (payload: {

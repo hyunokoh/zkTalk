@@ -1,20 +1,23 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ScrollView,
-  Linking,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Linking } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
-import { listAiCapabilities, type AiCapabilityId } from '@zktalk/shared';
+import {
+  getMobileSettingsFocusTarget,
+  getSelectedMessageAiBehavior,
+  listAiCapabilities,
+  summarizeTranslationDisplayPreference,
+  sortSettingsSectionIds,
+  type SelectedMessageAiAction,
+  type AiCapabilityId,
+  type SettingsSectionId,
+} from '@zktalk/shared';
 import { getToken } from '../lib/storage';
 import { useAuthStore } from '../stores/auth';
-import { useTranslation, useI18nStore, localeNames, type Locale } from '../lib/i18n';
+import { useTranslation, localeNames } from '../lib/i18n';
 import { fetchAiRuntime, getAiRuntimePresentation } from '../lib/ai';
+import { fetchUserSettings } from '../lib/user-settings';
 import {
   isSimulatorHarnessEnabled,
   readSimulatorHarnessJson,
@@ -27,23 +30,91 @@ import type { SettingsStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<SettingsStackParamList, 'SettingsScreen'>;
 
-export default function SettingsScreen({ navigation }: Props) {
+export default function SettingsScreen({ navigation, route }: Props) {
   const { t, locale } = useTranslation();
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const sectionOffsetsRef = useRef<Record<'account' | 'notifications' | 'data_privacy', number>>({
+    account: 0,
+    notifications: 0,
+    data_privacy: 0,
+  });
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [searchQuery, setSearchQuery] = useState('');
   const [devActionAttempted, setDevActionAttempted] = useState(false);
-  const [notificationStatus, setNotificationStatus] = useState<'on' | 'off' | 'unavailable'>(
-    'off',
-  );
+  const [notificationStatus, setNotificationStatus] = useState<'on' | 'off' | 'unavailable'>('off');
+  const [layoutVersion, setLayoutVersion] = useState(0);
   const { data: aiRuntime } = useQuery({
     queryKey: ['ai-runtime'],
     queryFn: fetchAiRuntime,
     staleTime: 30_000,
   });
+  const { data: userSettings } = useQuery({
+    queryKey: ['user-settings'],
+    queryFn: fetchUserSettings,
+    staleTime: 30_000,
+  });
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const aiRuntimePresentation = getAiRuntimePresentation(t, aiRuntime);
   const mobileAiCapabilities = listAiCapabilities('mobile');
+  const translationPreferenceSummary = summarizeTranslationDisplayPreference(
+    userSettings?.translationDisplay,
+  );
+  const selectedMessageAiSummary = (
+    ['reply-draft', 'rewrite-draft', 'translate-inline'] as SelectedMessageAiAction[]
+  ).map((action) => {
+    const behavior = getSelectedMessageAiBehavior(action);
+
+    if (behavior.effect === 'create-reply-draft') {
+      return t('settings.aiBehaviorReplyDraft');
+    }
+
+    if (behavior.effect === 'replace-composer-draft') {
+      return t('settings.aiBehaviorRewriteDraft');
+    }
+
+    return t('settings.aiBehaviorTranslateInline');
+  });
+
+  const openAiSettings = useCallback(
+    (focusTarget: 'ai_translation' | 'machine_control') => {
+      // Shared IA root remains navigation.navigate('AiSettings'); focusTarget only refines landing.
+      navigation.navigate('AiSettings', {
+        focusTarget,
+      });
+    },
+    [navigation],
+  );
+
+  const recordSectionOffset = useCallback(
+    (sectionId: 'account' | 'notifications' | 'data_privacy', nextOffset: number) => {
+      if (sectionOffsetsRef.current[sectionId] === nextOffset) {
+        return;
+      }
+
+      sectionOffsetsRef.current[sectionId] = nextOffset;
+      setLayoutVersion((current) => current + 1);
+    },
+    [],
+  );
+
+  const focusTarget = route.params?.focusTarget;
+
+  useFocusEffect(
+    useCallback(() => {
+      const scrollY =
+        !focusTarget || focusTarget === 'main' ? 0 : sectionOffsetsRef.current[focusTarget] ?? 0;
+
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollTo({
+          y: Math.max(scrollY - spacing.lg, 0),
+          animated: true,
+        });
+      });
+
+      return undefined;
+    }, [focusTarget, layoutVersion]),
+  );
 
   const getAiCapabilityLabel = useCallback(
     (capability: AiCapabilityId) => {
@@ -87,24 +158,6 @@ export default function SettingsScreen({ navigation }: Props) {
     return unsubscribe;
   }, [navigation, refreshNotificationStatus]);
 
-  const handleLanguage = () => {
-    const options: { label: string; value: Locale }[] = [
-      { label: '한국어', value: 'ko' },
-      { label: 'English', value: 'en' },
-    ];
-    Alert.alert(
-      t('settings.selectLanguage'),
-      undefined,
-      [
-        ...options.map((opt) => ({
-          text: opt.value === locale ? `${opt.label} ✓` : opt.label,
-          onPress: () => useI18nStore.getState().setLocale(opt.value),
-        })),
-        { text: t('common.cancel'), style: 'cancel' as const },
-      ],
-    );
-  };
-
   const handleNotifications = async () => {
     try {
       const current = await Notifications.getPermissionsAsync();
@@ -132,10 +185,7 @@ export default function SettingsScreen({ navigation }: Props) {
         setNotificationStatus(isGranted ? 'on' : 'off');
 
         if (isGranted) {
-          Alert.alert(
-            t('settings.notificationsEnabledTitle'),
-            t('settings.notificationsGranted'),
-          );
+          Alert.alert(t('settings.notificationsEnabledTitle'), t('settings.notificationsGranted'));
         } else {
           Alert.alert(
             t('settings.notificationsDisabledTitle'),
@@ -200,22 +250,16 @@ export default function SettingsScreen({ navigation }: Props) {
         setDevActionAttempted(true);
         await logout();
         const remainingToken = await getToken();
-        await writeSimulatorHarnessJson(
-          'dev-settings-result.json',
-          {
-            ok: true,
-            action: 'logout',
-            remainingTokenLength: remainingToken?.length ?? 0,
-          },
-        );
+        await writeSimulatorHarnessJson('dev-settings-result.json', {
+          ok: true,
+          action: 'logout',
+          remainingTokenLength: remainingToken?.length ?? 0,
+        });
       } catch (error) {
-        await writeSimulatorHarnessJson(
-          'dev-settings-result.json',
-          {
-            ok: false,
-            error: error instanceof Error ? error.message : String(error),
-          },
-        );
+        await writeSimulatorHarnessJson('dev-settings-result.json', {
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
@@ -242,9 +286,12 @@ export default function SettingsScreen({ navigation }: Props) {
     t('settings.dark'),
   );
   const showLanguage = matchesSearch(
-    t('settings.preferences'),
     t('settings.language'),
     localeNames[locale],
+    'korean',
+    'english',
+    '한국어',
+    '영어',
   );
   const showNotifications = matchesSearch(
     t('settings.preferences'),
@@ -257,6 +304,8 @@ export default function SettingsScreen({ navigation }: Props) {
   );
   const showAi = matchesSearch(
     t('settings.ai'),
+    t('settings.aiTranslation'),
+    t('settings.aiTranslationSummary'),
     t('settings.aiSummary'),
     t('settings.aiMobileOnly'),
     t('ai.messageReplyDraft'),
@@ -264,6 +313,11 @@ export default function SettingsScreen({ navigation }: Props) {
     t('ai.messageTranslateInline'),
     aiRuntimePresentation?.label,
     aiRuntimePresentation?.description,
+  );
+  const showMachineControl = matchesSearch(
+    t('settings.machineControl'),
+    t('settings.machineControlSummary'),
+    t('settings.machineControlHint'),
   );
   const showEditProfile = matchesSearch(t('settings.account'), t('settings.editProfile'));
   const showLinkedAccounts = matchesSearch(t('settings.account'), t('settings.linkedAccounts'));
@@ -277,20 +331,46 @@ export default function SettingsScreen({ navigation }: Props) {
     showLanguage ||
     showNotifications ||
     showAi ||
+    showMachineControl ||
     showEditProfile ||
     showLinkedAccounts ||
     showLogout;
   const showDataSection = showBackup || showBookmarks;
-  const showPreferencesSection = showTheme || showLanguage || showNotifications;
+  const showLanguageSection = showLanguage;
+  const showPreferencesSection = showTheme;
+  const showNotificationsSection = showNotifications;
   const showAiSection = showAi;
-  const showAccountSection = showLinkedAccounts || showLogout;
+  const showAccountSection =
+    showProfileSection || showEditProfile || showLinkedAccounts || showLogout;
+  const sectionVisibility: Record<SettingsSectionId | 'preferences', boolean> = {
+    account: showAccountSection,
+    notifications: showNotificationsSection,
+    language: showLanguageSection,
+    ai_translation: showAiSection,
+    machine_control: showMachineControl,
+    data_privacy: showDataSection,
+    preferences: showPreferencesSection,
+  };
+  const orderedSectionIds = [
+    ...sortSettingsSectionIds([
+      'account',
+      'notifications',
+      'language',
+      'ai_translation',
+      'machine_control',
+      'data_privacy',
+    ]),
+    'preferences' as const,
+  ].filter((sectionId) => sectionVisibility[sectionId]);
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Profile Section */}
-      {showProfileSection ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.profile')}</Text>
+    <ScrollView ref={scrollViewRef} style={styles.container} testID="settings-screen">
+      {orderedSectionIds.includes('account') ? (
+        <View
+          style={styles.section}
+          onLayout={(event) => recordSectionOffset('account', event.nativeEvent.layout.y)}
+        >
+          <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
           <View style={styles.profileCard}>
             <View style={styles.profileMainRow}>
               <Avatar
@@ -335,18 +415,155 @@ export default function SettingsScreen({ navigation }: Props) {
               ) : null}
             </View>
           </View>
+          {showLinkedAccounts ? (
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => navigation.navigate('LinkedAccounts')}
+            >
+              <Text style={styles.menuIcon}>{'🔗'}</Text>
+              <Text style={styles.menuText}>{t('settings.linkedAccounts')}</Text>
+              <Text style={styles.menuArrow}>{'›'}</Text>
+            </TouchableOpacity>
+          ) : null}
+          {showLogout ? (
+            <TouchableOpacity style={[styles.menuItem, styles.dangerItem]} onPress={handleLogout}>
+              <Text style={styles.dangerText}>{t('settings.logout')}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       ) : null}
 
-      {/* Data Section */}
-      {showDataSection ? (
+      {orderedSectionIds.includes('notifications') ? (
+        <View
+          style={styles.section}
+          onLayout={(event) => recordSectionOffset('notifications', event.nativeEvent.layout.y)}
+        >
+          <Text style={styles.sectionTitle}>{t('settings.notifications')}</Text>
+          <TouchableOpacity style={styles.menuItem} onPress={handleNotifications}>
+            <Text style={styles.menuIcon}>{'🔔'}</Text>
+            <Text style={styles.menuText}>{t('settings.notifications')}</Text>
+            <Text style={styles.menuValue}>
+              {notificationStatus === 'on'
+                ? t('settings.on')
+                : notificationStatus === 'off'
+                  ? t('settings.off')
+                  : t('settings.unavailable')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {orderedSectionIds.includes('language') ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.data')}</Text>
+          <Text style={styles.sectionTitle}>{t('settings.language')}</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('LanguageSettings')}
+            testID="settings-language-entry"
+          >
+            <Text style={styles.menuIcon}>{'🌐'}</Text>
+            <View style={styles.staticMenuContent}>
+              <Text style={styles.menuText}>{t('settings.appDisplayLanguage')}</Text>
+              <Text style={styles.menuSubtext}>{t('settings.languageSectionHint')}</Text>
+            </View>
+            <Text style={styles.menuValue}>{localeNames[locale]}</Text>
+            <Text style={styles.menuArrow}>{'›'}</Text>
+          </TouchableOpacity>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoCardTitle}>{t('settings.translationBoundaryTitle')}</Text>
+            <Text style={styles.infoCardHint}>{t('settings.languageTranslationBoundary')}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {orderedSectionIds.includes('ai_translation') ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('settings.aiTranslation')}</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => openAiSettings(getMobileSettingsFocusTarget('ai_translation'))}
+            testID="settings-ai-entry"
+          >
+            <Text style={styles.menuIcon}>{'✨'}</Text>
+            <View style={styles.staticMenuContent}>
+              <Text style={styles.menuText}>{t('settings.aiTranslation')}</Text>
+              <Text style={styles.menuSubtext}>
+                {t('settings.aiTranslationSummary', {
+                  runtime: aiRuntimePresentation?.label ?? t('settings.aiRuntimeLoading'),
+                })}
+              </Text>
+            </View>
+            <Text style={styles.menuArrow}>{'›'}</Text>
+          </TouchableOpacity>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoCardTitle}>{t('settings.translationActiveRule')}</Text>
+            <Text style={styles.infoCardBody}>{translationPreferenceSummary.summary}</Text>
+            <Text style={styles.infoCardHint}>
+              {t('settings.translationTargetLabelPrefix')}
+              {translationPreferenceSummary.targetLanguage ?? t('settings.translationNone')}
+            </Text>
+            <Text style={styles.infoCardHint}>
+              {t('settings.translationReadableLabelPrefix')}
+              {translationPreferenceSummary.readableLanguages.length > 0
+                ? translationPreferenceSummary.readableLanguages.join(', ')
+                : t('settings.translationNone')}
+            </Text>
+          </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoCardTitle}>{t('settings.aiEntryPointsTitle')}</Text>
+            <View style={styles.infoList}>
+              {selectedMessageAiSummary.map((item) => (
+                <Text key={item} style={styles.infoListItem}>
+                  {'• '}
+                  {item}
+                </Text>
+              ))}
+            </View>
+          </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoCardTitle}>{t('settings.aiIncludedFeatures')}</Text>
+            <View style={styles.infoList}>
+              {mobileAiCapabilities.map((capability) => (
+                <Text key={capability} style={styles.infoListItem}>
+                  {'• '}
+                  {getAiCapabilityLabel(capability)}
+                </Text>
+              ))}
+            </View>
+            <Text style={styles.infoCardHint}>{t('settings.aiMobileOnly')}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {orderedSectionIds.includes('machine_control') ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('settings.machineControl')}</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => openAiSettings(getMobileSettingsFocusTarget('machine_control'))}
+            testID="settings-machine-control-entry"
+          >
+            <Text style={styles.menuIcon}>{'🖥️'}</Text>
+            <View style={styles.staticMenuContent}>
+              <Text style={styles.menuText}>{t('settings.machineControl')}</Text>
+              <Text style={styles.menuSubtext}>{t('settings.machineControlSummary')}</Text>
+            </View>
+            <Text style={styles.menuArrow}>{'›'}</Text>
+          </TouchableOpacity>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoCardHint}>{t('settings.machineControlHint')}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {orderedSectionIds.includes('data_privacy') ? (
+        <View
+          style={styles.section}
+          onLayout={(event) => recordSectionOffset('data_privacy', event.nativeEvent.layout.y)}
+        >
+          <Text style={styles.sectionTitle}>{t('settings.dataPrivacy')}</Text>
           {showBackup ? (
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => navigation.navigate('Backup')}
-            >
+            <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Backup')}>
               <Text style={styles.menuIcon}>{'💾'}</Text>
               <Text style={styles.menuText}>{t('settings.backup')}</Text>
               <Text style={styles.menuArrow}>{'›'}</Text>
@@ -365,8 +582,7 @@ export default function SettingsScreen({ navigation }: Props) {
         </View>
       ) : null}
 
-      {/* Preferences Section */}
-      {showPreferencesSection ? (
+      {orderedSectionIds.includes('preferences') ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('settings.preferences')}</Text>
           {showTheme ? (
@@ -378,80 +594,6 @@ export default function SettingsScreen({ navigation }: Props) {
               </View>
               <Text style={styles.menuValue}>{t('settings.dark')}</Text>
             </View>
-          ) : null}
-          {showLanguage ? (
-            <TouchableOpacity style={styles.menuItem} onPress={handleLanguage}>
-              <Text style={styles.menuIcon}>{'🌐'}</Text>
-              <Text style={styles.menuText}>{t('settings.language')}</Text>
-              <Text style={styles.menuValue}>{localeNames[locale]}</Text>
-            </TouchableOpacity>
-          ) : null}
-          {showNotifications ? (
-            <TouchableOpacity style={styles.menuItem} onPress={handleNotifications}>
-              <Text style={styles.menuIcon}>{'🔔'}</Text>
-              <Text style={styles.menuText}>{t('settings.notifications')}</Text>
-              <Text style={styles.menuValue}>
-                {notificationStatus === 'on'
-                  ? t('settings.on')
-                  : notificationStatus === 'off'
-                    ? t('settings.off')
-                    : t('settings.unavailable')}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      ) : null}
-
-      {showAiSection ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.ai')}</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.infoCardHeader}>
-              <Text style={styles.infoCardTitle}>{t('settings.aiRuntime')}</Text>
-              <View style={styles.infoBadge}>
-                <Text style={styles.infoBadgeText}>
-                  {aiRuntimePresentation?.label ?? t('settings.aiRuntimeLoading')}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.infoCardBody}>
-              {aiRuntimePresentation?.description ?? t('settings.aiRuntimeLoadingBody')}
-            </Text>
-            <Text style={styles.infoCardBody}>{t('settings.aiSummary')}</Text>
-            <View style={styles.infoList}>
-              {mobileAiCapabilities.map((capability) => (
-                <Text key={capability} style={styles.infoListItem}>
-                  {'• '}
-                  {getAiCapabilityLabel(capability)}
-                </Text>
-              ))}
-            </View>
-            <Text style={styles.infoCardHint}>{t('settings.aiMobileOnly')}</Text>
-          </View>
-        </View>
-      ) : null}
-
-      {/* Account Section */}
-      {showAccountSection ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
-          {showLinkedAccounts ? (
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => navigation.navigate('LinkedAccounts')}
-            >
-              <Text style={styles.menuIcon}>{'🔗'}</Text>
-              <Text style={styles.menuText}>{t('settings.linkedAccounts')}</Text>
-              <Text style={styles.menuArrow}>{'›'}</Text>
-            </TouchableOpacity>
-          ) : null}
-          {showLogout ? (
-            <TouchableOpacity
-              style={[styles.menuItem, styles.dangerItem]}
-              onPress={handleLogout}
-            >
-              <Text style={styles.dangerText}>{t('settings.logout')}</Text>
-            </TouchableOpacity>
           ) : null}
         </View>
       ) : null}

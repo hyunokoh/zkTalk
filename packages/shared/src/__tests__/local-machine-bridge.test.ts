@@ -5,6 +5,7 @@ import {
   isMachinePresenceRunnable,
   normalizeMachineName,
   planLocalMachineBridgeExecution,
+  resolveLocalMachineHeartbeatPresence,
   resolveLocalMachineCommandDeliveryState,
   resolveLocalMachineDispatchAvailability,
   resolveLocalMachineRoutingDecision,
@@ -75,6 +76,75 @@ describe('resolveLocalMachineDispatchAvailability', () => {
         presence: 'busy',
       }),
     ).toEqual({ ok: false, reason: 'busy' });
+  });
+});
+
+describe('resolveLocalMachineHeartbeatPresence', () => {
+  it('keeps bridge registration, auth, and active-command states explicit', () => {
+    expect(
+      resolveLocalMachineHeartbeatPresence({
+        bridgeIdentifier: 'bridge-1',
+        codexAuthState: 'auth_present',
+        lastHeartbeatAt: '2026-04-12T14:00:00.000Z',
+        now: '2026-04-12T14:00:30.000Z',
+      }),
+    ).toEqual({
+      status: 'online',
+      codexAuthState: 'auth_present',
+      activeCommandId: null,
+      lastSeenAt: '2026-04-12T14:00:00.000Z',
+      expiresAt: '2026-04-12T14:01:00.000Z',
+    });
+
+    expect(
+      resolveLocalMachineHeartbeatPresence({
+        bridgeIdentifier: 'bridge-1',
+        codexAuthState: 'auth_present',
+        activeCommandId: 'command-1',
+        lastHeartbeatAt: '2026-04-12T14:00:00.000Z',
+        now: '2026-04-12T14:00:30.000Z',
+      }),
+    ).toMatchObject({
+      status: 'busy',
+      activeCommandId: 'command-1',
+    });
+
+    expect(
+      resolveLocalMachineHeartbeatPresence({
+        bridgeIdentifier: 'bridge-1',
+        codexAuthState: 'auth_missing',
+        lastHeartbeatAt: '2026-04-12T14:00:00.000Z',
+        now: '2026-04-12T14:00:30.000Z',
+      }),
+    ).toMatchObject({
+      status: 'auth_missing',
+      codexAuthState: 'auth_missing',
+    });
+  });
+
+  it('fails closed to bridge_missing when registration or heartbeat proof is absent/stale', () => {
+    expect(
+      resolveLocalMachineHeartbeatPresence({
+        bridgeIdentifier: '',
+        codexAuthState: 'auth_present',
+        now: '2026-04-12T14:00:30.000Z',
+      }),
+    ).toMatchObject({
+      status: 'bridge_missing',
+      expiresAt: null,
+    });
+
+    expect(
+      resolveLocalMachineHeartbeatPresence({
+        bridgeIdentifier: 'bridge-2',
+        codexAuthState: 'auth_present',
+        lastHeartbeatAt: '2026-04-12T14:00:00.000Z',
+        now: '2026-04-12T14:01:01.000Z',
+      }),
+    ).toMatchObject({
+      status: 'bridge_missing',
+      expiresAt: '2026-04-12T14:01:00.000Z',
+    });
   });
 });
 
@@ -190,6 +260,28 @@ describe('buildLocalMachineCommandUpdate', () => {
       outputText: 'Final output',
       errorCode: null,
       createdAt: '2026-04-10T10:02:00.000Z',
+    });
+
+    expect(
+      buildLocalMachineCommandUpdate({
+        commandId: 'command-1',
+        targetMachineId: 'machine-1',
+        owningUserId: 'user-1',
+        status: 'failed',
+        summary: 'Local Codex command timed out.',
+        outputText: 'Partial output before timeout',
+        errorCode: 'timed_out',
+        createdAt: '2026-04-10T10:03:00.000Z',
+      }),
+    ).toEqual({
+      commandId: 'command-1',
+      targetMachineId: 'machine-1',
+      owningUserId: 'user-1',
+      status: 'failed',
+      summary: 'Local Codex command timed out.',
+      outputText: 'Partial output before timeout',
+      errorCode: 'timed_out',
+      createdAt: '2026-04-10T10:03:00.000Z',
     });
   });
 
@@ -342,6 +434,13 @@ describe('buildLocalMachineCommandUpdate', () => {
         errorCode: 'auth_missing',
       }),
     ).toBe('auth_missing');
+
+    expect(
+      resolveLocalMachineCommandDeliveryState({
+        status: 'failed',
+        errorCode: 'timed_out',
+      }),
+    ).toBe('timed_out');
   });
 });
 

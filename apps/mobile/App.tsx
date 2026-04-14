@@ -101,6 +101,7 @@ export default function App() {
   const previousUserIdRef = useRef<string | null>(null);
   const previousNavigationUserIdRef = useRef<string | null>(null);
   const autoLoginInFlightRef = useRef(false);
+  const failedAutoLoginTokenRef = useRef<string | null>(null);
   const devRouteInFlightRef = useRef(false);
   const [isNavigationReady, setNavigationReady] = React.useState(false);
 
@@ -133,6 +134,14 @@ export default function App() {
       }
 
       autoLoginInFlightRef.current = true;
+      const configuredToken = (
+        (process.env.EXPO_PUBLIC_DEV_SESSION_TOKEN as string | undefined) ??
+        (typeof Constants.expoConfig?.extra?.devSessionToken === 'string'
+          ? Constants.expoConfig.extra.devSessionToken
+          : '')
+      ).trim();
+      const fileToken = (await readSimulatorHarnessFile('dev-session-token.txt')).trim();
+      const token = configuredToken || fileToken;
 
       try {
         await writeSimulatorHarnessJson(
@@ -142,18 +151,8 @@ export default function App() {
             stage: 'started',
           },
         );
-
-      const configuredToken = (
-        (process.env.EXPO_PUBLIC_DEV_SESSION_TOKEN as string | undefined) ??
-        (typeof Constants.expoConfig?.extra?.devSessionToken === 'string'
-          ? Constants.expoConfig.extra.devSessionToken
-          : '')
-      ).trim();
-
-        const fileToken = (await readSimulatorHarnessFile('dev-session-token.txt')).trim();
-
-        const token = configuredToken || fileToken;
         if (!token) {
+          failedAutoLoginTokenRef.current = null;
           await writeSimulatorHarnessJson(
             'auto-login-marker.txt',
             {
@@ -166,8 +165,21 @@ export default function App() {
           return;
         }
 
+        if (failedAutoLoginTokenRef.current === token) {
+          await writeSimulatorHarnessJson(
+            'auto-login-marker.txt',
+            {
+              apiOrigin: API_ORIGIN,
+              stage: 'skipped-retrying-known-bad-token',
+              tokenLength: token.length,
+            },
+          );
+          return;
+        }
+
         const storedToken = await getToken();
         if (storedToken === token && user) {
+          failedAutoLoginTokenRef.current = null;
           await writeSimulatorHarnessJson(
             'auto-login-marker.txt',
             {
@@ -191,6 +203,7 @@ export default function App() {
         );
 
         await loginWithSessionToken(token);
+        failedAutoLoginTokenRef.current = null;
         await writeSimulatorHarnessJson(
           'auto-login-marker.txt',
           {
@@ -201,6 +214,18 @@ export default function App() {
             loggedIn: true,
           },
         );
+      } catch (err) {
+        failedAutoLoginTokenRef.current = token;
+        await writeSimulatorHarnessJson(
+          'auto-login-marker.txt',
+          {
+            apiOrigin: API_ORIGIN,
+            stage: 'failed-needs-new-token',
+            tokenLength: token.length,
+            error: err instanceof Error ? err.message : String(err),
+          },
+        );
+        throw err;
       } finally {
         autoLoginInFlightRef.current = false;
       }

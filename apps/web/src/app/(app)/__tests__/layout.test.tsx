@@ -11,6 +11,7 @@ const { mockClearOfflineQueue, mockClearCachedUserSettings } = vi.hoisted(() => 
 const mockReplace = vi.fn();
 const mockFetchUser = vi.fn();
 const mockSetUser = vi.fn();
+const mockDesktopBridgeAutoConnect = vi.fn();
 const mockClear = vi.fn();
 const mockResetUnread = vi.fn();
 const mockResetOfflineQueue = vi.fn();
@@ -22,10 +23,12 @@ const mockCloseThread = vi.fn();
 const mockDisconnectVoice = vi.fn();
 let profileUpdatedHandler: ((message: { data?: unknown }) => void) | null = null;
 let currentUser: {
+  id: string;
   displayName: string;
   username: string;
   avatarUrl: null;
 } | null = {
+  id: 'user-1',
   displayName: 'Alice Example',
   username: 'alice',
   avatarUrl: null,
@@ -204,6 +207,17 @@ vi.mock('@/components/CommunityRail', () => ({
   ),
 }));
 
+vi.mock('@/components/DesktopLocalMachineBridgeAutoConnect', () => ({
+  DesktopLocalMachineBridgeAutoConnect: ({
+    ownerUserId,
+  }: {
+    ownerUserId: string | null | undefined;
+  }) => {
+    mockDesktopBridgeAutoConnect(ownerUserId);
+    return <div>DesktopLocalMachineBridgeAutoConnectMock:{ownerUserId ?? 'none'}</div>;
+  },
+}));
+
 vi.mock('@/components/UserAvatar', () => ({
   UserAvatar: () => <div>UserAvatarMock</div>,
 }));
@@ -230,6 +244,7 @@ vi.mock('@/hooks/useNotifications', () => ({
 describe('AppLayout', () => {
   beforeEach(() => {
     currentUser = {
+      id: 'user-1',
       displayName: 'Alice Example',
       username: 'alice',
       avatarUrl: null,
@@ -239,6 +254,7 @@ describe('AppLayout', () => {
     mockResetOfflineQueue.mockReset();
     mockCloseSidebar.mockReset();
     mockCloseChannelSidebar.mockReset();
+    mockDesktopBridgeAutoConnect.mockReset();
     mockSetDmShowList.mockReset();
     mockSetActiveConversation.mockReset();
     mockCloseThread.mockReset();
@@ -260,6 +276,17 @@ describe('AppLayout', () => {
 
     expect(screen.getByText('CommunityRailMock:5:1:Alice Example')).toBeTruthy();
     expect(screen.getByText('ChildContent')).toBeTruthy();
+  });
+
+  it('keeps desktop local machine auto-connect mounted with the authenticated owner id', () => {
+    render(
+      <AppLayout>
+        <div>ChildContent</div>
+      </AppLayout>,
+    );
+
+    expect(mockDesktopBridgeAutoConnect).toHaveBeenCalledWith('user-1');
+    expect(screen.getByText('DesktopLocalMachineBridgeAutoConnectMock:user-1')).toBeTruthy();
   });
 
   it('updates the auth store when a profile update event arrives over websocket', () => {

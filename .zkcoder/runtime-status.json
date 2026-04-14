@@ -1,0 +1,13 @@
+{
+  "pid": 2126,
+  "command": "run-next",
+  "argv": [
+    "run-next"
+  ],
+  "cwd": "/Users/hyunokoh/Documents/Projects/zkTalk",
+  "startedAt": "2026-04-13T10:47:09.638Z",
+  "status": "completed",
+  "signal": null,
+  "endedAt": "2026-04-13T10:55:03.582Z",
+  "updatedAt": "2026-04-13T10:55:03.582Z"
+}

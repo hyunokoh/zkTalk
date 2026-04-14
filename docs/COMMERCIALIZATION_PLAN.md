@@ -195,7 +195,7 @@ Use [docs/critical-path-verification-map-2026-04-07.md](/Users/hyunokoh/Document
 - 2026-04-07: core smoke still covers attachment send, but it does not yet prove authenticated attachment open/save or hosted-media retrieval after upload.
   Next action: keep `apps/web/src/components/AttachmentPreview/AttachmentPreview.tsx` and `apps/web/src/app/api/public-assets/[...assetPath]/route.ts` on the targeted regression path, then add one deterministic repo-local smoke that exercises attachment open/save against the local commercial stack.
 - 2026-04-12: voice/video validation is no longer part of the zkTalk core commercialization smoke. Treat it as zkMeet-owned coverage, and only keep thin voice code paths on targeted regression checks if they directly affect zkTalk messaging UI stability.
-  Next action: keep `apps/web/src/components/VoiceRoom/VoiceRoom.tsx` out of the release-readiness core smoke and move future end-to-end voice/video confidence work into zkMeet-specific validation.
+  Next action: keep `apps/web/src/components/VoiceRoom/VoiceRoom.tsx` out of the release-readiness core smoke, preserve only a thin seeded join check for messaging-adjacent regressions, and move future end-to-end voice/video confidence work into zkMeet-specific validation.
 - 2026-04-12: the last non-voice isolated lanes are now green. `e2e/tests/dm-promotion.smoke.spec.ts` and `e2e/tests/moderation.smoke.spec.ts` both pass after fixing API auth precedence so explicit bearer auth wins over stale cookie state in isolated/browser flows.
   Next action: treat future failures in these surfaces as regressions rather than open commercialization gaps; keep the isolated runner and auth helper aligned with that bearer-first expectation.
 - 2026-04-07: DM, inbox, and profile remain outside the smallest release-readiness smoke, so regressions there still depend on broader suites or manual spot checks.
@@ -209,6 +209,8 @@ Use [docs/critical-path-verification-map-2026-04-07.md](/Users/hyunokoh/Document
   Next action: keep the remaining mobile confidence gap focused on end-to-end long-press smoke rather than re-opening the shared action contract or runtime-copy semantics.
 - 2026-04-10: the local machine bridge trust boundary is now documented, and the repo now has shared machine identity, naming, presence, owner-only routing, and command-envelope contracts in `packages/shared`, but the bridge still has no repo-local handshake proving that a real desktop loopback can report those states without leaking auth material.
   Next action: implement the thinnest desktop register/heartbeat loopback that emits the shared `machine.registered`, `machine.presence.updated`, and `machine.command.updated` contract for `online`, `auth_missing`, and owner-only routing paths.
+- 2026-04-12: the desktop loopback proof and cross-platform UX decisions are now linked into operator-facing docs instead of living as isolated implementation notes. `docs/local-machine-bridge-loopback-2026-04-12.md` records the first local operator sequence and blocker split, while `docs/chat-ux-alignment-inventory-2026-04-12.md` locks the current candidate's parity decision around translation settings and selected-message AI semantics.
+  Next action: treat future regressions here as doc-and-contract drift first; do not reopen platform parity or bridge boundary claims without updating the linked source-of-truth docs and targeted verification together.
 
 ### Exit criteria
 - reliable smoke suite exists and is runnable on demand

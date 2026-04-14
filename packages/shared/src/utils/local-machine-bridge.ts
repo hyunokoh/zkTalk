@@ -1,4 +1,8 @@
-import type { MachineExecutionIntent, MachinePresenceStatus } from '../constants/index';
+import type {
+  MachineCodexAuthState,
+  MachineExecutionIntent,
+  MachinePresenceStatus,
+} from '../constants/index';
 import type {
   LocalMachine,
   LocalMachineAttachmentReference,
@@ -10,6 +14,7 @@ import type {
 
 const MACHINE_NAME_MAX_LENGTH = 32;
 const MACHINE_NAME_FALLBACK = 'machine';
+const DEFAULT_LOCAL_MACHINE_HEARTBEAT_TIMEOUT_MS = 60_000;
 
 export type LocalMachineRoutingFailureReason =
   | 'wrong_owner'
@@ -26,7 +31,8 @@ export type LocalMachineDispatchRuntime = 'desktop' | 'web' | 'mobile';
 
 export type LocalMachineDispatchBlockReason =
   | LocalMachineRoutingFailureReason
-  | 'desktop_only';
+  | 'desktop_only'
+  | 'timed_out';
 
 export type LocalMachineDispatchAvailability =
   | { ok: true; reason: 'ready' }
@@ -40,6 +46,7 @@ export type LocalMachineCommandDeliveryState =
   | 'busy'
   | 'auth_missing'
   | 'bridge_missing'
+  | 'timed_out'
   | 'rejected';
 
 export type LocalMachineBridgeExecutor = 'target_machine_local_codex';
@@ -67,6 +74,23 @@ export interface LocalMachineBridgeExecutionPlan {
   updates: LocalMachineCommandUpdate[];
 }
 
+export interface ResolveLocalMachineHeartbeatPresenceInput {
+  bridgeIdentifier: string | null | undefined;
+  codexAuthState: MachineCodexAuthState;
+  activeCommandId?: string | null;
+  lastHeartbeatAt?: string | null;
+  now?: string;
+  heartbeatTimeoutMs?: number;
+}
+
+export interface LocalMachineHeartbeatPresenceSnapshot {
+  status: MachinePresenceStatus;
+  codexAuthState: MachineCodexAuthState;
+  activeCommandId: string | null;
+  lastSeenAt: string | null;
+  expiresAt: string | null;
+}
+
 export interface BuildLocalMachineCommandEnvelopeInput {
   id: string;
   targetMachineId: string;
@@ -86,7 +110,14 @@ export interface BuildLocalMachineCommandUpdateInput {
   status: 'accepted' | 'streaming' | 'completed' | 'failed' | 'rejected';
   summary?: string | null;
   outputText?: string | null;
-  errorCode?: 'offline' | 'busy' | 'auth_missing' | 'bridge_missing' | 'rejected' | null;
+  errorCode?:
+    | 'offline'
+    | 'busy'
+    | 'auth_missing'
+    | 'bridge_missing'
+    | 'timed_out'
+    | 'rejected'
+    | null;
   createdAt?: string;
 }
 
@@ -105,6 +136,70 @@ export function normalizeMachineName(value: string): string {
 
 export function isMachinePresenceRunnable(status: MachinePresenceStatus): boolean {
   return status === 'online';
+}
+
+export function resolveLocalMachineHeartbeatPresence(
+  input: ResolveLocalMachineHeartbeatPresenceInput,
+): LocalMachineHeartbeatPresenceSnapshot {
+  const heartbeatTimeoutMs =
+    typeof input.heartbeatTimeoutMs === 'number' && Number.isFinite(input.heartbeatTimeoutMs)
+      ? Math.max(1, Math.trunc(input.heartbeatTimeoutMs))
+      : DEFAULT_LOCAL_MACHINE_HEARTBEAT_TIMEOUT_MS;
+  const activeCommandId = input.activeCommandId?.trim() || null;
+  const bridgeIdentifier = input.bridgeIdentifier?.trim() || '';
+  const heartbeatAt = input.lastHeartbeatAt?.trim() || null;
+  const nowIso = input.now?.trim() || new Date().toISOString();
+  const nowMs = Date.parse(nowIso);
+  const heartbeatMs = heartbeatAt ? Date.parse(heartbeatAt) : Number.NaN;
+
+  if (!bridgeIdentifier) {
+    return {
+      status: 'bridge_missing',
+      codexAuthState: input.codexAuthState,
+      activeCommandId,
+      lastSeenAt: heartbeatAt,
+      expiresAt: null,
+    };
+  }
+
+  if (!heartbeatAt || !Number.isFinite(nowMs) || !Number.isFinite(heartbeatMs)) {
+    return {
+      status: 'bridge_missing',
+      codexAuthState: input.codexAuthState,
+      activeCommandId,
+      lastSeenAt: heartbeatAt,
+      expiresAt: heartbeatAt,
+    };
+  }
+
+  const expiresAt = new Date(heartbeatMs + heartbeatTimeoutMs).toISOString();
+  if (heartbeatMs + heartbeatTimeoutMs < nowMs) {
+    return {
+      status: 'bridge_missing',
+      codexAuthState: input.codexAuthState,
+      activeCommandId,
+      lastSeenAt: heartbeatAt,
+      expiresAt,
+    };
+  }
+
+  if (input.codexAuthState === 'auth_missing') {
+    return {
+      status: 'auth_missing',
+      codexAuthState: input.codexAuthState,
+      activeCommandId,
+      lastSeenAt: heartbeatAt,
+      expiresAt,
+    };
+  }
+
+  return {
+    status: activeCommandId ? 'busy' : 'online',
+    codexAuthState: input.codexAuthState,
+    activeCommandId,
+    lastSeenAt: heartbeatAt,
+    expiresAt,
+  };
 }
 
 export function resolveLocalMachineRoutingDecision(input: {
@@ -230,6 +325,8 @@ export function resolveLocalMachineCommandDeliveryState(
           return 'auth_missing';
         case 'bridge_missing':
           return 'bridge_missing';
+        case 'timed_out':
+          return 'timed_out';
         case 'rejected':
           return 'rejected';
         default:
@@ -245,7 +342,7 @@ export function planLocalMachineBridgeExecution(
 ): LocalMachineBridgeExecutionPlan {
   const blockedUpdate = (
     status: 'failed' | 'rejected',
-    errorCode: 'offline' | 'busy' | 'auth_missing' | 'bridge_missing' | 'rejected',
+    errorCode: 'offline' | 'busy' | 'auth_missing' | 'bridge_missing' | 'timed_out' | 'rejected',
     summary: string,
   ): LocalMachineBridgeExecutionPlan => ({
     executor: 'target_machine_local_codex',

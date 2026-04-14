@@ -1,7 +1,8 @@
 'use client';
 
+import React from 'react';
 import { useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
@@ -35,9 +36,13 @@ function toSearchDateTime(value: string, boundary: 'start' | 'end') {
 export default function SearchPage() {
   const { t } = useTranslation();
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
   const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState<SearchFilterValues>({});
+  const [filters, setFilters] = useState<SearchFilterValues>(() => {
+    const channelId = searchParams.get('channelId')?.trim();
+    return channelId ? { channelId } : {};
+  });
 
   const { data: community } = useQuery({
     queryKey: ['community', slug],

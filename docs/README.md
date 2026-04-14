@@ -12,6 +12,12 @@ Authority map:
   - includes the current runtime dependency matrix and readiness boundary notes for PostgreSQL, Redis, object storage, and LiveKit
 - desktop local machine bridge boundary: [Local machine bridge trust model (2026-04-10)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-trust-model-2026-04-10.md)
   - use this before expanding machine registration, routing, or local Codex execution claims beyond desktop-only support
+- desktop loopback operator steps: [Local machine bridge loopback (2026-04-12)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-loopback-2026-04-12.md)
+  - use this for the first repo-local machine registration, heartbeat, and local operator blocker split
+- current cross-platform UX decisions: [Chat UX alignment inventory (2026-04-12)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/chat-ux-alignment-inventory-2026-04-12.md)
+  - use this before reopening mobile/web/desktop AI or translation parity decisions
+- current mobile parity execution queue: [Mobile parity queue (2026-04-13)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/mobile-parity-queue-2026-04-13.md)
+  - use this before reopening mobile polish or parity work for queue items 277-280
 - queue/order of work: [Commercialization plan](/Users/hyunokoh/Documents/Projects/zkTalk/docs/COMMERCIALIZATION_PLAN.md) and [Implementation plan](/Users/hyunokoh/Documents/Projects/zkTalk/docs/IMPLEMENTATION_PLAN.md)
 - zkCoder operating rules: [zkCoder runbook](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ZKCODER_RUNBOOK.md)
 
@@ -65,6 +71,11 @@ Decision split:
   - also includes the deterministic local stack contract for PostgreSQL, Redis, MinIO/S3, and LiveKit used by repo-local smoke and verification commands
 - [Local machine bridge trust model (2026-04-10)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-trust-model-2026-04-10.md)
   - use this as the source of truth for desktop-only local Codex execution, owner-only routing, and non-desktop degradation before claiming wider machine-bridge support
+- [Local machine bridge loopback (2026-04-12)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-loopback-2026-04-12.md)
+  - use this for the operator-visible register -> heartbeat -> state-check loop on the first desktop bridge candidate
+- [Chat UX alignment inventory (2026-04-12)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/chat-ux-alignment-inventory-2026-04-12.md)
+- [Mobile parity queue (2026-04-13)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/mobile-parity-queue-2026-04-13.md)
+  - use this as the current source of truth for web/desktop/mobile translation and selected-message AI parity decisions
 - [Core smoke contract](/Users/hyunokoh/Documents/Projects/zkTalk/e2e/core-smoke-contract.json)
   - use this to see the exact spec files, covered journeys, excluded journeys, and local prerequisites behind `pnpm e2e:smoke:web:core`
 - [Critical path verification map (2026-04-07)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/critical-path-verification-map-2026-04-07.md)
@@ -116,19 +127,25 @@ Decision split:
    Includes the current validation gap ledger for attachment open/save, thin voice smoke, and non-core journey coverage gaps.
 6. [Local machine bridge trust model (2026-04-10)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-trust-model-2026-04-10.md)
    Includes the desktop-only bridge boundary, local auth assumptions, and non-desktop degradation rules for the first local Codex path.
-7. [Implementation plan](/Users/hyunokoh/Documents/Projects/zkTalk/docs/IMPLEMENTATION_PLAN.md)
-8. [High-risk touched surfaces (2026-04-07)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/high-risk-touched-surfaces-2026-04-07.md)
-9. [Critical path verification map (2026-04-07)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/critical-path-verification-map-2026-04-07.md)
+7. [Local machine bridge loopback (2026-04-12)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-loopback-2026-04-12.md)
+   Includes the first desktop loopback proof, operator steps, and code-vs-external blocker split.
+8. [Chat UX alignment inventory (2026-04-12)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/chat-ux-alignment-inventory-2026-04-12.md)
+   Includes the current parity decision for mobile selected-message AI and language-agnostic translation settings.
+9. [Mobile parity queue (2026-04-13)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/mobile-parity-queue-2026-04-13.md)
+   Includes the deterministic follow-up queue for the remaining mobile-only parity and stability work.
+10. [Implementation plan](/Users/hyunokoh/Documents/Projects/zkTalk/docs/IMPLEMENTATION_PLAN.md)
+11. [High-risk touched surfaces (2026-04-07)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/high-risk-touched-surfaces-2026-04-07.md)
+12. [Critical path verification map (2026-04-07)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/critical-path-verification-map-2026-04-07.md)
    Includes which critical paths remain lightly verified.
-10. [AI-agent feedback runbook](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-runbook.md)
+13. [AI-agent feedback runbook](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-runbook.md)
    Includes persona/scenario mapping, blocker classification, and summary/update rules for synthetic-user passes.
-11. [AI-agent feedback template](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-template.md)
-12. [AI-agent feedback summary (2026-04-08)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-summary-2026-04-08.md)
-13. [AI-agent feedback batch: Cautious Organizer desktop-first (2026-04-08)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-batch-2026-04-08-cautious-organizer-desktop.md)
-14. [AI-agent feedback batch: Casual Member mobile-first (2026-04-08)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-batch-2026-04-08-casual-member-mobile.md)
-15. [AI-agent feedback batch: Fast Power User cross-device continuity (2026-04-08)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-batch-2026-04-08-fast-power-user-cross-device.md)
-16. [Current status](/Users/hyunokoh/Documents/Projects/zkTalk/docs/CURRENT_STATUS.md)
-17. [zkCoder runbook](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ZKCODER_RUNBOOK.md)
-18. [Mobile Korean IME checklist](/Users/hyunokoh/Documents/Projects/zkTalk/docs/mobile-korean-ime-checklist-2026-03-26.md)
-19. [Test matrix](/Users/hyunokoh/Documents/Projects/zkTalk/docs/test-matrix-2026-03-25.md)
-20. [Handoff summary](/Users/hyunokoh/Documents/Projects/zkTalk/HANDOFF.md)
+14. [AI-agent feedback template](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-template.md)
+15. [AI-agent feedback summary (2026-04-08)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-summary-2026-04-08.md)
+16. [AI-agent feedback batch: Cautious Organizer desktop-first (2026-04-08)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-batch-2026-04-08-cautious-organizer-desktop.md)
+17. [AI-agent feedback batch: Casual Member mobile-first (2026-04-08)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-batch-2026-04-08-casual-member-mobile.md)
+18. [AI-agent feedback batch: Fast Power User cross-device continuity (2026-04-08)](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ai-agent-feedback-batch-2026-04-08-fast-power-user-cross-device.md)
+19. [Current status](/Users/hyunokoh/Documents/Projects/zkTalk/docs/CURRENT_STATUS.md)
+20. [zkCoder runbook](/Users/hyunokoh/Documents/Projects/zkTalk/docs/ZKCODER_RUNBOOK.md)
+21. [Mobile Korean IME checklist](/Users/hyunokoh/Documents/Projects/zkTalk/docs/mobile-korean-ime-checklist-2026-03-26.md)
+22. [Test matrix](/Users/hyunokoh/Documents/Projects/zkTalk/docs/test-matrix-2026-03-25.md)
+23. [Handoff summary](/Users/hyunokoh/Documents/Projects/zkTalk/HANDOFF.md)

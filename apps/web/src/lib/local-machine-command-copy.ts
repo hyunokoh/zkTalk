@@ -24,6 +24,8 @@ export function getLocalMachineCommandCopyKey(
       return 'localMachine.commandAuthMissing';
     case 'bridge_missing':
       return 'localMachine.commandBridgeMissing';
+    case 'timed_out':
+      return 'localMachine.commandTimedOut';
     case 'offline':
       return 'localMachine.commandOffline';
     case 'rejected':
@@ -45,6 +47,7 @@ export function getLocalMachineCommandTone(
       return 'success';
     case 'busy':
     case 'offline':
+    case 'timed_out':
       return 'warning';
     case 'auth_missing':
     case 'bridge_missing':
@@ -53,4 +56,3 @@ export function getLocalMachineCommandTone(
       return 'danger';
   }
 }
-

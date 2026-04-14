@@ -168,6 +168,8 @@ When `S3_ENDPOINT` is set, the API now validates it as an absolute `http`/`https
 The first local machine agent bridge is a desktop-first operator path, not a general cloud execution feature.
 
 - Source of truth: [docs/local-machine-bridge-trust-model-2026-04-10.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-trust-model-2026-04-10.md)
+- Loopback implementation/operator note: [docs/local-machine-bridge-loopback-2026-04-12.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-loopback-2026-04-12.md)
+- UX-parity/product decision note: [docs/chat-ux-alignment-inventory-2026-04-12.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/chat-ux-alignment-inventory-2026-04-12.md)
 - Execution boundary: only the addressed target machine's local bridge may use that machine's local Codex auth/session
 - Server boundary: zkTalk authenticates the owning user, stores machine metadata, routes machine-scoped envelopes, and persists status/results; it must not proxy or mint a reusable Codex session
 - Client boundary: web and mobile may show machine presence, command history, and command results, but they must degrade to non-executing surfaces until an explicit wider bridge path ships
@@ -177,6 +179,21 @@ Operator rule:
 - Do not claim browser-only or mobile-only local Codex execution for the current release candidate.
 - Treat `offline`, `busy`, `auth_missing`, `bridge_missing`, and `rejected` as explicit operator-observable states, not as generic retry copy.
 - If a target machine lacks a live desktop bridge or local Codex auth, keep the issue in engineering/runtime follow-up unless the missing piece is an external machine setup task outside this repo.
+
+Desktop-first bridge short loop:
+
+1. Launch the desktop app on the target machine.
+2. Register the named machine so the bridge store exists locally.
+3. Send a heartbeat with the real local Codex auth state.
+4. Verify the machine snapshot is `online` before dispatch.
+5. If the state is `auth_missing` or `bridge_missing`, classify it as a machine-setup/operator issue unless a repo-local test proves a contract regression.
+
+UX-parity operator interpretation:
+
+- Web/desktop/mobile must share the same translation preference meaning even when settings chrome differs.
+- Mobile remains selected-message-first for AI in the current candidate.
+- `reply-draft`, `rewrite-draft`, and inline `translation` semantics must not drift by platform.
+- Presets are shortcuts only; operators should treat custom `targetLanguage` and `readableLanguages` editing as the canonical capability.
 
 Repo-local verification anchor:
 
@@ -343,7 +360,11 @@ Object storage operator notes:
 Core smoke matrix:
 
 - `pnpm e2e:smoke:web:core`
+- `pnpm mobile:verify:session-restore`
+- `pnpm mobile:verify:parity`
 - this is the canonical repo-local core-path smoke for login, logout, session restore, community open, channel send message, channel attachment send, and seeded voice join state
+- `pnpm mobile:verify:session-restore` now launches the standalone simulator app and fails closed unless the seeded auto-login marker and route consumption both complete, so session restore confidence no longer depends on a pre-opened app or manual retry ritual
+- `pnpm mobile:verify:parity` is the deterministic repo-local lane for the highest-risk mobile parity surfaces, bundling shared helper tests, targeted web parity tests, and the mobile harness marker unit test without requiring device-only checks
 - use [docs/critical-path-verification-map-2026-04-07.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/critical-path-verification-map-2026-04-07.md) alongside the contract to see which critical paths remain lightly verified after that smoke passes
 - it assumes the deterministic local commercialization stack can be started from the repo via `scripts/local-commercial-stack.mjs`
 - the voice assertion is intentionally thin: it proves the web join request, participant registration, and connected-state wiring, but it is not a substitute for a real hosted LiveKit media-plane check

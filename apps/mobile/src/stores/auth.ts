@@ -52,8 +52,16 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   loginWithSessionToken: async (sessionToken: string) => {
     await setToken(sessionToken);
-    const profile = await api<{ user: User }>('/api/me');
-    set({ user: profile.user, isLoading: false });
+
+    try {
+      const profile = await api<{ user: User }>('/api/me');
+      set({ user: profile.user, isLoading: false });
+    } catch (error) {
+      await removeToken();
+      await clearCommunityOrderCache();
+      set({ user: null, isLoading: false });
+      throw error;
+    }
   },
 
   logout: async () => {

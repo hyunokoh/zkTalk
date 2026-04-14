@@ -355,6 +355,7 @@ export interface LocalMachineCommandUpdate {
     | 'busy'
     | 'auth_missing'
     | 'bridge_missing'
+    | 'timed_out'
     | 'rejected'
     | null;
   createdAt: string;

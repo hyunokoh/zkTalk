@@ -131,6 +131,58 @@ describe('UpdateUserSettingsSchema', () => {
 
     expect(result.success).toBe(false);
   });
+
+  it('rejects translation display language codes that do not match the product ISO-style input contract', () => {
+    const result = UpdateUserSettingsSchema.safeParse({
+      translationDisplay: {
+        uiLocale: 'english_us',
+        mode: 'target_language_except_readable',
+        targetLanguage: 'ko',
+        readableLanguages: ['en', 'bad_code'],
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects manual-only translation preferences that still set a target language', () => {
+    const result = UpdateUserSettingsSchema.safeParse({
+      translationDisplay: {
+        uiLocale: 'en',
+        mode: 'manual_only',
+        targetLanguage: 'en',
+        readableLanguages: [],
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects automatic translation preferences without a target language', () => {
+    const result = UpdateUserSettingsSchema.safeParse({
+      translationDisplay: {
+        uiLocale: 'en',
+        mode: 'target_language_except_readable',
+        targetLanguage: null,
+        readableLanguages: ['en'],
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects readable-language exceptions when translating everything into the target language', () => {
+    const result = UpdateUserSettingsSchema.safeParse({
+      translationDisplay: {
+        uiLocale: 'en',
+        mode: 'target_language_all',
+        targetLanguage: 'pt-BR',
+        readableLanguages: ['en'],
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('TranslationDisplayPresetIdSchema', () => {
@@ -275,6 +327,19 @@ describe('Local machine bridge schemas', () => {
         outputText: null,
         errorCode: 'auth_missing',
         createdAt: '2026-04-10T00:03:00.000Z',
+      }).success,
+    ).toBe(true);
+
+    expect(
+      LocalMachineCommandUpdateSchema.safeParse({
+        commandId: 'command-3',
+        targetMachineId: 'machine-2',
+        owningUserId: 'user-1',
+        status: 'failed',
+        summary: 'Local Codex command timed out.',
+        outputText: 'Partial output before timeout',
+        errorCode: 'timed_out',
+        createdAt: '2026-04-10T00:03:30.000Z',
       }).success,
     ).toBe(true);
   });

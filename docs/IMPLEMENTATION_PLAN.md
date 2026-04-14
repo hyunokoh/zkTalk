@@ -12,6 +12,9 @@ Turn zkTalk from a feature-rich prototype with strong local validation into an o
 - introducing a production-sensible access model where public communities can expose only selected channels while restricted channels remain protected
 - turning translation into a first-class per-user display preference rather than a per-message manual action only
 - enabling a desktop-first local-agent bridge so a user can route work from one zkTalk machine to their other zkTalk-connected machines using their own local Codex installation
+- converging desktop/web and mobile UX so core chat and settings surfaces feel intentionally aligned across platforms
+- generalizing translation preferences so product settings can express arbitrary target and readable languages instead of only a few preset examples
+- turning the desktop-first local-agent bridge from a shared-contract foundation into a real repo-local handshake, dispatch, execution, and result-return path
 - leaving zkCoder with a long, concrete, queue-driven roadmap instead of generic themes
 
 ## Release Baseline
@@ -258,12 +261,6 @@ These should be interpreted as the preferred concrete work order for zkCoder whe
 
 - add mobile AI actions to `apps/mobile/src/components/MessageActionSheet.tsx` and wire them through channel, DM, and thread message surfaces
 - define a shared selected-message AI contract so reply suggestion, rewrite, and translation know which source message they act on and where the result is shown
-- add a selected-message AI entry point on web and desktop instead of limiting AI actions to composer-only text transforms
-- make AI reply suggestion produce a clear reply draft path from a selected message instead of mutating arbitrary composer text without context
-- make AI runtime state visible when the backend is `mock`, unset, or misconfigured so local users are not misled
-- align mobile/web settings and user-facing copy with the actual AI capabilities available on each platform
-- add targeted tests and smoke notes for selected-message AI actions on touched mobile and web surfaces
-- keep this AI UX work scoped as commercialization polish rather than speculative feature expansion
 
 ### Phase 9
 
@@ -336,6 +333,13 @@ Enable a desktop-first local-agent mesh where a user can address named personal 
 - add delivery of stdout/status/final summary back into zkTalk as structured messages
 - handle offline machine, busy machine, and missing-auth cases with explicit product-facing states
 - add deterministic local smoke coverage for register machine, send command, receive result, and host/worker disconnect cases
+
+### Phase 9/10 progress notes
+
+- 2026-04-12: the repo now has an explicit UX-parity decision record in `docs/chat-ux-alignment-inventory-2026-04-12.md` that fixes the current candidate semantics: mobile stays selected-message-first for AI, web/desktop may keep richer composer-adjacent affordances, and translation settings parity is defined as shared-payload parity rather than identical chrome.
+  Next action: keep future mobile/web/desktop AI or translation-surface changes tied to that document unless product intentionally reopens the parity decision.
+- 2026-04-12: the first desktop bridge loopback now has operator-facing run steps in `docs/local-machine-bridge-loopback-2026-04-12.md`, with the register -> heartbeat -> explicit state-check flow and a concrete split between repo-fixable bridge regressions and external machine/Codex setup blockers.
+  Next action: only expand from loopback proof to cross-device routing or richer UI surfaces once that operator path remains stable under repo-local verification.
 - document why this path works for local Codex users while a server-side zkTalk app cannot directly reuse each user's Codex cloud session
 
 ## Non-Goals
@@ -455,3 +459,49 @@ Turn AI from a partially wired demo surface into a credible product path that wo
 - web and desktop can run AI against a selected message rather than only against hand-typed composer text
 - users can tell whether AI is real, mock, or unavailable without guessing
 - the repo has focused regression coverage for the selected-message AI path on the highest-risk touched surfaces
+
+## Phase 12
+
+### Objective
+
+Finish the product-facing last mile for the desktop-first local Codex bridge and language selection so desktop/web/mobile settings feel intentional instead of partially wired.
+
+### Tasks
+
+- make the desktop local-machine bridge auto-register and heartbeat for the authenticated owner by default instead of requiring manual operator steps first
+- make desktop bridge status and recent command state discoverable from the shared settings surface with product-facing copy instead of implementation-only clues
+- remove the most visible hard-coded English settings copy on web/desktop so Korean and English selection actually changes core settings menus
+- align settings language selection semantics across mobile, web, and desktop so the same Korean/English choice is discoverable in the same conceptual place
+- add deterministic verification for desktop bridge auto-connect and bilingual settings surfaces so follow-up runs do not reopen the same product gaps
+
+### Exit Criteria
+
+- an authenticated desktop user with local Codex auth sees the local machine bridge come online without manual register/heartbeat setup
+- settings on mobile, web, and desktop expose a clear Korean/English choice and the core settings menus honor that selection instead of leaving major sections hard-coded in English
+
+## Phase 13
+
+### Objective
+
+Finish the remaining mobile-first polish and parity work so mobile is no longer the obvious lagging client across core non-voice chat, settings, translation, and selected-message AI flows.
+
+### Tasks
+
+- inventory the remaining mobile-only friction points against desktop/web and convert them into a short deterministic queue rather than open-ended polish
+- remove the most visible settings, navigation, and chat-surface divergences that still make mobile feel like a separate product
+- tighten mobile stability around login, restore, core navigation, and seeded verification lanes so repo-local confidence does not depend on manual retries
+- make mobile translation and selected-message AI settings feel as product-facing as desktop/web instead of foundation-first
+- add deterministic repo-local verification for the highest-risk remaining mobile surfaces so future runs stop reopening the same parity gaps
+
+### Exit Criteria
+
+- mobile non-voice chat and settings surfaces feel intentionally aligned with desktop/web for the main user journeys instead of visibly trailing them
+- mobile parity/stability work has deterministic repo-local verification on the highest-risk remaining surfaces
+
+### Phase 13 deterministic queue seed
+
+- use [mobile-parity-queue-2026-04-13.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/mobile-parity-queue-2026-04-13.md) as the current source of truth before reopening mobile polish discussion
+- queue item 277 should focus on the most visible entry-point and chat-surface drift across `SettingsScreen`, `LanguageSettingsScreen`, `ChannelScreen`, `DmScreen`, and `ThreadScreen`
+- queue item 278 should stay limited to repo-local stability work around login, restore, navigation, and seeded verification lanes, with real-device IME checks kept in blocker docs
+- queue item 279 should improve product-facing mobile translation and selected-message AI framing without changing the shared action/output contract
+- queue item 280 should add or tighten deterministic verification on the exact mobile and shared helper surfaces touched by 277-279

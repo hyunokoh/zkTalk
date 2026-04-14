@@ -114,6 +114,14 @@ function runCommand(command, args, options = {}) {
   }).trim();
 }
 
+function runCommandAllowFailure(command, args, options = {}) {
+  try {
+    return runCommand(command, args, options);
+  } catch {
+    return '';
+  }
+}
+
 function runNode(args, options = {}) {
   return runCommand('node', args, options);
 }
@@ -189,6 +197,11 @@ function writeText(targetPath, contents) {
 
 function removeIfExists(targetPath) {
   fs.rmSync(targetPath, { force: true });
+}
+
+function cleanupMaestroDriverProcesses(deviceUdid) {
+  runCommandAllowFailure('pkill', ['-f', 'maestro-driver-iosUITests-Runner']);
+  runCommandAllowFailure('pkill', ['-f', `xcodebuild test-without-building.*${deviceUdid}`]);
 }
 
 async function waitFor(check, { timeoutMs = 30_000, pollMs = 500, label = 'condition' } = {}) {
@@ -1043,6 +1056,7 @@ async function main() {
       timeoutMs,
     );
   const prepareMaestroAttempt = async () => {
+    cleanupMaestroDriverProcesses(device);
     if (shouldLaunch) {
       resetAutoLoginState(harnessPaths);
       launchMobileApp({
@@ -1081,6 +1095,7 @@ async function main() {
       device,
       skipLaunchApp: shouldLaunch,
       beforeAttempt: async () => {
+        cleanupMaestroDriverProcesses(device);
         if (shouldLaunch) {
           resetAutoLoginState(harnessPaths);
           launchMobileApp({

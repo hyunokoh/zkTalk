@@ -133,7 +133,7 @@ describe('useWebSocket', () => {
 
     expect(MockWebSocket.instances).toHaveLength(2);
     const secondSocket = MockWebSocket.instances[1];
-    expect(secondSocket.url).toBe('ws://127.0.0.1:4000/api/ws');
+    expect(secondSocket.url).toBe('ws://127.0.0.1:4000/api/ws?token=session-token');
 
     await act(async () => {
       secondSocket.onopen?.(new Event('open'));
@@ -240,7 +240,9 @@ describe('useWebSocket', () => {
 
     expect(firstSocket.close).toHaveBeenCalled();
     expect(MockWebSocket.instances).toHaveLength(2);
-    expect(MockWebSocket.instances[1].url).toBe('ws://127.0.0.1:4000/api/ws');
+    expect(MockWebSocket.instances[1].url).toBe(
+      'ws://127.0.0.1:4000/api/ws?token=refreshed-session-token',
+    );
   });
 
   it('keeps same-origin browser sockets cookie-first when the session token changes', async () => {
@@ -369,7 +371,7 @@ describe('useWebSocket', () => {
     expect(MockWebSocket.instances[0].url).toBe(`ws://${window.location.host}/api/ws`);
   });
 
-  it('does not append a query token for normal cross-origin web sockets', async () => {
+  it('appends a query token for normal cross-origin web sockets', async () => {
     const currentUser = {
       id: 'user-1',
       email: 'alice@example.com',
@@ -400,7 +402,9 @@ describe('useWebSocket', () => {
     render(<Harness />);
 
     expect(MockWebSocket.instances).toHaveLength(1);
-    expect(MockWebSocket.instances[0].url).toBe('ws://127.0.0.1:4000/api/ws');
+    expect(MockWebSocket.instances[0].url).toBe(
+      'ws://127.0.0.1:4000/api/ws?token=session-token',
+    );
   });
 
   it('keeps the query token for same-origin desktop websocket sessions', async () => {
@@ -512,6 +516,7 @@ describe('useWebSocket', () => {
       displayName: 'Alice',
       username: 'alice',
     };
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     vi.doMock('@/stores/auth', () => ({
       useAuthStore: createAuthStoreMock(() => currentUser),
@@ -540,6 +545,7 @@ describe('useWebSocket', () => {
       expect(screen.getByText('offline')).toBeTruthy();
     });
     expect(MockWebSocket.instances).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith('[WS] WebSocket URL is not configured, skipping connect');
   });
 
   it('stops reconnecting and emits auth loss when the server closes with an auth error', async () => {

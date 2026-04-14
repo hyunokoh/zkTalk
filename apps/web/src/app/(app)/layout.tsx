@@ -10,6 +10,7 @@ import { useThreadStore } from '@/stores/thread';
 import { useDmStore } from '@/stores/dm';
 import { CommunityRail } from '@/components/CommunityRail';
 import { ConnectionStatusBar } from '@/components/ConnectionStatusBar';
+import { DesktopLocalMachineBridgeAutoConnect } from '@/components/DesktopLocalMachineBridgeAutoConnect';
 import { ToastViewport } from '@/components/ToastViewport';
 import { AIAssistant } from '@/components/AIAssistant/AIAssistant';
 import { AI_SETTINGS_UPDATED_EVENT, isAiAssistantEnabled } from '@/lib/ai-settings';
@@ -365,6 +366,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-[#07111d] text-white">
+      <DesktopLocalMachineBridgeAutoConnect ownerUserId={user?.id} />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(58,94,190,0.24),transparent_26%),radial-gradient(circle_at_80%_0%,rgba(67,193,255,0.14),transparent_22%),linear-gradient(180deg,#07111d_0%,#09121f_32%,#0c1626_100%)]" />
       <div className="pointer-events-none absolute inset-y-0 left-0 w-[24rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_40%)] opacity-70" />
       {/* Mobile hamburger button */}

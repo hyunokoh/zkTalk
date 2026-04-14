@@ -21,6 +21,7 @@ import {
 } from '@/lib/ai-runtime';
 import { getActionErrorMessage, getAttachmentSendErrorMessage } from '@/lib/error-copy';
 import { useTranslation, t } from '@/lib/i18n';
+import { fetchUserSettings } from '@/lib/user-settings';
 import { useToastStore } from '@/stores/toast';
 import { useAuthStore } from '@/stores/auth';
 import {
@@ -35,11 +36,19 @@ import { UserAvatar } from '@/components/UserAvatar';
 import {
   WebSocketEvent,
   buildSelectedMessageAiContract,
+  getTranslationRenderSourceVersion,
   getSelectedMessageAiSuccessKey,
   hasOnlyImageAttachments,
+  inferMessageLanguage,
+  normalizeTranslationDisplayPreference,
+  resolveTranslationDisplayDecision,
+  resolveTranslationResponse,
+  resolveTranslationRenderCacheState,
   shouldHideAttachmentBody,
   type SelectedMessageAiAction,
   type Attachment,
+  type TranslationRenderCacheEntry,
+  type TranslationRuntimeStatus,
   type WSOutgoing,
 } from '@zktalk/shared';
 import { send, subscribe } from '@/hooks/useWebSocket';
@@ -387,7 +396,9 @@ interface DmConversationProps {
 }
 
 interface InlineTranslationState {
-  text: string;
+  entry: TranslationRenderCacheEntry | null;
+  runtimeStatus: TranslationRuntimeStatus;
+  issue?: string;
   visible: boolean;
 }
 
@@ -401,7 +412,7 @@ async function requestAiChat(messages: Array<{ role: 'user' | 'assistant' | 'sys
 }
 
 export function DmConversation({ conversationId }: DmConversationProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const router = useRouter();
   const currentUser = useAuthStore((s) => s.user);
   const showToast = useToastStore((s) => s.showToast);
@@ -463,11 +474,20 @@ export function DmConversation({ conversationId }: DmConversationProps) {
     queryFn: fetchAiRuntime,
     staleTime: 60_000,
   });
+  const { data: userSettings } = useQuery({
+    queryKey: ['user-settings'],
+    queryFn: fetchUserSettings,
+    staleTime: 60_000,
+  });
   const aiRuntimePresentation = useMemo(() => getAiRuntimePresentation(t, aiRuntime), [aiRuntime, t]);
   const aiRuntimeUsable = aiRuntime ? isAiRuntimeUsable(aiRuntime) : true;
   const selectedMessageAiStatusDescription = [aiRuntimePresentation?.description, t('ai.selectedMessageScopeHint')]
     .filter(Boolean)
     .join(' ');
+  const normalizedTranslationPreference = useMemo(
+    () => normalizeTranslationDisplayPreference(userSettings?.translationDisplay),
+    [userSettings?.translationDisplay],
+  );
 
   const conv = convData?.conversation;
   const participants = useMemo(() => convData?.participants ?? [], [convData?.participants]);
@@ -601,6 +621,109 @@ export function DmConversation({ conversationId }: DmConversationProps) {
   const latestMessageId = allMessages[allMessages.length - 1]?.message.id ?? null;
   const hasPendingAttachments = pendingAttachments.length > 0;
   const hasFailedAttachments = pendingAttachments.some((attachment) => attachment.status === 'failed');
+
+  useEffect(() => {
+    if (normalizedTranslationPreference.mode === 'manual_only' || allMessages.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    for (const row of allMessages) {
+      const message = row.message;
+      const messageAttachments = fallbackAttachmentsByMessageId.get(message.id) ?? row.attachments ?? [];
+      const body = shouldHideAttachmentBody(message.bodyMarkdown, messageAttachments)
+        ? ''
+        : (message.isEncrypted ? decryptedCache[message.id] ?? '' : message.bodyMarkdown);
+      if (!body.trim()) {
+        continue;
+      }
+
+      const sourceVersion = getTranslationRenderSourceVersion(message);
+      const translationState = inlineTranslations[message.id];
+      const entry = translationState?.entry;
+      const cacheState = resolveTranslationRenderCacheState({
+        entry,
+        sourceVersion,
+        targetLanguage: normalizedTranslationPreference.targetLanguage,
+      });
+      const decision = resolveTranslationDisplayDecision({
+        preference: normalizedTranslationPreference,
+        messageLanguage: inferMessageLanguage(body),
+        hasTranslatedText: cacheState === 'ready' || cacheState === 'stale',
+        translationLanguage: entry?.targetLanguage ?? null,
+        runtime: translationState?.runtimeStatus ?? 'available',
+        stale: cacheState === 'stale',
+      });
+
+      if (
+        !decision.shouldAutoTranslate ||
+        (decision.state !== 'translation-pending' && decision.state !== 'translation-stale') ||
+        !decision.targetLanguage
+      ) {
+        continue;
+      }
+      const targetLanguage = decision.targetLanguage;
+
+      void api<{
+        translatedText: string | null;
+        runtime: {
+          status: TranslationRuntimeStatus;
+          issue?: string;
+        };
+      }>('/api/translate', {
+        method: 'POST',
+        body: {
+          text: body,
+          targetLang: targetLanguage,
+        },
+      })
+        .then((result) => {
+          if (cancelled) {
+            return;
+          }
+
+          const resolution = resolveTranslationResponse({
+            response: result,
+            targetLanguage,
+            sourceVersion,
+          });
+          setInlineTranslations((prev) => ({
+            ...prev,
+            [message.id]: {
+              entry: resolution.entry,
+              runtimeStatus: resolution.runtime.status,
+              issue: resolution.runtime.issue,
+              visible: false,
+            },
+          }));
+        })
+        .catch(() => {
+          if (cancelled) {
+            return;
+          }
+
+          setInlineTranslations((prev) => ({
+            ...prev,
+            [message.id]: {
+              entry: null,
+              runtimeStatus: 'unavailable',
+              visible: false,
+            },
+          }));
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    allMessages,
+    decryptedCache,
+    fallbackAttachmentsByMessageId,
+    inlineTranslations,
+    normalizedTranslationPreference,
+  ]);
 
   // ── Decrypt encrypted messages ──────────────────────────────────
   useEffect(() => {
@@ -1256,11 +1379,11 @@ export function DmConversation({ conversationId }: DmConversationProps) {
       }
 
       const existing = inlineTranslations[row.message.id];
-      if (existing?.text) {
+      if (existing?.entry?.translatedText) {
         setInlineTranslations((prev) => ({
           ...prev,
           [row.message.id]: {
-            text: existing.text,
+            ...existing,
             visible: !existing.visible,
           },
         }));
@@ -1269,14 +1392,31 @@ export function DmConversation({ conversationId }: DmConversationProps) {
 
       setIsAiWorkingMessageId(row.message.id);
       try {
-        const response = await api<{ translatedText: string }>('/api/translate', {
+        const targetLanguage =
+          normalizedTranslationPreference.targetLanguage
+          ?? normalizedTranslationPreference.uiLocale
+          ?? locale;
+        const response = await api<{
+          translatedText: string | null;
+          runtime: {
+            status: TranslationRuntimeStatus;
+            issue?: string;
+          };
+        }>('/api/translate', {
           method: 'POST',
-          body: { text: contract.sourceText, targetLang: 'ko' },
+          body: { text: contract.sourceText, targetLang: targetLanguage },
+        });
+        const resolution = resolveTranslationResponse({
+          response,
+          targetLanguage,
+          sourceVersion: getTranslationRenderSourceVersion(row.message),
         });
         setInlineTranslations((prev) => ({
           ...prev,
           [row.message.id]: {
-            text: response.translatedText,
+            entry: resolution.entry,
+            runtimeStatus: resolution.runtime.status,
+            issue: resolution.runtime.issue,
             visible: true,
           },
         }));
@@ -1325,7 +1465,17 @@ export function DmConversation({ conversationId }: DmConversationProps) {
     } finally {
       setIsAiWorkingMessageId(null);
     }
-  }, [aiRuntime, aiRuntimePresentation, aiRuntimeUsable, applyAiResult, inlineTranslations, showToast, t]);
+  }, [
+    aiRuntime,
+    aiRuntimePresentation,
+    aiRuntimeUsable,
+    applyAiResult,
+    inlineTranslations,
+    locale,
+    normalizedTranslationPreference,
+    showToast,
+    t,
+  ]);
 
   const headerName = useMemo(() => {
     if (!conv) return '';
@@ -1625,7 +1775,65 @@ export function DmConversation({ conversationId }: DmConversationProps) {
           const messageBody = msg.isEncrypted
             ? (decryptedCache[msg.id] ?? t('e2ee.encrypted'))
             : msg.bodyMarkdown;
-          const inlineTranslation = inlineTranslations[msg.id];
+          const translationState = inlineTranslations[msg.id];
+          const translationSourceVersion = getTranslationRenderSourceVersion(msg);
+          const translationCacheState = resolveTranslationRenderCacheState({
+            entry: translationState?.entry,
+            sourceVersion: translationSourceVersion,
+            targetLanguage:
+              translationState?.visible
+                ? translationState.entry?.targetLanguage ?? locale
+                : normalizedTranslationPreference.targetLanguage,
+          });
+          const autoTranslationDecision = resolveTranslationDisplayDecision({
+            preference: normalizedTranslationPreference,
+            messageLanguage: inferMessageLanguage(messageBody),
+            hasTranslatedText:
+              translationCacheState === 'ready' || translationCacheState === 'stale',
+            translationLanguage: translationState?.entry?.targetLanguage ?? null,
+            runtime: translationState?.runtimeStatus ?? 'available',
+            stale: translationCacheState === 'stale',
+          });
+          const visibleManualTranslation =
+            translationState?.visible &&
+            translationState.entry &&
+            (translationCacheState === 'ready' || translationCacheState === 'stale')
+              ? translationState.entry.translatedText
+              : null;
+          const visibleAutoTranslation =
+            !translationState?.visible &&
+            autoTranslationDecision.render === 'translated' &&
+            translationState?.entry &&
+            (translationCacheState === 'ready' || translationCacheState === 'stale')
+              ? translationState.entry.translatedText
+              : null;
+          const visibleTranslatedText = visibleManualTranslation ?? visibleAutoTranslation;
+          const translationVariant = visibleManualTranslation
+            ? 'manual'
+            : visibleAutoTranslation
+              ? 'automatic'
+              : null;
+          const translatedLabel = visibleManualTranslation
+            ? translationState?.runtimeStatus === 'mock'
+              ? t('translate.translatedMock')
+              : translationCacheState === 'stale'
+                ? t('translate.translatedStale')
+                : t('translate.translated')
+            : visibleAutoTranslation
+              ? autoTranslationDecision.state === 'translation-runtime-mock'
+                ? t('translate.autoTranslatedMock')
+                : autoTranslationDecision.state === 'translation-stale'
+                  ? t('translate.autoTranslatedStale')
+                  : t('translate.autoTranslated')
+              : null;
+          const translationStatusLabel = !visibleTranslatedText
+            ? autoTranslationDecision.state === 'translation-runtime-disabled'
+              ? t('translate.autoTranslationDisabled')
+              : autoTranslationDecision.state === 'translation-unavailable'
+                ? t('translate.autoTranslationUnavailable')
+                : null
+            : null;
+          const translationStatusIssue = !visibleTranslatedText ? translationState?.issue ?? null : null;
           const hideMessageBody = !msg.isDeleted && shouldHideAttachmentBody(messageBody, messageAttachments);
           const sideMeta = (
             <div className={`shrink-0 self-end pb-0.5 text-[11px] leading-tight text-[#b5bac1] ${isOwnMessage ? 'text-left' : 'text-right'}`}>
@@ -1743,9 +1951,35 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                         </div>
                       ) : null}
                     </div>
-                    {inlineTranslation?.visible ? (
-                      <div className="mt-2 rounded-2xl border border-emerald-300/18 bg-emerald-300/10 px-3 py-2 text-xs text-emerald-50">
-                        {inlineTranslation.text}
+                    {visibleTranslatedText ? (
+                      <div
+                        data-translation-variant={translationVariant ?? undefined}
+                        className={`mt-2 rounded-2xl border px-3 py-2 text-xs ${
+                          translationVariant === 'manual'
+                            ? 'border-sky-300/24 bg-sky-400/10 text-sky-50'
+                            : 'border-emerald-300/18 bg-emerald-300/10 text-emerald-50'
+                        }`}
+                      >
+                        {translatedLabel ? (
+                          <div
+                            className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${
+                              translationVariant === 'manual'
+                                ? 'text-sky-100/90'
+                                : 'text-emerald-100/80'
+                            }`}
+                          >
+                            {translatedLabel}
+                          </div>
+                        ) : null}
+                        <div className={translatedLabel ? 'mt-1' : undefined}>{visibleTranslatedText}</div>
+                      </div>
+                    ) : null}
+                    {translationStatusLabel ? (
+                      <div className="mt-2 rounded-2xl border border-amber-300/18 bg-amber-300/10 px-3 py-2 text-xs text-amber-50">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-100/80">
+                          {translationStatusLabel}
+                        </div>
+                        {translationStatusIssue ? <div className="mt-1">{translationStatusIssue}</div> : null}
                       </div>
                     ) : null}
                   </div>

@@ -21,8 +21,10 @@ API_TEST_TARGETS=(
 
 SHARED_TEST_TARGETS=(
   "src/__tests__/ai-selected-message.test.ts"
+  "src/__tests__/chat-surface-actions.test.ts"
   "src/__tests__/channel-visibility.test.ts"
   "src/__tests__/local-machine-bridge.test.ts"
+  "src/__tests__/settings-navigation.test.ts"
   "src/__tests__/translation-display.test.ts"
   "src/__tests__/validators.test.ts"
 )
@@ -30,6 +32,7 @@ SHARED_TEST_TARGETS=(
 WEB_TEST_TARGETS=(
   "src/lib/__tests__/api.test.ts"
   "src/lib/__tests__/ai-runtime.test.ts"
+  "src/lib/__tests__/local-machine-bridge-loopback.test.ts"
   "src/lib/__tests__/local-machine-command-copy.test.ts"
   "src/lib/__tests__/local-machine-dispatch.test.ts"
   "src/lib/__tests__/runtime-config.test.ts"
@@ -40,7 +43,10 @@ WEB_TEST_TARGETS=(
   "src/app/(app)/discover/__tests__/page.test.tsx"
   "src/app/(app)/communities/[slug]/channels/[channelId]/__tests__/layout.test.tsx"
   "src/app/(app)/communities/[slug]/channels/[channelId]/__tests__/page.test.tsx"
+  "src/app/(app)/settings/__tests__/layout.test.tsx"
+  "src/app/(app)/settings/__tests__/page.test.tsx"
   "src/app/(app)/settings/ai/__tests__/page.test.tsx"
+  "src/components/__tests__/DesktopLocalMachineBridgeAutoConnect.test.tsx"
   "src/components/ChannelSidebar/__tests__/ChannelSidebar.test.tsx"
   "src/components/DmConversation/__tests__/DmConversation.test.tsx"
   "src/components/MessageComposer/__tests__/MessageComposer.test.tsx"
@@ -50,6 +56,31 @@ WEB_TEST_TARGETS=(
   "src/components/VoiceRoom/__tests__/VoiceRoom.test.tsx"
   "src/app/api/public-assets/__tests__/route.test.ts"
   "src/components/AttachmentPreview/__tests__/AttachmentPreview.test.tsx"
+)
+
+DESKTOP_TEST_TARGETS=(
+  "local-machine-bridge.test.js"
+  "protocol-route.test.js"
+  "window-state.test.js"
+  "go-menu.test.js"
+)
+
+MOBILE_HIGH_RISK_CHANGED_PATTERNS=(
+  "apps/mobile/src/navigation/SettingsStack.tsx"
+  "apps/mobile/src/navigation/types.ts"
+  "apps/mobile/src/screens/SettingsScreen.tsx"
+  "apps/mobile/src/screens/LanguageSettingsScreen.tsx"
+  "apps/mobile/src/screens/AiSettingsScreen.tsx"
+  "apps/mobile/src/screens/ChannelScreen.tsx"
+  "apps/mobile/src/screens/DmScreen.tsx"
+  "apps/mobile/src/screens/ThreadScreen.tsx"
+  "apps/mobile/src/lib/user-settings.ts"
+  "scripts/mobile-harness-regression.mjs"
+  "scripts/mobile-harness-regression.test.mjs"
+)
+
+MOBILE_CONTRACT_TARGETS=(
+  "mobile-risk-contracts"
 )
 
 SELECTED_MESSAGE_AI_SHARED_TEST_TARGETS=(
@@ -580,6 +611,122 @@ NODE
   fi
 }
 
+check_settings_language_alignment_contract() {
+  local label="$1"
+
+  if node - "$ROOT" >/dev/null 2>&1 <<'NODE'
+const fs = require('fs');
+const path = require('path');
+
+const repoRoot = process.argv[2];
+const read = (relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+
+const sharedNavigation = read('packages/shared/src/utils/settings-navigation.ts');
+const mobileSettingsStack = read('apps/mobile/src/navigation/SettingsStack.tsx');
+const mobileSettingsScreen = read('apps/mobile/src/screens/SettingsScreen.tsx');
+const mobileLanguageScreen = read('apps/mobile/src/screens/LanguageSettingsScreen.tsx');
+const webSettingsLayout = read('apps/web/src/app/(app)/settings/layout.tsx');
+const webSettingsLayoutTest = read('apps/web/src/app/(app)/settings/__tests__/layout.test.tsx');
+
+const sharedSnippets = [
+  "language: {",
+  "mobile: 'LanguageSettings'",
+  "ai_translation: {",
+  "mobile: 'AiSettings'",
+  "machine_control: {",
+  "web: '/settings/ai#machine-control'",
+];
+
+for (const snippet of sharedSnippets) {
+  if (!sharedNavigation.includes(snippet)) {
+    process.exit(1);
+  }
+}
+
+const mobileStackSnippets = [
+  'name="LanguageSettings"',
+  'component={LanguageSettingsScreen}',
+  "options={{ title: t('settings.language') }}",
+  'name="AiSettings"',
+  'component={AiSettingsScreen}',
+  "options={{ title: t('settings.aiTranslation') }}",
+];
+
+for (const snippet of mobileStackSnippets) {
+  if (!mobileSettingsStack.includes(snippet)) {
+    process.exit(1);
+  }
+}
+
+const mobileSettingsSnippets = [
+  "navigation.navigate('LanguageSettings')",
+  "navigation.navigate('AiSettings')",
+  "t('settings.language')",
+  "t('settings.languageSectionHint')",
+  "t('settings.aiTranslation')",
+  "t('settings.machineControl')",
+];
+
+for (const snippet of mobileSettingsSnippets) {
+  if (!mobileSettingsScreen.includes(snippet)) {
+    process.exit(1);
+  }
+}
+
+const mobileLanguageSnippets = [
+  "testID={`language-option-${value}`}",
+  "t('settings.appDisplayLanguage')",
+  "t('settings.languageOptionKo')",
+  "t('settings.languageOptionEn')",
+  "t('settings.translationPresets')",
+  "t('settings.languageTranslationBoundary')",
+];
+
+for (const snippet of mobileLanguageSnippets) {
+  if (!mobileLanguageScreen.includes(snippet)) {
+    process.exit(1);
+  }
+}
+
+const webLayoutSnippets = [
+  "t('settings.title')",
+  "t('settings.listSubtitle')",
+  "language: 'settings.languageSectionTitle'",
+  "machine_control: 'settings.machineControlSectionTitle'",
+  'SETTINGS_SECTION_ORDER.map((sectionId) => ({',
+  't(SECTION_LABEL_KEYS[sectionId])',
+];
+
+for (const snippet of webLayoutSnippets) {
+  if (!webSettingsLayout.includes(snippet)) {
+    process.exit(1);
+  }
+}
+
+const webLayoutTestSnippets = [
+  'renders the settings sidebar labels in Korean when locale is ko',
+  'renders the settings sidebar labels in English when locale is en',
+  "name: '설정' })",
+  "name: 'Settings' })",
+  "name: '언어' }).getAttribute('href')",
+  "name: 'Language' }).getAttribute('href')",
+  "name: '머신 제어' }).getAttribute('href')",
+  "name: 'Machine control' }).getAttribute('href')",
+];
+
+for (const snippet of webLayoutTestSnippets) {
+  if (!webSettingsLayoutTest.includes(snippet)) {
+    process.exit(1);
+  }
+}
+NODE
+  then
+    pass "$label"
+  else
+    fail "$label"
+  fi
+}
+
 read_latest_run_dir() {
   local latest_run_file="$1"
 
@@ -612,6 +759,29 @@ const newest = fs
 if (newest) {
   process.stdout.write(newest.dirPath);
 }
+NODE
+}
+
+sync_latest_run_file_to_newest() {
+  local root_dir="$1"
+  local latest_run_file="$root_dir/.zkcoder/latest-run.json"
+  local newest_run_dir
+
+  newest_run_dir="$(find_newest_run_dir "$root_dir/.zkcoder/runs")"
+  if [[ -z "$newest_run_dir" ]]; then
+    return 0
+  fi
+
+  node - "$latest_run_file" "$newest_run_dir" <<'NODE'
+const fs = require('fs');
+
+const [latestRunFile, newestRunDir] = process.argv.slice(2);
+const nextPayload = {
+  runDir: newestRunDir,
+  updatedAt: new Date().toISOString(),
+};
+
+fs.writeFileSync(latestRunFile, `${JSON.stringify(nextPayload, null, 2)}\n`);
 NODE
 }
 
@@ -674,6 +844,26 @@ add_web_target() {
   SELECTED_WEB_TESTS+=("$target")
 }
 
+add_desktop_target() {
+  local target="$1"
+
+  if append_unique_target "$target" "${SELECTED_DESKTOP_TESTS[@]:-}"; then
+    return 0
+  fi
+
+  SELECTED_DESKTOP_TESTS+=("$target")
+}
+
+add_mobile_target() {
+  local target="$1"
+
+  if append_unique_target "$target" "${SELECTED_MOBILE_TARGETS[@]:-}"; then
+    return 0
+  fi
+
+  SELECTED_MOBILE_TARGETS+=("$target")
+}
+
 select_changed_targets_for_file() {
   local file="$1"
 
@@ -684,10 +874,38 @@ select_changed_targets_for_file() {
     packages/shared/src/__tests__/*)
       add_shared_target "${file#packages/shared/}"
       ;;
-    packages/shared/src/utils/channel-visibility.ts|packages/shared/src/utils/index.ts)
+    packages/shared/src/utils/channel-visibility.ts)
       add_shared_target "src/__tests__/channel-visibility.test.ts"
       add_web_target "src/components/ChannelSidebar/__tests__/ChannelSidebar.test.tsx"
       add_web_target "src/app/(app)/communities/[slug]/channels/[channelId]/__tests__/layout.test.tsx"
+      ;;
+    packages/shared/src/utils/chat-surface-actions.ts)
+      add_shared_target "src/__tests__/chat-surface-actions.test.ts"
+      add_web_target "src/app/(app)/communities/[slug]/channels/[channelId]/__tests__/layout.test.tsx"
+      add_mobile_target "mobile-risk-contracts"
+      ;;
+    packages/shared/src/utils/settings-navigation.ts)
+      add_shared_target "src/__tests__/settings-navigation.test.ts"
+      add_web_target "src/app/(app)/settings/__tests__/layout.test.tsx"
+      add_web_target "src/app/(app)/settings/__tests__/page.test.tsx"
+      add_web_target "src/app/(app)/settings/ai/__tests__/page.test.tsx"
+      add_mobile_target "mobile-risk-contracts"
+      ;;
+    packages/shared/src/utils/index.ts)
+      add_shared_target "src/__tests__/channel-visibility.test.ts"
+      add_shared_target "src/__tests__/chat-surface-actions.test.ts"
+      add_shared_target "src/__tests__/settings-navigation.test.ts"
+      add_web_target "src/components/ChannelSidebar/__tests__/ChannelSidebar.test.tsx"
+      add_web_target "src/app/(app)/communities/[slug]/channels/[channelId]/__tests__/layout.test.tsx"
+      add_web_target "src/app/(app)/settings/__tests__/layout.test.tsx"
+      add_web_target "src/app/(app)/settings/__tests__/page.test.tsx"
+      add_web_target "src/app/(app)/settings/ai/__tests__/page.test.tsx"
+      add_mobile_target "mobile-risk-contracts"
+      ;;
+    packages/shared/src/utils/ai-selected-message.ts)
+      add_shared_target "src/__tests__/ai-selected-message.test.ts"
+      add_web_target "src/lib/__tests__/selected-message-ai.test.ts"
+      add_mobile_target "mobile-risk-contracts"
       ;;
     packages/shared/src/utils/*)
       add_shared_target "src/__tests__/ai-selected-message.test.ts"
@@ -699,9 +917,30 @@ select_changed_targets_for_file() {
       add_web_target "src/components/MessageItem/__tests__/MessageItem.test.tsx"
       add_web_target "src/components/MessageList/__tests__/MessageList.test.tsx"
       add_web_target "src/components/ThreadPanel/__tests__/ThreadPanel.test.tsx"
+      add_mobile_target "mobile-risk-contracts"
       ;;
     apps/web/src/**/*.test.ts|apps/web/src/**/*.test.tsx)
       add_web_target "${file#apps/web/}"
+      ;;
+    apps/web/src/app/\(app\)/settings/page.tsx)
+      add_web_target "src/app/(app)/settings/__tests__/page.test.tsx"
+      ;;
+    apps/web/src/app/\(app\)/settings/layout.tsx)
+      add_web_target "src/app/(app)/settings/__tests__/layout.test.tsx"
+      add_web_target "src/app/(app)/settings/__tests__/page.test.tsx"
+      ;;
+    apps/web/src/app/\(app\)/settings/ai/page.tsx)
+      add_web_target "src/app/(app)/settings/ai/__tests__/page.test.tsx"
+      add_web_target "src/lib/__tests__/local-machine-bridge-loopback.test.ts"
+      ;;
+    apps/web/src/components/DesktopLocalMachineBridgeAutoConnect.tsx|apps/web/src/components/__tests__/DesktopLocalMachineBridgeAutoConnect.test.tsx)
+      add_web_target "src/components/__tests__/DesktopLocalMachineBridgeAutoConnect.test.tsx"
+      ;;
+    apps/web/src/lib/local-machine-bridge-loopback.ts|apps/web/src/lib/local-machine-command-copy.ts)
+      add_web_target "src/lib/__tests__/local-machine-bridge-loopback.test.ts"
+      ;;
+    apps/desktop/local-machine-bridge.js|apps/desktop/local-machine-bridge.test.js|apps/desktop/preload.js|apps/desktop/main.js)
+      add_desktop_target "local-machine-bridge.test.js"
       ;;
     apps/mobile/src/lib/ai.ts|apps/mobile/src/components/MessageActionSheet.tsx|apps/mobile/src/components/MessageActionSheet.js|apps/mobile/src/screens/ChannelScreen.tsx|apps/mobile/src/screens/ChannelScreen.js|apps/mobile/src/screens/DmScreen.tsx|apps/mobile/src/screens/DmScreen.js|apps/mobile/src/screens/ThreadScreen.tsx|apps/mobile/src/screens/ThreadScreen.js|apps/mobile/maestro/flows/channel-selected-message-ai-smoke.yaml|apps/mobile/maestro/flows/dm-selected-message-ai-smoke.yaml|apps/mobile/maestro/flows/thread-selected-message-ai-smoke.yaml|scripts/mobile-maestro-smoke.mjs)
       add_shared_target "src/__tests__/ai-selected-message.test.ts"
@@ -713,6 +952,15 @@ select_changed_targets_for_file() {
       add_web_target "src/components/MessageItem/__tests__/MessageItem.test.tsx"
       add_web_target "src/components/MessageList/__tests__/MessageList.test.tsx"
       add_web_target "src/components/ThreadPanel/__tests__/ThreadPanel.test.tsx"
+      add_mobile_target "mobile-risk-contracts"
+      ;;
+    apps/mobile/src/screens/SettingsScreen.tsx|apps/mobile/src/screens/LanguageSettingsScreen.tsx|apps/mobile/src/screens/AiSettingsScreen.tsx|apps/mobile/src/navigation/SettingsStack.tsx|apps/mobile/src/navigation/types.ts|scripts/mobile-risk-contract.test.mjs|scripts/mobile-harness-regression.mjs|scripts/mobile-harness-regression.test.mjs)
+      add_shared_target "src/__tests__/settings-navigation.test.ts"
+      add_shared_target "src/__tests__/translation-display.test.ts"
+      add_web_target "src/app/(app)/settings/__tests__/layout.test.tsx"
+      add_web_target "src/app/(app)/settings/__tests__/page.test.tsx"
+      add_web_target "src/app/(app)/settings/ai/__tests__/page.test.tsx"
+      add_mobile_target "mobile-risk-contracts"
       ;;
     apps/api/src/lib/env.ts|apps/api/src/lib/db/*|.env.example|.env.production.example)
       add_api_target "src/lib/__tests__/env.test.ts"
@@ -854,6 +1102,8 @@ select_changed_targets() {
   SELECTED_API_TESTS=()
   SELECTED_SHARED_TESTS=()
   SELECTED_WEB_TESTS=()
+  SELECTED_DESKTOP_TESTS=()
+  SELECTED_MOBILE_TARGETS=()
 
   for changed_file in "${CHANGED_FILES[@]:-}"; do
     select_changed_targets_for_file "$changed_file"
@@ -872,11 +1122,41 @@ run_package_tests() {
   fi
 }
 
+changed_files_include_any() {
+  local changed_file
+  local pattern
+
+  for changed_file in "${CHANGED_FILES[@]:-}"; do
+    for pattern in "$@"; do
+      if [[ "$changed_file" == "$pattern" ]]; then
+        return 0
+      fi
+    done
+  done
+
+  return 1
+}
+
 run_command() {
   local label="$1"
   shift
 
   if "$@"; then
+    pass "$label"
+  else
+    fail "$label"
+  fi
+}
+
+run_command_in_dir() {
+  local dir="$1"
+  local label="$2"
+  shift 2
+
+  if (
+    cd "$dir"
+    "$@"
+  ); then
     pass "$label"
   else
     fail "$label"
@@ -1097,6 +1377,10 @@ check_text "$ROOT/docs/current-blockers-2026-03-25.md" "blocker doc includes rep
 check_text "$ROOT/docs/CURRENT_STATUS.md" "current status keeps queue discipline explicit" "Queue discipline:"
 check_text "$ROOT/docs/CURRENT_STATUS.md" "current status includes operator smoke shortlist command" "npm run operator:smoke:inventory"
 check_text "$ROOT/docs/CURRENT_STATUS.md" "current status links first concrete feedback batch" "First concrete desktop batch"
+check_text "$ROOT/docs/CURRENT_STATUS.md" "current status records queue item 264 doc anchors" "Queue item 264 source-of-truth docs:"
+check_text "$ROOT/docs/CURRENT_STATUS.md" "current status records queue item 264 status" "Queue item 264 status: documented"
+check_text "$ROOT/docs/CURRENT_STATUS.md" "current status records queue item 276 doc anchor" "Queue item 276 source-of-truth doc:"
+check_text "$ROOT/docs/CURRENT_STATUS.md" "current status records queue item 276 status" "Queue item 276 status: documented"
 check_text "$ROOT/docs/final-operator-checklist-2026-04-07.md" "final operator checklist keeps external gaps out of engineering queue" "keep it in blocker/operator docs instead of the engineering queue"
 check_text "$ROOT/docs/README.md" "docs index references production runtime runbook" "Production runtime runbook"
 check_text "$ROOT/docs/README.md" "docs index references current blockers" "Current blockers"
@@ -1104,6 +1388,8 @@ check_text "$ROOT/docs/README.md" "docs index references touched surface risk ma
 check_text "$ROOT/docs/README.md" "docs index references commercialization plan" "Commercialization plan"
 check_text "$ROOT/docs/README.md" "docs index references implementation plan" "Implementation plan"
 check_text "$ROOT/docs/README.md" "docs index references zkCoder runbook" "zkCoder runbook"
+check_text "$ROOT/docs/README.md" "docs index references local machine bridge loopback doc" "Local machine bridge loopback (2026-04-12)"
+check_text "$ROOT/docs/README.md" "docs index references chat ux alignment inventory" "Chat UX alignment inventory (2026-04-12)"
 check_text "$ROOT/docs/README.md" "docs index defines service deployment default path" "## Service deployment default path"
 check_text "$ROOT/docs/README.md" "docs index includes hardening verify command" "npm run verify:hardening"
 check_text "$ROOT/docs/README.md" "docs index includes release-readiness verify command" "npm run verify:release-readiness"
@@ -1130,6 +1416,8 @@ check_text "$ROOT/docs/ai-agent-feedback-batch-2026-04-08-casual-member-mobile.m
 check_text "$ROOT/docs/ai-agent-feedback-batch-2026-04-08-casual-member-mobile.md" "mobile feedback batch keeps cross-device risk separate" "cross-device continuity is still unproven"
 check_text "$ROOT/docs/ZKCODER_RUNBOOK.md" "zkCoder runbook points to deterministic local stack contract" "Deterministic local stack contract"
 check_text "$ROOT/docs/ZKCODER_RUNBOOK.md" "zkCoder runbook references critical path verification map" "critical-path-verification-map-2026-04-07.md"
+check_text "$ROOT/docs/local-machine-bridge-loopback-2026-04-12.md" "loopback doc includes operator steps" "## Operator steps"
+check_text "$ROOT/docs/local-machine-bridge-loopback-2026-04-12.md" "loopback doc references repo-local verify command" ".zkcoder/scripts/verify.sh"
 check_text "$ROOT/docs/api-reference.md" "api reference documents readiness endpoint" "GET /api/health/ready"
 check_text "$ROOT/docs/api-reference.md" "api reference documents readiness exclusions" "green readiness does not guarantee attachment upload/download or voice join paths are healthy"
 check_text "$ROOT/docs/api-reference.md" "api reference documents operator traffic gate" "\"trafficGate\""
@@ -1148,6 +1436,16 @@ check_text "$ROOT/apps/mobile/src/components/MessageActionSheet.tsx" "mobile act
 check_text "$ROOT/apps/mobile/src/components/MessageActionSheet.tsx" "mobile action sheet exposes a stable AI rewrite-draft hook" 'testID="message-action-sheet-ai-rewrite-draft"'
 check_text "$ROOT/apps/mobile/src/components/MessageActionSheet.tsx" "mobile action sheet keeps reply and translate in the same inspectable flow" 'testID="message-action-sheet-reply"'
 check_text "$ROOT/apps/mobile/src/components/MessageActionSheet.tsx" "mobile action sheet exposes inline translation in the same AI long-press flow" 'testID="message-action-sheet-ai-translate-inline"'
+check_text "$ROOT/apps/mobile/src/screens/SettingsScreen.tsx" "mobile settings keeps language entry routed through the shared IA" 'testID="settings-language-entry"'
+check_text "$ROOT/apps/mobile/src/screens/SettingsScreen.tsx" "mobile settings keeps AI entry routed through the shared IA" 'testID="settings-ai-entry"'
+check_text "$ROOT/apps/mobile/src/screens/SettingsScreen.tsx" "mobile settings keeps machine control entry routed through the shared IA" 'testID="settings-machine-control-entry"'
+check_text "$ROOT/apps/mobile/src/navigation/SettingsStack.tsx" "mobile settings stack exposes dedicated language settings screen" 'name="LanguageSettings"'
+check_text "$ROOT/apps/mobile/src/navigation/SettingsStack.tsx" "mobile settings stack exposes shared AI and machine control screen" 'name="AiSettings"'
+check_text "$ROOT/apps/mobile/src/screens/LanguageSettingsScreen.tsx" "mobile language settings keeps deterministic English option hook" 'testID={`language-option-${value}`}'
+check_text "$ROOT/apps/mobile/src/screens/AiSettingsScreen.tsx" "mobile AI settings keeps deterministic translation preset hook" 'testID={`ai-settings-preset-${preset.id}`}'
+check_text "$ROOT/apps/desktop/go-menu.js" "desktop go/help menu exposes localized connection settings copy" "connectionSettingsTitle: '데스크톱 연결 설정'"
+check_text "$ROOT/apps/desktop/main.js" "desktop connection settings page resolves menu labels from the selected app locale" "const menuLabels = getDesktopMenuLabels(appLocale);"
+check_text "$ROOT/apps/desktop/main.js" "desktop connection settings page uses localized retry action copy" "{ label: menuLabels.retryConnection, href: 'zktalk://retry' }"
 check_text "$ROOT/apps/mobile/src/screens/ChannelScreen.tsx" "channel screen exposes a stable long-press target for selected-message AI smoke" 'testID={`channel-message-touchable-${item.id}`}'
 check_text "$ROOT/apps/mobile/src/screens/DmScreen.tsx" "dm screen exposes a stable long-press target for selected-message AI smoke" 'testID={`dm-message-touchable-${item.id}`}'
 check_text "$ROOT/apps/mobile/src/screens/ThreadScreen.tsx" "thread screen exposes a stable long-press target for selected-message AI smoke" 'testID={`thread-message-touchable-${item.id}`}'
@@ -1188,6 +1486,7 @@ node "$ROOT/.zkcoder/scripts/check-queue-surfaces.mjs" >/dev/null 2>&1 \
 echo "[verify] run artifact checks..."
 LATEST_RUN_FILE="$ROOT/.zkcoder/latest-run.json"
 POINTER_RUN_DIR=""
+sync_latest_run_file_to_newest "$ROOT"
 NEWEST_RUN_DIR="$(find_newest_run_dir "$ROOT/.zkcoder/runs")"
 ACTIVE_RUN_DIR=""
 
@@ -1265,6 +1564,28 @@ fi
 echo "[verify] dependency-aware checks..."
 check_mobile_selected_message_ai_contract "mobile selected-message AI contract is wired across DM/channel/thread surfaces"
 check_mobile_channel_visibility_contract "mobile channel visibility contract stays aligned with shared locked/open browse state handling"
+check_settings_language_alignment_contract "settings language alignment contract stays explicit across shared navigation, mobile surfaces, and bilingual web chrome"
+check_text "$ROOT/docs/mobile-parity-queue-2026-04-13.md" "mobile parity queue records the deterministic follow-up for item 277" "### 277. Remove the most visible mobile divergence in settings, navigation, and chat surfaces"
+check_text "$ROOT/docs/mobile-parity-queue-2026-04-13.md" "mobile parity queue keeps item 278 focused on repo-local stability" "### 278. Tighten mobile stability around login, restore, core navigation, and seeded verification lanes"
+check_text "$ROOT/docs/mobile-parity-queue-2026-04-13.md" "mobile parity queue keeps item 279 focused on product-facing translation and selected-message AI" "### 279. Make mobile translation and selected-message AI settings feel product-facing"
+check_text "$ROOT/docs/mobile-parity-queue-2026-04-13.md" "mobile parity queue keeps item 280 focused on deterministic repo-local verification" "### 280. Add deterministic repo-local verification for the remaining highest-risk mobile surfaces"
+check_text "$ROOT/docs/mobile-parity-queue-2026-04-13.md" "mobile parity queue includes a friction-to-queue ownership matrix" "## Friction-to-queue matrix"
+check_text "$ROOT/docs/mobile-parity-queue-2026-04-13.md" "mobile parity queue keeps follow-up queue discipline explicit" "Treat each friction cluster in the matrix above as owned by exactly one next queue item."
+check_text "$ROOT/apps/mobile/src/stores/auth.ts" "mobile auth store clears stale session token after bootstrap failure" "await removeToken();"
+check_text "$ROOT/apps/mobile/App.tsx" "mobile app avoids infinite simulator auto-login retries for the same bad token" "stage: 'skipped-retrying-known-bad-token'"
+check_text "$ROOT/docs/production-runtime-runbook.md" "production runbook documents the narrow mobile session restore verification lane" "\`pnpm mobile:verify:session-restore\`"
+check_text "$ROOT/docs/production-runtime-runbook.md" "production runbook documents the repo-local mobile parity verification lane" "\`pnpm mobile:verify:parity\`"
+check_package_script "$ROOT/package.json" "package.json exposes mobile session restore verification command" "mobile:verify:session-restore"
+check_package_script "$ROOT/package.json" "package.json exposes repo-local mobile parity verification command" "mobile:verify:parity"
+check_package_script "$ROOT/package.json" "package.json exposes deterministic mobile contract test command" "test:mobile-risk-contracts"
+check_text "$ROOT/package.json" "mobile session restore verification launches the standalone app under strict consume" "\"mobile:verify:session-restore\": \"node scripts/mobile-harness-regression.mjs --app standalone --mode channel --launch --strict-consume\""
+check_text "$ROOT/package.json" "mobile parity verification lane bundles shared, web, and harness checks" "\"mobile:verify:parity\":"
+check_text "$ROOT/package.json" "mobile deterministic contract test command runs the mobile contract and harness suites" "\"test:mobile-risk-contracts\": \"node --test scripts/mobile-risk-contract.test.mjs scripts/mobile-harness-regression.test.mjs\""
+check_text "$ROOT/scripts/mobile-harness-regression.mjs" "mobile harness regression refuses strict consume without launch" "--strict-consume requires --launch so route consumption is actually verified."
+check_text "$ROOT/scripts/mobile-harness-regression.mjs" "mobile harness regression waits for an auto-login marker before declaring restore success" "data?.loggedIn === true || data?.stage === 'already-logged-in'"
+[[ -f "$ROOT/scripts/mobile-risk-contract.test.mjs" ]] && pass "mobile risk contract test exists" || fail "mobile risk contract test missing"
+check_text "$ROOT/scripts/mobile-risk-contract.test.mjs" "mobile risk contract test covers settings IA" "mobile settings IA keeps dedicated language and AI routes with focused params"
+check_text "$ROOT/scripts/mobile-risk-contract.test.mjs" "mobile risk contract test covers selected-message AI sheet parity" "mobile selected-message AI stays in one inspectable action sheet across channel, DM, and thread"
 if command -v pnpm >/dev/null 2>&1; then
   pass "pnpm is installed"
 elif command -v corepack >/dev/null 2>&1; then
@@ -1279,10 +1600,14 @@ if [[ -d "$ROOT/node_modules" ]]; then
   SHOULD_RUN_API=0
   SHOULD_RUN_SHARED=0
   SHOULD_RUN_WEB=0
+  SHOULD_RUN_DESKTOP=0
+  SHOULD_RUN_MOBILE=0
   SHOULD_RUN_RELEASE_NEXT=0
   SELECTED_API_TESTS=()
   SELECTED_SHARED_TESTS=()
   SELECTED_WEB_TESTS=()
+  SELECTED_DESKTOP_TESTS=()
+  SELECTED_MOBILE_TARGETS=()
   CHANGED_FILES=()
   while IFS= read -r changed_file; do
     CHANGED_FILES+=("$changed_file")
@@ -1299,6 +1624,8 @@ if [[ -d "$ROOT/node_modules" ]]; then
       SHOULD_RUN_API=1
       SHOULD_RUN_SHARED=1
       SHOULD_RUN_WEB=1
+      SHOULD_RUN_DESKTOP=1
+      SHOULD_RUN_MOBILE=1
       ;;
     selected-message-ai)
       SHOULD_RUN_SHARED=1
@@ -1324,6 +1651,8 @@ if [[ -d "$ROOT/node_modules" ]]; then
         [[ ${#SELECTED_API_TESTS[@]} -gt 0 ]] && SHOULD_RUN_API=1
         [[ ${#SELECTED_SHARED_TESTS[@]} -gt 0 ]] && SHOULD_RUN_SHARED=1
         [[ ${#SELECTED_WEB_TESTS[@]} -gt 0 ]] && SHOULD_RUN_WEB=1
+        [[ ${#SELECTED_DESKTOP_TESTS[@]} -gt 0 ]] && SHOULD_RUN_DESKTOP=1
+        [[ ${#SELECTED_MOBILE_TARGETS[@]} -gt 0 ]] && SHOULD_RUN_MOBILE=1
       fi
       ;;
   esac
@@ -1374,13 +1703,33 @@ if [[ -d "$ROOT/node_modules" ]]; then
     echo "[verify:info] skipping web tests for scope=$VERIFY_SCOPE"
   fi
 
-  if [[ $SHOULD_RUN_API -eq 0 && $SHOULD_RUN_SHARED -eq 0 && $SHOULD_RUN_WEB -eq 0 ]]; then
+  if [[ $SHOULD_RUN_DESKTOP -eq 1 ]]; then
+    echo "[verify] running targeted desktop tests..."
+    if [[ "$VERIFY_SCOPE" == "changed" && ${#CHANGED_FILES[@]} -gt 0 ]]; then
+      echo "[verify:info] selected desktop targets=${#SELECTED_DESKTOP_TESTS[@]}"
+      run_package_tests "$ROOT/apps/desktop" "targeted desktop tests passed" "${SELECTED_DESKTOP_TESTS[@]}"
+    else
+      run_package_tests "$ROOT/apps/desktop" "targeted desktop tests passed" "${DESKTOP_TEST_TARGETS[@]}"
+    fi
+  else
+    echo "[verify:info] skipping desktop tests for scope=$VERIFY_SCOPE"
+  fi
+
+  if [[ $SHOULD_RUN_MOBILE -eq 1 ]]; then
+    echo "[verify] running deterministic mobile contract tests..."
+    run_command_in_dir "$ROOT" "mobile deterministic contract tests passed" pnpm run mobile:verify:parity
+  else
+    echo "[verify:info] skipping mobile contract tests for scope=$VERIFY_SCOPE"
+  fi
+
+  if [[ $SHOULD_RUN_API -eq 0 && $SHOULD_RUN_SHARED -eq 0 && $SHOULD_RUN_WEB -eq 0 && $SHOULD_RUN_DESKTOP -eq 0 && $SHOULD_RUN_MOBILE -eq 0 ]]; then
     pass "dependency-aware tests skipped because changed files did not touch mapped runtime surfaces"
   fi
 
   if [[ $SHOULD_RUN_RELEASE_NEXT -eq 1 ]]; then
     echo "[verify] refreshing release-next snapshots..."
-    run_command "repo release-next snapshot refresh passed" bash -lc "cd '$ROOT' && node scripts/release-next.mjs --json >/dev/null"
+    run_command_in_dir "$ROOT" "repo release-next snapshot refresh passed" node scripts/release-next.mjs --json
+    sync_latest_run_file_to_newest "$ROOT"
   else
     echo "[verify:info] skipping release-next snapshot refresh for scope=$VERIFY_SCOPE"
   fi

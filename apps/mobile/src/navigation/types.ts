@@ -137,7 +137,19 @@ export type DiscoverStackParamList = {
 
 // Settings Stack
 export type SettingsStackParamList = {
-  SettingsScreen: undefined;
+  SettingsScreen:
+    | {
+        focusTarget?: 'main' | 'account' | 'notifications' | 'data_privacy';
+      }
+    | undefined;
+  LanguageSettings: {
+    focusTarget?: 'language';
+  } | undefined;
+  AiSettings:
+    | {
+        focusTarget?: 'ai_translation' | 'machine_control';
+      }
+    | undefined;
   EditProfile: undefined;
   LinkedAccounts: undefined;
   QrScan: undefined;

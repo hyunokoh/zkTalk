@@ -41,6 +41,31 @@ The desktop config now also carries `localAgentLanguagePreset` for the desktop-f
 - `english_only`
 - `korean_preferred_english_readable`
 
+The desktop preload also exposes the first local machine bridge control path:
+
+- `getLocalMachineBridgeState()`
+- `registerLocalMachine(payload)`
+- `sendLocalMachineHeartbeat(payload)`
+- `ensureLocalMachineOnline(payload)`
+- `dispatchLocalMachineCommand({ envelope })`
+
+`dispatchLocalMachineCommand` uses the target machine's local `codex exec` session. If the machine lacks a working local Codex CLI/auth setup, keep that as a local operator blocker instead of implying a cloud fallback.
+
+Current desktop-first bridge operator path:
+
+1. Launch the desktop shell with the same repo/runtime configuration used for normal local verification.
+2. Sign in as the target owner in the desktop shell so the renderer auto-connect path can call `ensureLocalMachineOnline({ ownerUserId })`.
+3. If you are testing IPC directly instead of using the app layout, call `ensureLocalMachineOnline(payload)` or `registerLocalMachine(payload)` and confirm the returned snapshot is already heartbeating.
+4. Confirm the snapshot is `online` before attempting `dispatchLocalMachineCommand`.
+5. If the snapshot is `auth_missing` or `bridge_missing`, stop and treat it as a local machine setup blocker unless repo-local tests show a bridge regression.
+6. If a command returns `timed_out`, treat that as a repo-local/runtime hardening signal first. The desktop bridge now enforces `ZKTALK_LOCAL_CODEX_TIMEOUT_MS` or a default 5 minute timeout so a stuck local Codex run cannot leave the machine indefinitely busy.
+
+Supporting source-of-truth docs:
+
+- `/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-trust-model-2026-04-10.md`
+- `/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-loopback-2026-04-12.md`
+- `/Users/hyunokoh/Documents/Projects/zkTalk/docs/chat-ux-alignment-inventory-2026-04-12.md`
+
 The app can also open this file from:
 
 - `Help > Connection settings`

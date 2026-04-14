@@ -28,7 +28,7 @@ describe('local-machine-command-copy', () => {
     ).toBe('localMachine.commandCompleted');
   });
 
-  it('keeps offline, busy, auth-missing, bridge-missing, and rejected failures distinct', () => {
+  it('keeps offline, busy, auth-missing, bridge-missing, timeout, and rejected failures distinct', () => {
     expect(
       getLocalMachineCommandCopyKey({
         status: 'failed',
@@ -59,6 +59,13 @@ describe('local-machine-command-copy', () => {
 
     expect(
       getLocalMachineCommandCopyKey({
+        status: 'failed',
+        errorCode: 'timed_out',
+      }),
+    ).toBe('localMachine.commandTimedOut');
+
+    expect(
+      getLocalMachineCommandCopyKey({
         status: 'rejected',
         errorCode: 'rejected',
       }),
@@ -84,6 +91,13 @@ describe('local-machine-command-copy', () => {
       getLocalMachineCommandTone({
         status: 'failed',
         errorCode: 'offline',
+      }),
+    ).toBe('warning');
+
+    expect(
+      getLocalMachineCommandTone({
+        status: 'failed',
+        errorCode: 'timed_out',
       }),
     ).toBe('warning');
 

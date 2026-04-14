@@ -87,6 +87,14 @@ Queue discipline:
 - Feature-specific operator gates:
   - Storage readiness stays outside baseline `/api/health/ready`; use section `3a` in [final-operator-checklist-2026-04-07.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/final-operator-checklist-2026-04-07.md) before reopening engineering work for hosted attachments
   - Voice/video readiness is now treated as zkMeet scope rather than zkTalk core smoke scope
+- Queue item 264 source-of-truth docs:
+  - UX parity decisions: [chat-ux-alignment-inventory-2026-04-12.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/chat-ux-alignment-inventory-2026-04-12.md)
+  - Local bridge operator steps: [local-machine-bridge-loopback-2026-04-12.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-loopback-2026-04-12.md)
+  - Use these before reopening desktop/web/mobile parity or local-bridge behavior assumptions.
+- Queue item 276 source-of-truth doc:
+  - Mobile parity execution queue: [mobile-parity-queue-2026-04-13.md](/Users/hyunokoh/Documents/Projects/zkTalk/docs/mobile-parity-queue-2026-04-13.md)
+  - The doc now includes a friction-to-queue matrix so each remaining mobile parity observation maps to one owner item and one repo-local exit signal before new queue work is created.
+  - Use this before reopening mobile-first polish discussion or widening Phase 13 beyond queue items 277-280.
 - Operator smoke shortlist:
   - `cd /Users/hyunokoh/Documents/Projects/zkTalk && npm run operator:smoke:inventory`
   - Use this before widening scope when the operator needs the current repo-local automation shortlist without reopening external-only blockers.
@@ -128,6 +136,7 @@ Queue discipline:
 - Selected-message AI runtime consistency: the mobile channel selected-message reply-draft callback now re-reads the current AI runtime state before showing the applied result message, which closes the last channel-only stale-closure gap between mobile channel and the already-matched DM/thread behavior.
 - Selected-message AI verification: `.zkcoder/scripts/verify.sh` now treats the shared selected-message AI contract, the web message action entry point, the composer application path, and the AI settings/runtime disclosure copy as first-class targeted regression surfaces, so changed-file verification picks them up without rediscovery.
 - Translation display preference foundation: shared types, validation, and settings storage now treat app locale and message-render language as separate concerns. `manual_only`, `target_language_all`, and `target_language_except_readable` are now persisted via `/api/me/settings`, and the shared decision helper explicitly distinguishes readable-language bypass, pending translation, stale translation, mock-only runtime, and unavailable runtime states before UI wiring lands.
+- Translation preference operator visibility: web and mobile AI settings now expose the currently active translation rule as inspectable mode/target/readable-language summary text, which reduces the risk of operators mistaking preset labels for the real saved language configuration when custom ISO-style codes are in use.
 - Translation render cache invalidation: web and mobile now treat translated inline/render output as versioned per-message cache entries keyed by message id, source version (`updatedAt` or `createdAt`), and target language. When a message edit changes the source version, existing translated output stays visibly marked as stale until the client re-fetches or the operator re-runs inline translation, which prevents silent reuse of pre-edit translations.
 - Mobile translation runtime disclosure: channel, DM, and thread translation actions now read `/api/translate` runtime metadata directly. Mock translations stay labeled as mock on the message bubble, and disabled/provider-failure cases now surface explicit unavailable copy instead of implying that inline translation ran successfully.
 - Desktop local machine bridge preset anchor: the shared translation-display contract now also exports stable preset definitions for `english_only`, `korean_preferred_english_readable`, and `manual_only`, and desktop runtime config persists `localAgentLanguagePreset` so Electron, the AI settings page, and future local Codex bridge routing all read the same preset ids instead of re-inventing per-surface language behavior.
@@ -144,6 +153,15 @@ Queue discipline:
 - Mobile create-community slug UX for Korean input: verified with typed-value retention, live auto-slug feedback, IME-friendlier `onChangeText` handling for name/description, reset-to-auto behavior when the slug is cleared, inline guidance, saved-link preview, create-button disablement until name plus a valid final slug are present, matching accessibility hints/state for the slug field and submit button, and polite live-region updates for slug help/preview. QA hooks now exist for the name field, slug field, slug help, slug preview, and submit button, and simulator preview/create results expose `slugInput`, `slug`, `slugFeedback`, `isWarning`, and `canSubmit`.
 - Moderation / permissions / visibility rules: verified
 - Release packaging / unsigned handoff docs: verified
+- Queue item 264 status: documented
+  - Final parity decisions now live in `/Users/hyunokoh/Documents/Projects/zkTalk/docs/chat-ux-alignment-inventory-2026-04-12.md`.
+  - First real local-machine bridge operator steps now live in `/Users/hyunokoh/Documents/Projects/zkTalk/docs/local-machine-bridge-loopback-2026-04-12.md`.
+  - `.zkcoder/scripts/verify.sh` should keep those docs anchored to repo-local verification.
+- Queue item 276 status: documented
+  - The deterministic mobile follow-up queue now lives in `/Users/hyunokoh/Documents/Projects/zkTalk/docs/mobile-parity-queue-2026-04-13.md`.
+  - Queue items `277`-`280` are now explicitly split across visible product drift, stability, product-facing copy, and verification.
+  - The friction-to-queue matrix fixes the ownership boundary so later runs can attach evidence to one existing item instead of reopening broad mobile polish discovery.
+  - Real-device IME and signing remain external/operator blockers rather than Phase 13 code tasks.
 - Mobile screen-level simulator hooks: centralized behind a shared harness gate
 - Mobile simulator harness: **release-ready** — gated by `Device.isDevice` (physical device = OFF), `__DEV__` scope (dev builds only), and explicit env var override (CI/release on simulator defaults OFF, requires `EXPO_PUBLIC_ENABLE_SIMULATOR_HARNESS=true`). File system operations are no-ops when the harness is disabled, and no data is transmitted externally.
 - Remaining harness surface: shared helper plus app bootstrap/result files, with the main bootstrap/login/settings/home JSON paths, route marker cleanup, and simulator duplicate-prevention marker claims already funneled through shared helpers. The remaining raw mobile search hits are mostly non-harness paths such as backup validation and temporary attachment cleanup.

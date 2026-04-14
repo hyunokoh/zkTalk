@@ -5,6 +5,7 @@
   "author": "zkTalk",
   "main": "main.js",
   "scripts": {
+    "test": "node --test *.test.js",
     "build:icons": "node ./scripts/build-icons.mjs",
     "start": "npm run build:web && electron .",
     "start:devserver": "electron .",
@@ -67,6 +68,7 @@
     ],
     "files": [
       "main.js",
+      "local-machine-bridge.js",
       "go-menu.js",
       "preload.js",
       "protocol-route.js",

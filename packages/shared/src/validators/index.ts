@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+const TRANSLATION_LANGUAGE_CODE_REGEX = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i;
+const TranslationLanguageCodeSchema = z
+  .string()
+  .min(2)
+  .max(16)
+  .regex(TRANSLATION_LANGUAGE_CODE_REGEX);
+
 export const MagicLinkRequestSchema = z.object({
   email: z.string().email(),
 });
@@ -243,10 +250,35 @@ export const TranslationDisplayPresetIdSchema = z.enum([
 ]);
 
 export const TranslationDisplayPreferenceSchema = z.object({
-  uiLocale: z.string().min(2).max(16),
+  uiLocale: TranslationLanguageCodeSchema,
   mode: TranslationDisplayModeSchema,
-  targetLanguage: z.string().min(2).max(16).nullable(),
-  readableLanguages: z.array(z.string().min(2).max(16)),
+  targetLanguage: TranslationLanguageCodeSchema.nullable(),
+  readableLanguages: z.array(TranslationLanguageCodeSchema),
+}).superRefine((value, ctx) => {
+  if (value.mode === 'manual_only' && value.targetLanguage !== null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['targetLanguage'],
+      message: 'Manual-only translation preferences must not set a target language',
+    });
+  }
+
+  if (value.mode !== 'manual_only' && value.targetLanguage === null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['targetLanguage'],
+      message: 'Automatic translation preferences require a target language',
+    });
+  }
+
+  if (value.mode === 'target_language_all' && value.readableLanguages.length > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['readableLanguages'],
+      message:
+        'Target-language-all translation preferences cannot include readable-language exceptions',
+    });
+  }
 });
 
 export const MachineTypeSchema = z.enum(['desktop', 'laptop', 'buildbox', 'other']);
@@ -400,7 +432,7 @@ export const LocalMachineCommandUpdateSchema = z
     summary: z.string().max(4000).nullable(),
     outputText: z.string().max(32000).nullable(),
     errorCode: z
-      .enum(['offline', 'busy', 'auth_missing', 'bridge_missing', 'rejected'])
+      .enum(['offline', 'busy', 'auth_missing', 'bridge_missing', 'timed_out', 'rejected'])
       .nullable(),
     createdAt: z.string().datetime(),
   })

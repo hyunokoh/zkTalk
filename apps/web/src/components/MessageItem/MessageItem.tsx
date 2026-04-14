@@ -726,6 +726,11 @@ export function MessageItem({
       ? manualTranslationEntry?.translatedText ?? null
       : null;
   const visibleTranslatedText = visibleManualTranslatedText ?? visibleAutoTranslatedText;
+  const translationVariant = showManualTranslation
+    ? 'manual'
+    : visibleAutoTranslatedText
+      ? 'automatic'
+      : null;
   const translatedLabel = showManualTranslation
     ? manualTranslationRuntime?.status === 'mock'
       ? t('translate.translatedMock')
@@ -953,8 +958,20 @@ export function MessageItem({
 
         {/* Translation */}
         {visibleTranslatedText && translatedLabel && (
-          <div className="mt-2 rounded-[1rem] border border-white/8 bg-white/[0.03] px-3 py-3">
-            <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/38">
+          <div
+            data-testid="message-translation-panel"
+            data-translation-variant={translationVariant ?? undefined}
+            className={`mt-2 rounded-[1rem] border px-3 py-3 ${
+              translationVariant === 'manual'
+                ? 'border-sky-300/28 bg-sky-400/10'
+                : 'border-emerald-300/20 bg-emerald-400/10'
+            }`}
+          >
+            <div
+              className={`flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+                translationVariant === 'manual' ? 'text-sky-100/90' : 'text-emerald-100/85'
+              }`}
+            >
               <span>{translatedLabel}</span>
               {showManualTranslation ? (
                 <button

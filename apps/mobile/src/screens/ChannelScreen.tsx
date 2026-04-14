@@ -43,6 +43,7 @@ import {
   type PickedFile,
 } from '../lib/file-picker';
 import { getToken, saveLastVisited } from '../lib/storage';
+import { fetchUserSettings } from '../lib/user-settings';
 import { useAuthStore } from '../stores/auth';
 import { useTranslation } from '../lib/i18n';
 import {
@@ -61,9 +62,14 @@ import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { colors, spacing, fontSize as fs, borderRadius } from '../theme';
 import {
+  createTranslationRenderCacheEntry,
+  resolveChannelSurfaceActionOrder,
   getSelectedMessageAiSourceText,
   getTranslationRenderSourceVersion,
+  inferMessageLanguage,
   isImageAttachmentMimeType,
+  normalizeTranslationDisplayPreference,
+  resolveTranslationDisplayDecision,
   resolveTranslationResponse,
   resolveTranslationRenderCacheState,
   shouldHideAttachmentBody,
@@ -173,7 +179,7 @@ interface PendingMessage {
 }
 
 interface InlineTranslationState {
-  entry: TranslationRenderCacheEntry;
+  entry?: TranslationRenderCacheEntry | null;
   runtimeStatus: TranslationRuntimeStatus;
   issue?: string;
 }
@@ -260,6 +266,7 @@ export default function ChannelScreen({ navigation, route }: Props) {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [actionMessage, setActionMessage] = useState<Message | null>(null);
   const [translatedBodies, setTranslatedBodies] = useState<Record<string, InlineTranslationState>>({});
+  const [autoTranslatedBodies, setAutoTranslatedBodies] = useState<Record<string, InlineTranslationState>>({});
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [openingAttachmentId, setOpeningAttachmentId] = useState<string | null>(null);
   const [previewGallery, setPreviewGallery] = useState<{
@@ -308,6 +315,11 @@ export default function ChannelScreen({ navigation, route }: Props) {
     queryFn: fetchAiRuntime,
     staleTime: 60_000,
   });
+  const { data: userSettings } = useQuery({
+    queryKey: ['user-settings'],
+    queryFn: fetchUserSettings,
+    staleTime: 60_000,
+  });
   const canManageChannel = permissionsData?.permissions.canManageChannel ?? false;
   const canPostChannel = permissionsData?.permissions.canPostMessage ?? true;
   const canReactToMessages = permissionsData?.permissions.canReact ?? true;
@@ -332,6 +344,13 @@ export default function ChannelScreen({ navigation, route }: Props) {
     : t('channel.sourceDmBody');
   const channelName = channelDetailData?.channel.name ?? route.params.channelName ?? t('nav.channel');
   const channelDescription = channelDetailData?.channel.description?.trim() || t('channel.headerSubtitle');
+  const channelHeaderActions = resolveChannelSurfaceActionOrder({
+    showSearch: !!route.params.communityId,
+    showPins: true,
+    showSourceDm: !!sourceDmConversation,
+    showPolls: true,
+    showEditChannel: !!route.params.communityId && canManageChannel,
+  });
 
   const openSourceDmHistory = useCallback(() => {
     if (!sourceDmConversation) {
@@ -390,6 +409,53 @@ export default function ChannelScreen({ navigation, route }: Props) {
     });
   }, [channelId, channelName, navigation, route.params.communityId]);
 
+  const openHeaderOverflowMenu = useCallback(() => {
+    const buttons: Array<{
+      text: string;
+      onPress?: () => void;
+      style?: 'cancel' | 'destructive' | 'default';
+    }> = [];
+
+    for (const action of channelHeaderActions.overflow) {
+      if (action === 'source_dm' && sourceDmConversation) {
+        buttons.push({
+          text: sourceDmFullLabel,
+          onPress: openSourceDmHistory,
+        });
+      }
+
+      if (action === 'polls') {
+        buttons.push({
+          text: t('poll.title'),
+          onPress: openChannelPolls,
+        });
+      }
+
+      if (action === 'edit_channel') {
+        buttons.push({
+          text: t('channel.edit'),
+          onPress: openEditChannel,
+        });
+      }
+    }
+
+    buttons.push({
+      text: t('common.cancel'),
+      style: 'cancel',
+    });
+
+    Alert.alert(`# ${channelName}`, undefined, buttons);
+  }, [
+    channelHeaderActions.overflow,
+    channelName,
+    openChannelPolls,
+    openEditChannel,
+    openSourceDmHistory,
+    sourceDmConversation,
+    sourceDmFullLabel,
+    t,
+  ]);
+
   useLayoutEffect(() => {
     navigation.setOptions({
       title: `# ${channelName}`,
@@ -403,19 +469,7 @@ export default function ChannelScreen({ navigation, route }: Props) {
       },
       headerRight: () => (
         <View style={styles.headerActions}>
-          {sourceDmConversation ? (
-            <TouchableOpacity
-              testID="channel-header-history"
-              onPress={openSourceDmHistory}
-              hitSlop={8}
-              style={styles.headerIconAction}
-              accessibilityRole="button"
-              accessibilityLabel={sourceDmFullLabel}
-            >
-              <Text style={styles.headerIconText}>{'\u21A9'}</Text>
-            </TouchableOpacity>
-          ) : null}
-          {route.params.communityId ? (
+          {channelHeaderActions.primary.includes('search') ? (
             <TouchableOpacity
               testID="channel-header-search"
               onPress={openChannelSearch}
@@ -427,30 +481,40 @@ export default function ChannelScreen({ navigation, route }: Props) {
               <Text style={styles.headerIconText}>{'\u2315'}</Text>
             </TouchableOpacity>
           ) : null}
-          <TouchableOpacity
-            testID="channel-header-pins"
-            onPress={openChannelPins}
-            hitSlop={8}
-            style={styles.headerIconAction}
-            accessibilityRole="button"
-            accessibilityLabel={t('pin.pinned')}
-          >
-            <Text style={styles.headerIconText}>{'\u{1F4CC}'}</Text>
-          </TouchableOpacity>
+          {channelHeaderActions.primary.includes('pins') ? (
+            <TouchableOpacity
+              testID="channel-header-pins"
+              onPress={openChannelPins}
+              hitSlop={8}
+              style={styles.headerIconAction}
+              accessibilityRole="button"
+              accessibilityLabel={t('pin.pinned')}
+            >
+              <Text style={styles.headerIconText}>{'\u{1F4CC}'}</Text>
+            </TouchableOpacity>
+          ) : null}
+          {channelHeaderActions.overflow.length > 0 ? (
+            <TouchableOpacity
+              testID="channel-header-overflow"
+              onPress={openHeaderOverflowMenu}
+              hitSlop={8}
+              style={styles.headerIconAction}
+              accessibilityRole="button"
+              accessibilityLabel={t('message.actions')}
+            >
+              <Text style={styles.headerIconText}>{'\u22EF'}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       ),
     });
   }, [
-    canManageChannel,
     channelName,
+    channelHeaderActions,
     navigation,
-    route.params.communityId,
     openChannelSearch,
-    openEditChannel,
+    openHeaderOverflowMenu,
     openChannelPins,
-    openChannelPolls,
-    openSourceDmHistory,
-    sourceDmHeaderLabel,
     t,
   ]);
 
@@ -524,6 +588,10 @@ export default function ChannelScreen({ navigation, route }: Props) {
       return true;
     });
   }, [focusedMessageData, messages]);
+  const normalizedTranslationPreference = React.useMemo(
+    () => normalizeTranslationDisplayPreference(userSettings?.translationDisplay),
+    [userSettings?.translationDisplay],
+  );
   const latestVisibleMessageId = mergedMessages[0]?.id ?? null;
   const messageIds = mergedMessages.map((message) => message.id);
   const { data: reactionsData } = useQuery({
@@ -1178,27 +1246,88 @@ export default function ChannelScreen({ navigation, route }: Props) {
 
   const getRenderedTranslation = useCallback(
     (message: Message) => {
-      const translationState = translatedBodies[message.id];
-      const entry = translationState?.entry;
-      const cacheState = resolveTranslationRenderCacheState({
-        entry,
-        sourceVersion: getTranslationRenderSourceVersion(message),
+      const sourceVersion = getTranslationRenderSourceVersion(message);
+      const manualState = translatedBodies[message.id];
+      const manualEntry = manualState?.entry;
+      const manualCacheState = resolveTranslationRenderCacheState({
+        entry: manualEntry,
+        sourceVersion,
         targetLanguage: locale,
       });
-      if (!entry || (cacheState !== 'ready' && cacheState !== 'stale')) {
-        return { body: undefined, label: undefined };
+      if (manualEntry && (manualCacheState === 'ready' || manualCacheState === 'stale')) {
+        return {
+          body: manualEntry.translatedText,
+          variant: 'manual' as const,
+          label:
+            manualCacheState === 'stale'
+              ? t('message.translatedStale')
+              : manualState?.runtimeStatus === 'mock'
+                ? t('message.translatedMock')
+                : t('message.translated'),
+          statusLabel: undefined,
+          statusIssue: undefined,
+        };
       }
+
+      const body = shouldHideAttachmentBody(
+        message.bodyPlaintext || message.bodyMarkdown,
+        message.attachments ?? [],
+      )
+        ? ''
+        : message.bodyPlaintext;
+      const autoState = autoTranslatedBodies[message.id];
+      const autoEntry = autoState?.entry;
+      const autoCacheState = resolveTranslationRenderCacheState({
+        entry: autoEntry,
+        sourceVersion,
+        targetLanguage: normalizedTranslationPreference.targetLanguage,
+      });
+      const autoDecision = resolveTranslationDisplayDecision({
+        preference: normalizedTranslationPreference,
+        messageLanguage: inferMessageLanguage(body),
+        hasTranslatedText: autoCacheState === 'ready' || autoCacheState === 'stale',
+        translationLanguage: autoEntry?.targetLanguage ?? null,
+        runtime: autoState?.runtimeStatus ?? 'available',
+        stale: autoCacheState === 'stale',
+      });
+
+      if (
+        autoDecision.render === 'translated' &&
+        autoEntry &&
+        (autoCacheState === 'ready' || autoCacheState === 'stale')
+      ) {
+        return {
+          body: autoEntry.translatedText,
+          variant: 'automatic' as const,
+          label:
+            autoDecision.state === 'translation-runtime-mock'
+              ? t('message.autoTranslatedMock')
+              : autoDecision.state === 'translation-stale'
+                ? t('message.autoTranslatedStale')
+                : t('message.autoTranslated'),
+          statusLabel: undefined,
+          statusIssue: undefined,
+        };
+      }
+
       return {
-        body: entry.translatedText,
-        label:
-          cacheState === 'stale'
-            ? t('message.translatedStale')
-            : translationState?.runtimeStatus === 'mock'
-              ? t('message.translatedMock')
-              : t('message.translated'),
+        body: undefined,
+        variant: undefined,
+        label: undefined,
+        statusLabel:
+          autoDecision.state === 'translation-runtime-disabled'
+            ? t('message.autoTranslationDisabled')
+            : autoDecision.state === 'translation-unavailable'
+              ? t('message.autoTranslationUnavailable')
+              : undefined,
+        statusIssue:
+          autoDecision.state === 'translation-runtime-disabled' ||
+          autoDecision.state === 'translation-unavailable'
+            ? autoState?.issue
+            : undefined,
       };
     },
-    [locale, t, translatedBodies],
+    [autoTranslatedBodies, locale, normalizedTranslationPreference, t, translatedBodies],
   );
 
   const handleAiReplyDraft = useCallback(async () => {
@@ -1594,6 +1723,110 @@ export default function ChannelScreen({ navigation, route }: Props) {
     return () => clearTimeout(timer);
   }, [focusMessageId, mergedMessages]);
 
+  useEffect(() => {
+    if (
+      normalizedTranslationPreference.mode === 'manual_only' ||
+      mergedMessages.length === 0
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    for (const message of mergedMessages) {
+      const body = shouldHideAttachmentBody(
+        message.bodyPlaintext || message.bodyMarkdown,
+        message.attachments ?? [],
+      )
+        ? ''
+        : message.bodyPlaintext;
+      if (!body.trim()) {
+        continue;
+      }
+
+      const sourceVersion = getTranslationRenderSourceVersion(message);
+      const translationState = autoTranslatedBodies[message.id];
+      const entry = translationState?.entry;
+      const cacheState = resolveTranslationRenderCacheState({
+        entry,
+        sourceVersion,
+        targetLanguage: normalizedTranslationPreference.targetLanguage,
+      });
+      const decision = resolveTranslationDisplayDecision({
+        preference: normalizedTranslationPreference,
+        messageLanguage: inferMessageLanguage(body),
+        hasTranslatedText: cacheState === 'ready' || cacheState === 'stale',
+        translationLanguage: entry?.targetLanguage ?? null,
+        runtime: translationState?.runtimeStatus ?? 'available',
+        stale: cacheState === 'stale',
+      });
+
+      if (
+        !decision.shouldAutoTranslate ||
+        (decision.state !== 'translation-pending' &&
+          decision.state !== 'translation-stale') ||
+        !decision.targetLanguage
+      ) {
+        continue;
+      }
+
+      void api<{
+        translatedText: string | null;
+        runtime: {
+          status: TranslationRuntimeStatus;
+          issue?: string;
+        };
+      }>('/api/translate', {
+        method: 'POST',
+        body: {
+          text: body,
+          targetLang: decision.targetLanguage,
+        },
+      })
+        .then((result) => {
+          if (cancelled) {
+            return;
+          }
+
+          setAutoTranslatedBodies((prev) => ({
+            ...prev,
+            [message.id]: result.translatedText
+              ? {
+                  entry: createTranslationRenderCacheEntry({
+                    translatedText: result.translatedText,
+                    targetLanguage: decision.targetLanguage as string,
+                    sourceVersion,
+                  }),
+                  runtimeStatus: result.runtime.status,
+                  issue: result.runtime.issue,
+                }
+              : {
+                  entry: null,
+                  runtimeStatus: result.runtime.status,
+                  issue: result.runtime.issue,
+                },
+          }));
+        })
+        .catch(() => {
+          if (cancelled) {
+            return;
+          }
+
+          setAutoTranslatedBodies((prev) => ({
+            ...prev,
+            [message.id]: {
+              entry: null,
+              runtimeStatus: 'unavailable',
+            },
+          }));
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [autoTranslatedBodies, mergedMessages, normalizedTranslationPreference]);
+
   if (isLoading) {
     return <LoadingSpinner text={t('channel.loadingMessages')} />;
   }
@@ -1778,6 +2011,9 @@ export default function ChannelScreen({ navigation, route }: Props) {
                 topic={item.topic}
                 translatedBody={translated.body}
                 translatedLabel={translated.label}
+                translationVariant={translated.variant}
+                translationStatusLabel={translated.statusLabel}
+                translationStatusIssue={translated.statusIssue}
                 replyAuthorName={repliedMessage?.author?.displayName ?? t('message.reply')}
                 replyBody={
                   item.parentMessageId

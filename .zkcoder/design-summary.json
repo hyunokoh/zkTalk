@@ -15,7 +15,10 @@
     "make AI actions usable from selected messages on mobile, desktop, and web instead of leaving them hidden behind composer-only flows",
     "implement a visibility model where public communities can be discovered broadly while individual channels still enforce open, members-only, invite-only, or private access",
     "add user-level automatic translation display preferences so messages can render in the user's preferred readable language by default",
-    "add a desktop-first local machine agent model so one user's zkTalk clients can dispatch work to named personal machines that run local Codex sessions"
+    "add a desktop-first local machine agent model so one user's zkTalk clients can dispatch work to named personal machines that run local Codex sessions",
+    "converge desktop/web and mobile chat/settings UX so core non-voice surfaces feel like one product rather than three separate variants",
+    "generalize translation preferences beyond Korean/English-oriented examples so users can choose arbitrary preferred display and readable-language combinations",
+    "turn the local-machine agent model from shared contracts into a working desktop-first bridge that can actually dispatch, run, and return work across a user's named machines by default"
   ],
   "nonGoals": [
     "do not add unrelated net-new product areas",
@@ -45,7 +48,10 @@
     "the repo gains a concrete community/channel visibility matrix plus implementation work for discoverable public communities with restricted channels",
     "public-community discovery, locked-channel gating, and post-join unlock behavior are testable and documented instead of implied",
     "automatic translation is preference-driven, cross-platform consistent, and distinct from manual per-message translation",
-    "the repo gains a concrete local-machine bridge plan plus implementation work for named-machine registration, command routing, and result return using local Codex identity"
+    "the repo gains a concrete local-machine bridge plan plus implementation work for named-machine registration, command routing, and result return using local Codex identity",
+    "desktop/web/mobile chat chrome, composer, header actions, and settings IA are intentionally aligned instead of drifting by platform",
+    "translation preferences can express arbitrary target/readable languages in product settings rather than only preset examples",
+    "the first desktop-only local-machine bridge can register a machine, report heartbeat/presence, accept a command, execute via local Codex, and return structured status/results through zkTalk"
   ],
   "verification": [
     ".zkcoder/scripts/verify.sh",
@@ -57,5 +63,12 @@
     "run artifacts under /Users/hyunokoh/Documents/Projects/zkTalk/.zkcoder/runs/",
     "concise final notes that tell the next operator what changed, what passed, and what is still blocked"
   ],
-  "generatedAt": "2026-04-10T13:02:55.045Z"
+  "generatedAt": "2026-04-12T13:15:53.557Z",
+  "ambiguityReport": {
+    "ambiguityScore": 0,
+    "missingSections": [],
+    "riskFlags": [],
+    "openQuestions": [],
+    "assumptions": []
+  }
 }

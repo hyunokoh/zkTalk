@@ -21,7 +21,8 @@ const en = {
   'app.desktopPasteProfile': 'Paste mobile profile',
   'app.desktopPasteInvite': 'Paste invite link',
   'app.desktopShareProfile': 'Share my profile',
-  'app.desktopPasteProfileHint': 'Open a profile copied from mobile and jump straight into the desktop friend-add flow.',
+  'app.desktopPasteProfileHint':
+    'Open a profile copied from mobile and jump straight into the desktop friend-add flow.',
 
   // Auth
   'auth.welcome': 'Welcome to zkTalk',
@@ -86,7 +87,8 @@ const en = {
   'community.goHome': 'Go home',
   'community.loadingCommunity': 'Loading community...',
   'community.selectChannel': 'Select a channel from the sidebar to start chatting.',
-  'community.channelAccessHint': 'Open channels are available immediately. Locked channels unlock when your membership or invite allows access.',
+  'community.channelAccessHint':
+    'Open channels are available immediately. Locked channels unlock when your membership or invite allows access.',
   'community.channelAccessOpenLabel': 'Open now',
   'community.channelAccessJoinLabel': 'Join to unlock',
   'community.channelAccessInviteLabel': 'Invite or role required',
@@ -97,9 +99,11 @@ const en = {
   'community.count': '{{count}} communities',
   'home.desktopQuickStartTitle': 'Quick start',
   'home.desktopQuickStartBody': 'Start friend adds, profile sharing, and settings from one place.',
-  'home.desktopQuickStartHint': 'If you receive a shared profile message from mobile, paste it into Friends. You can also copy or show your own profile from the QR card on the right.',
+  'home.desktopQuickStartHint':
+    'If you receive a shared profile message from mobile, paste it into Friends. You can also copy or show your own profile from the QR card on the right.',
   'home.desktopInviteTitle': 'Join a community from an invite',
-  'home.desktopInviteBody': 'Paste the invite link, invite code, or shared invite message from mobile to open the join screen.',
+  'home.desktopInviteBody':
+    'Paste the invite link, invite code, or shared invite message from mobile to open the join screen.',
   'home.desktopInvitePlaceholder': 'Paste invite link or invite code',
   'community.iconPhoto': 'Community photo',
   'community.iconHint': 'Upload a square image for the community icon.',
@@ -112,7 +116,8 @@ const en = {
   'community.onboardingRulesCount': '{{count}} rules',
   'community.onboardingDefaultChannels': 'Starter channels',
   'community.onboardingDefaultChannelsHint': 'Pick the channels new members should check first.',
-  'community.onboardingDefaultChannelsPolicyHint': 'Choose channels that new members can open right after joining, and use public channels only when you want a visible preview before access expands.',
+  'community.onboardingDefaultChannelsPolicyHint':
+    'Choose channels that new members can open right after joining, and use public channels only when you want a visible preview before access expands.',
   'community.onboardingChannelSearchPlaceholder': 'Search starter channels',
   'community.onboardingChannelNoSearchResults': 'No channels match that search.',
   'community.onboardingNoChannels': 'There are no channels to choose from.',
@@ -231,8 +236,10 @@ const en = {
   'desktopHarness.redirectingChannel': 'Redirecting to the channel...',
   'desktopHarness.redirectingDm': 'Redirecting to the DM...',
   'desktopHarness.invalidLink': 'This desktop handoff link is incomplete or no longer valid.',
-  'desktopHarness.destinationUnavailable': 'We could not open that destination. It may have been removed.',
-  'desktopHarness.connectionError': 'We could not reach zkTalk right now. Please try again in a moment.',
+  'desktopHarness.destinationUnavailable':
+    'We could not open that destination. It may have been removed.',
+  'desktopHarness.connectionError':
+    'We could not reach zkTalk right now. Please try again in a moment.',
   'desktopHarness.requestFailed': 'We could not complete the desktop handoff. Please try again.',
   'desktopHarness.modeLabel': 'Mode',
   'desktopHarness.destinationLabel': 'Destination',
@@ -353,19 +360,210 @@ const en = {
   'settings.listSubtitle': 'Manage account, data, alerts, and preferences in one place.',
   'settings.overview': 'Overview',
   'settings.overviewTitle': 'Start the desktop settings you need from one place.',
-  'settings.overviewBody': 'Security, backup, friend management, and profile sharing now have a clearer starting point. You no longer need to remember a hidden submenu first.',
+  'settings.overviewBody':
+    'Security, backup, friend management, and profile sharing now have a clearer starting point. You no longer need to remember a hidden submenu first.',
   'settings.cardSecurity': 'Security',
   'settings.cardSecurityBody': 'Review privacy and metadata protection settings.',
   'settings.cardData': 'Data',
   'settings.cardDataBody': 'Check backup and restore status and export your data.',
   'settings.cardPeople': 'People',
-  'settings.cardPeopleBody': 'Manage friend adds, pasted share links, and contact-based connections.',
+  'settings.cardPeopleBody':
+    'Manage friend adds, pasted share links, and contact-based connections.',
   'settings.profileShareTitle': 'Share my profile',
-  'settings.profileShareBody': 'This QR code and link use the same profile format that mobile sends when it shares your profile. You can send it straight to another desktop or mobile user.',
+  'settings.profileShareBody':
+    'This QR code and link use the same profile format that mobile sends when it shares your profile. You can send it straight to another desktop or mobile user.',
+  'settings.accountSectionTitle': 'Account',
+  'settings.accountSectionBody':
+    'Keep profile sharing, friend management, and sign-out in the same place that mobile treats as account control.',
+  'settings.notificationsSectionTitle': 'Notifications',
+  'settings.notificationsSectionBody':
+    'Browser and packaged-desktop alerts still depend on OS and browser permission state. Keep notifications discoverable here even while the actual toggle remains system-driven.',
+  'settings.languageSectionTitle': 'Language',
+  'settings.languageSectionBody':
+    'Choose whether zkTalk settings and menus appear in Korean or English on web and desktop.',
+  'settings.aiTranslationSectionTitle': 'AI and translation',
+  'settings.aiTranslationSectionBody':
+    'Set incoming translation defaults, selected-message AI behavior, and runtime-aware copy from the shared AI settings surface.',
+  'settings.aiTranslationSectionAction': 'Open AI and translation',
+  'settings.machineControlSectionTitle': 'Machine control',
+  'settings.machineControlSectionBody':
+    'Desktop-first local Codex bridge controls live beside AI and translation so operators can find command routing, bridge presets, and runtime assumptions in one place.',
+  'settings.machineControlSnapshotTitle': 'Desktop bridge snapshot',
+  'settings.machineControlStatusConnected': 'Connected',
+  'settings.machineControlStatusNeedsAuth': 'Needs auth',
+  'settings.machineControlStatusAttention': 'Attention',
+  'settings.machineControlStatusUnavailable': 'No bridge',
+  'settings.machineControlMachineLabel': 'Desktop machine',
+  'settings.machineControlMachineUnavailable': 'No packaged-desktop machine has checked in yet',
+  'settings.machineControlAuthLabel': 'Local Codex auth',
+  'settings.machineControlAuthReady': 'Ready on this desktop',
+  'settings.machineControlAuthMissing': 'Still missing on this desktop',
+  'settings.machineControlAuthUnknown': 'Will appear after the desktop bridge reports in',
+  'settings.machineControlRecentLabel': 'Recent command state',
+  'settings.machineControlSummaryConnected':
+    '{{machine}} is registered on this desktop, so you can confirm bridge readiness before opening machine control.',
+  'settings.machineControlSummaryBusy':
+    '{{machine}} is currently working on a local Codex command. Open machine control for the full command timeline.',
+  'settings.machineControlSummaryNeedsAuth':
+    '{{machine}} is visible, but local Codex auth still needs to be completed on this desktop.',
+  'settings.machineControlSummaryAttention':
+    '{{machine}} has a bridge record, but it still needs operator attention before command routing is trustworthy.',
+  'settings.machineControlSummaryUnavailable':
+    'No packaged-desktop bridge has reported in here yet. Browser sessions can review guidance, but they should not imply local Codex execution is ready.',
+  'settings.machineControlRecentEmpty':
+    'Recent command state: No local machine command has reported back yet.',
+  'settings.machineControlRecentWithSummary': 'Recent command state: {{state}} {{summary}}',
+  'settings.machineControlRecentStateOnly': 'Recent command state: {{state}}',
+  'settings.machineControlSectionAction': 'Open machine control',
+  'settings.aiPage.eyebrow': 'AI',
+  'settings.aiPage.title': 'AI settings',
+  'settings.aiPage.description':
+    'Manage which AI tools appear on web and packaged desktop: the rail assistant, current-draft composer actions, selected-message draft tools, and channel summaries.',
+  'settings.aiPage.backToSettings': 'Back to settings',
+  'settings.aiPage.runtimeProviderMock': 'Mock provider',
+  'settings.aiPage.runtimeProviderUnset': 'Not configured',
+  'settings.aiPage.toggle.assistant.title': 'AI assistant',
+  'settings.aiPage.toggle.assistant.description':
+    'Show the global AI assistant panel from the community rail sparkle button.',
+  'settings.aiPage.toggle.composer.title': 'Composer actions',
+  'settings.aiPage.toggle.composer.description':
+    'Enable AI actions around the composer: reply suggestion, translate-to-English, rewrite for the current draft, and selected-message reply/rewrite drafts.',
+  'settings.aiPage.toggle.channelSummary.title': 'Channel summary',
+  'settings.aiPage.toggle.channelSummary.description':
+    'Allow AI-generated summaries for the current channel from the composer actions menu.',
+  'settings.aiPage.translation.title': 'Automatic translation',
+  'settings.aiPage.translation.description':
+    'Choose how incoming messages auto-render for this account. Manual per-message translate remains available even when automatic rendering is on.',
+  'settings.aiPage.translationCustom': 'Custom',
+  'settings.aiPage.translationActiveRule': 'Active rule',
+  'settings.aiPage.translationTargetLabel': 'Target',
+  'settings.aiPage.translationReadableLabel': 'Readable',
+  'settings.aiPage.translationQuickPresets': 'Quick presets',
+  'settings.aiPage.translationQuickPresetsDescription':
+    'Use a stable preset when you want desktop bridge copy and web auto-translation to stay aligned without editing language codes.',
+  'settings.aiPage.translationPresetActive': 'Active',
+  'settings.aiPage.translationBridgeDefault': 'Bridge default',
+  'settings.aiPage.translationCustomLanguageCodes': 'Custom language codes',
+  'settings.aiPage.translationIsoCodesOnly': 'ISO-style codes only',
+  'settings.aiPage.translationCustomDescription':
+    'Align web and desktop around real target/readable languages instead of only the built-in examples. Enter ISO-style codes such as `pt-BR`, `zh-Hant`, or `fil`, and separate readable languages with commas.',
+  'settings.aiPage.translationModeLabel': 'Mode',
+  'settings.aiPage.translationTargetInputLabel': 'Target language',
+  'settings.aiPage.translationReadableInputLabel': 'Readable languages',
+  'settings.aiPage.translationSaveButton': 'Save custom translation rules',
+  'settings.aiPage.translationModeHelp':
+    '`target_language_all` ignores readable-language exceptions. `manual_only` preserves original text until you translate a message explicitly. Use lowercase or hyphenated ISO-style codes only, not free-form language names.',
+  'settings.aiPage.translationLoadingSaved': 'Loading saved translation preference...',
+  'settings.aiPage.translationSaving': 'Saving translation preference...',
+  'settings.aiPage.translationBuildNote':
+    'Automatic translation applies first to web channel messages in this build.',
+  'settings.aiPage.translationSaveError': 'Could not save translation preference.',
+  'settings.aiPage.translationReadableValidationError':
+    'Readable language "{{language}}" must use an ISO-style code like en, ko, pt-BR, or zh-Hant.',
+  'settings.aiPage.translationTargetValidationError':
+    'Target language must use an ISO-style code like en, ko, pt-BR, or zh-Hant.',
+  'settings.aiPage.translationMode.manual_only': 'Manual only',
+  'settings.aiPage.translationMode.target_language_except_readable':
+    'Auto-translate except readable languages',
+  'settings.aiPage.translationMode.target_language_all': 'Auto-translate everything',
+  'settings.aiPage.translationSummary.manual_only':
+    'Manual only. Incoming messages stay in the original language until translated.',
+  'settings.aiPage.translationSummary.target_language_all':
+    'Auto-translate all incoming messages into {{targetLanguage}}.',
+  'settings.aiPage.translationSummary.target_language_except_readable':
+    'Auto-translate into {{targetLanguage}}, except messages already readable in {{readableLanguages}}.',
+  'settings.aiPage.translationPreset.english_only.label': 'English only',
+  'settings.aiPage.translationPreset.english_only.description':
+    'Render unreadable incoming content in English and keep English-readable messages as-is.',
+  'settings.aiPage.translationPreset.english_only.bridgeInstruction':
+    'Use English for bridge summaries, streamed updates, and final results.',
+  'settings.aiPage.translationPreset.korean_preferred_english_readable.label':
+    'Korean preferred, English readable',
+  'settings.aiPage.translationPreset.korean_preferred_english_readable.description':
+    'Keep Korean and English readable as-is and render other incoming content in Korean.',
+  'settings.aiPage.translationPreset.korean_preferred_english_readable.bridgeInstruction':
+    'Prefer Korean output, but keep already readable English context intact when that improves clarity.',
+  'settings.aiPage.translationPreset.manual_only.label': 'Manual only',
+  'settings.aiPage.translationPreset.manual_only.description':
+    'Do not auto-translate incoming content; require explicit manual translation actions.',
+  'settings.aiPage.translationPreset.manual_only.bridgeInstruction':
+    'Do not auto-translate bridge content. Preserve original text unless the operator explicitly asks for translation.',
+  'settings.aiPage.capability.railAssistant': 'Rail assistant modal',
+  'settings.aiPage.capability.composerReplySuggestion': 'Current-draft composer reply suggestion',
+  'settings.aiPage.capability.composerTranslateEnglish': 'Current-draft translate to English',
+  'settings.aiPage.capability.composerRewrite': 'Current-draft rewrite / polish',
+  'settings.aiPage.capability.selectedMessageReplyDraft':
+    'Selected-message reply draft into the composer',
+  'settings.aiPage.capability.selectedMessageRewriteDraft':
+    'Selected-message rewrite of the current composer draft',
+  'settings.aiPage.capability.selectedMessageTranslateInline':
+    'Selected-message translation inline on the message',
+  'settings.aiPage.capability.channelSummary': 'Channel summary from the composer actions menu',
+  'settings.aiPage.mobileBehavior.replyDraft':
+    'Selected-message reply draft keeps the composer reply path.',
+  'settings.aiPage.mobileBehavior.rewriteDraft':
+    'Selected-message rewrite replaces the current composer draft.',
+  'settings.aiPage.mobileBehavior.translateInline':
+    'Selected-message translation stays inline on the message instead of mutating the composer.',
+  'settings.aiPage.machineControl.title': 'Machine control and platform alignment',
+  'settings.aiPage.machineControl.description':
+    'Keep operator expectations aligned across web, packaged desktop, and mobile now that AI, translation, and desktop-first local machine control all live in the same conceptual settings lane.',
+  'settings.aiPage.machineControl.queueBadge': 'Queue item {{id}}',
+  'settings.aiPage.machineControl.availabilityTitle': 'Settings availability by platform',
+  'settings.aiPage.machineControl.availabilityDescription':
+    'Use this matrix to confirm which settings surfaces are currently exposed on web, packaged desktop, and mobile.',
+  'settings.aiPage.machineControl.timelineTitle': 'Desktop bridge result timeline',
+  'settings.aiPage.machineControl.timelineDescription':
+    'Accepted, streaming, completed, and failure updates stay attributable to one machine and one command id instead of collapsing into a generic status.',
+  'settings.aiPage.machineControl.browserNoBridge': 'browser/no bridge',
+  'settings.aiPage.machineControl.bridgeId': 'Bridge id {{bridgeId}}',
+  'settings.aiPage.machineControl.commandMeta': 'Machine {{machine}} · Command {{commandId}}',
+  'settings.aiPage.machineControl.noCommands':
+    'No local machine command has reported back through this desktop bridge yet.',
+  'settings.aiPage.machineControl.noDesktopBridge':
+    'Packaged desktop can surface live bridge updates here. Browser and mobile can review the same operator guidance, but they do not pretend to execute local Codex work themselves.',
+  'settings.aiPage.runtime.title': 'Current runtime',
+  'settings.aiPage.runtime.description':
+    'Web and packaged desktop both route AI requests through the same app/API path. The runtime badge below reflects whether the current backend is using a real provider, mock output, or no usable AI at all.',
+  'settings.aiPage.runtime.sessionTitle': 'What this session will do',
+  'settings.aiPage.runtime.loading': 'Runtime status is still loading.',
+  'settings.aiPage.runtime.desktopPackagingTitle': 'Desktop packaging can inject runtime keys',
+  'settings.aiPage.runtime.desktopPackagingDescription':
+    'Current packaged desktop builds can pass provider keys into the bundled web server, but browser and mobile sessions still depend on the deployed backend runtime that the UI reports at use time.',
+  'settings.aiPage.mobileActions.title': 'Mobile message actions',
+  'settings.aiPage.mobileActions.description':
+    'On mobile, AI currently starts from a selected message. It can draft a reply into the composer or rewrite the current composer draft with that message as context. Message translation stays in the regular translate action.',
+  'settings.aiPage.mobileActions.limitation':
+    'Mobile in this build does not expose the rail assistant, current-draft composer AI menu, or channel summary entry points.',
+  'settings.aiPage.desktopPresets.title': 'Desktop local machine bridge presets',
+  'settings.aiPage.desktopPresets.description':
+    'The desktop-first local Codex bridge uses stable language presets so host and worker machines do not guess how to present streamed updates or final results.',
+  'settings.aiPage.desktopPresets.current': 'Current desktop preset: {{preset}}',
+  'settings.aiPage.desktopPresets.notPinned':
+    'Current desktop preset: not pinned in desktop config',
+  'settings.aiPage.platformFeatures.title': 'Included AI features by platform',
+  'settings.aiPage.platform.web': 'Web',
+  'settings.aiPage.platform.desktop': 'Desktop',
+  'settings.aiPage.platform.mobile': 'Mobile',
+  'settings.aiPage.surface.web.title': 'Full AI settings surface',
+  'settings.aiPage.surface.web.detail':
+    'Can edit runtime-aware translation rules, review selected-message semantics, and control rail/composer/channel-summary entry points.',
+  'settings.aiPage.surface.desktop.title': 'Uses the same settings UI as web',
+  'settings.aiPage.surface.desktop.detail':
+    'Packaged desktop inherits the same translation rules and can also pin a local-machine bridge preset through desktop runtime config.',
+  'settings.aiPage.surface.mobile.title': 'Selected-message-first AI settings surface',
+  'settings.aiPage.surface.mobile.detail':
+    'Current mobile builds expose runtime status, selected-message semantics, presets, and custom translation-rule editing from the AI and translation settings screen.',
+  'settings.aiPage.none': 'none',
+  'settings.aiPage.unknown': 'unknown',
+  'settings.dataPrivacySectionTitle': 'Data and privacy',
+  'settings.dataPrivacySectionBody':
+    'Backup and metadata/privacy surfaces stay together so desktop and web match the same mental model as mobile settings.',
   'settings.openFriends': 'Open Friends',
   'settings.goHome': 'Go Home',
   'settings.communitySettings': 'Community Settings',
-  'settings.communitySettingsSubtitle': 'Manage name, visibility, invites, and file policies from one place.',
+  'settings.communitySettingsSubtitle':
+    'Manage name, visibility, invites, and file policies from one place.',
   'settings.communityUnavailableTitle': 'Community settings are unavailable right now.',
   'settings.general': 'General',
   'settings.saved': 'Settings saved',
@@ -386,10 +584,12 @@ const en = {
   'settings.days': '{{count}} days',
   'settings.noExpiry': 'Never',
   'settings.dangerZone': 'Danger Zone',
-  'settings.deleteCommunityWarning': 'This action cannot be undone. All channels, messages, and members will be permanently deleted.',
+  'settings.deleteCommunityWarning':
+    'This action cannot be undone. All channels, messages, and members will be permanently deleted.',
   'settings.typeToConfirm': 'Type the community name to confirm:',
   'settings.notAdmin': 'Only community admins can access settings.',
-  'settings.notAdminHelp': 'Return to the community or go home instead of getting stuck on this page.',
+  'settings.notAdminHelp':
+    'Return to the community or go home instead of getting stuck on this page.',
   'settings.backToCommunity': 'Back to Community',
   'settings.communityLoadError': 'Could not load community settings.',
 
@@ -402,7 +602,8 @@ const en = {
   'channel.edit': 'Edit Channel',
   'channel.editError': 'Failed to update channel',
   'channel.archive': 'Archive Channel',
-  'channel.archiveConfirm': 'Are you sure you want to archive this channel? Messages will be preserved but the channel will be hidden.',
+  'channel.archiveConfirm':
+    'Are you sure you want to archive this channel? Messages will be preserved but the channel will be hidden.',
   'channel.archiveError': 'Failed to archive channel',
   'channel.slowMode': 'Slow Mode (seconds)',
   'channel.slowModeDesc': '0 = disabled. Users must wait this many seconds between messages.',
@@ -411,8 +612,10 @@ const en = {
   'channel.lockedJoinRequired': 'Join this community to open this channel.',
   'channel.lockedInviteRequired': 'Invite or elevated access is required for this channel.',
   'channel.lockedPromptTitle': 'Access required',
-  'channel.lockedPromptJoinBody': 'You can discover this community, but this channel opens only after you join it.',
-  'channel.lockedPromptInviteBody': 'This channel stays protected until you open the community with a valid invite or elevated access.',
+  'channel.lockedPromptJoinBody':
+    'You can discover this community, but this channel opens only after you join it.',
+  'channel.lockedPromptInviteBody':
+    'This channel stays protected until you open the community with a valid invite or elevated access.',
   'channel.lockedPromptJoinAction': 'Join community',
   'channel.lockedPromptJoining': 'Joining...',
   'channel.lockedPromptJoinFailed': 'Unable to join this community right now.',
@@ -513,7 +716,8 @@ const en = {
   'profile.avatarUploadTooLarge': 'Profile photos must be 10MB or smaller.',
   'profile.avatarUploadInvalidType': 'Profile photos must be image files.',
   'profile.avatarUploadError': 'Failed to upload profile photo.',
-  'profile.connectionError': 'Could not reach the server. Please check that the API server is running.',
+  'profile.connectionError':
+    'Could not reach the server. Please check that the API server is running.',
   'profile.saved': 'Profile saved',
   'profile.saveError': 'Failed to save profile',
 
@@ -521,7 +725,8 @@ const en = {
   'community.leave': 'Leave Community',
   'community.leaveConfirm': 'Are you sure you want to leave this community?',
   'community.leaveError': 'Failed to leave community',
-  'community.deleteConfirm': 'Are you sure you want to delete this community? This cannot be undone.',
+  'community.deleteConfirm':
+    'Are you sure you want to delete this community? This cannot be undone.',
   'community.deleteCommunity': 'Delete Community',
   'community.deleteError': 'Failed to delete community',
   'community.joinInviteCta': 'Join',
@@ -546,16 +751,19 @@ const en = {
   'attachment.invalidType': 'File type not allowed',
   'attachment.remove': 'Remove',
   'attachment.sendError': 'Failed to send the attachment. Please try again in a moment.',
-  'attachment.rateLimited': 'You are sending attachments too quickly. Please wait a moment and try again.',
+  'attachment.rateLimited':
+    'You are sending attachments too quickly. Please wait a moment and try again.',
   'attachment.open': 'Open',
   'attachment.save': 'Save',
   'attachment.dropPrompt': 'Drop files here to attach them',
   'attachment.openError': 'Could not open this attachment right now.',
   'attachment.accessDenied': 'You do not have permission to access this attachment.',
   'attachment.unavailable': 'This attachment is no longer available.',
-  'attachment.previewUnavailable': 'Some image previews could not be loaded. Continue with open or save.',
+  'attachment.previewUnavailable':
+    'Some image previews could not be loaded. Continue with open or save.',
   'attachment.audioUploadError': 'Failed to upload the audio clip. Please try again.',
-  'attachment.audioPermissionError': 'Microphone access failed. Check your browser permission and try again.',
+  'attachment.audioPermissionError':
+    'Microphone access failed. Check your browser permission and try again.',
   'attachment.statusUploading': 'Uploading {{progress}}%',
   'attachment.statusUploaded': 'Uploaded',
   'attachment.statusFailed': 'Upload failed',
@@ -596,8 +804,10 @@ const en = {
   'voice.callEnded': 'Call ended',
   'voice.screenSharing': 'Screen sharing',
   'channel.sourceDmTitle': 'This channel started as a DM',
-  'channel.sourceDmBody': 'Open the original DM history here whenever you need the earlier context.',
-  'channel.sourceDmNamedBody': 'Open the original "{name}" DM history here whenever you need the earlier context.',
+  'channel.sourceDmBody':
+    'Open the original DM history here whenever you need the earlier context.',
+  'channel.sourceDmNamedBody':
+    'Open the original "{name}" DM history here whenever you need the earlier context.',
   'channel.sourceDmNameLabelWithName': 'Original chat: {name}',
 
   // DM
@@ -631,7 +841,8 @@ const en = {
   'dm.promote': 'Promote',
   'dm.promoting': 'Promoting...',
   'dm.promoteTitle': 'Promote to a community',
-  'dm.promoteConfirm': 'Promote this conversation into a private community? Participants and chat history will move into #general.',
+  'dm.promoteConfirm':
+    'Promote this conversation into a private community? Participants and chat history will move into #general.',
   'dm.openCommunity': 'Open community',
   'dm.openChannel': 'Open channel',
   'dm.goToCurrentChannel': 'Go to current chat',
@@ -653,7 +864,8 @@ const en = {
   'dm.promoteChannelPlaceholder': 'general',
   'dm.promoteSubmit': 'Create community',
   'dm.promoteFailed': 'Could not promote this conversation to a community.',
-  'dm.promotedReadOnlyFallback': 'This DM can no longer receive new messages. Continue the conversation in its linked community channel.',
+  'dm.promotedReadOnlyFallback':
+    'This DM can no longer receive new messages. Continue the conversation in its linked community channel.',
   'dm.sendError': 'Could not send the message. Please try again in a moment.',
   'dm.loadMore': 'Load older messages',
   'dm.noMessages': 'No messages yet. Say hello!',
@@ -718,30 +930,41 @@ const en = {
   'friend.noFriends': 'No friends yet',
   'friend.requestSent': 'Friend request sent',
   'friend.addByUsername': 'Add by username',
-  'friend.addByUsernameHelp': 'Find someone by display name or username and send a request right away.',
-  'friend.friendsPageHelp': 'Paste a profile link from mobile on this screen to add that person right away.',
+  'friend.addByUsernameHelp':
+    'Find someone by display name or username and send a request right away.',
+  'friend.friendsPageHelp':
+    'Paste a profile link from mobile on this screen to add that person right away.',
   'friend.desktopShareAsideTitle': 'Share my profile',
-  'friend.desktopShareAsideBody': 'Send this QR code or link to let someone add you quickly. It uses the same profile link format that the mobile share flow sends to desktop.',
+  'friend.desktopShareAsideBody':
+    'Send this QR code or link to let someone add you quickly. It uses the same profile link format that the mobile share flow sends to desktop.',
   'friend.desktopShareGuideTitle': 'Receive a mobile profile on desktop',
-  'friend.desktopShareGuideBody': 'This flow works now, but the desktop app still needs stronger navigation cues. This screen is the fastest starting point.',
-  'friend.desktopShareGuideStepMobile': '1. On mobile, go to Settings > My QR code > Share my profile, then copy the shared message or link.',
-  'friend.desktopShareGuideStepDesktop': '2. On desktop, open the Friends menu on the left, paste that text below, and press Open profile.',
+  'friend.desktopShareGuideBody':
+    'This flow works now, but the desktop app still needs stronger navigation cues. This screen is the fastest starting point.',
+  'friend.desktopShareGuideStepMobile':
+    '1. On mobile, go to Settings > My QR code > Share my profile, then copy the shared message or link.',
+  'friend.desktopShareGuideStepDesktop':
+    '2. On desktop, open the Friends menu on the left, paste that text below, and press Open profile.',
   'friend.searchUsers': 'Search by name or username...',
   'friend.searchingUsers': 'Searching for users...',
   'friend.noSearchResults': 'No users found.',
   'friend.requestError': 'Unable to send friend request.',
   'friend.sharedProfileInputTitle': 'Paste profile link',
-  'friend.sharedProfileInputHelp': 'Paste the full message from mobile or a `zktalk://user/...` link here.',
+  'friend.sharedProfileInputHelp':
+    'Paste the full message from mobile or a `zktalk://user/...` link here.',
   'friend.sharedProfileInputPlaceholder': 'Example: Add Jane on zkTalk: zktalk://user/...',
   'friend.sharedProfilePaste': 'Paste from clipboard',
   'friend.sharedProfileOpen': 'Open profile',
-  'friend.sharedProfileParseError': 'No profile link was found. Paste the shared mobile message or link again.',
+  'friend.sharedProfileParseError':
+    'No profile link was found. Paste the shared mobile message or link again.',
   'friend.sharedProfileClipboardError': 'Clipboard access failed. Paste the link manually instead.',
   'friend.sharedProfileTitle': 'Shared profile',
-  'friend.sharedProfileBody': '"{name}" shared a profile with you. Send a friend request right here.',
-  'friend.sharedProfileBodyWithUsername': '"{name}" (@{username}) shared a profile with you. Send a friend request right here.',
+  'friend.sharedProfileBody':
+    '"{name}" shared a profile with you. Send a friend request right here.',
+  'friend.sharedProfileBodyWithUsername':
+    '"{name}" (@{username}) shared a profile with you. Send a friend request right here.',
   'friend.sharedProfileUnknown': 'Unknown user',
-  'friend.sharedProfilePendingHint': 'You can send a friend request directly from this shared profile.',
+  'friend.sharedProfilePendingHint':
+    'You can send a friend request directly from this shared profile.',
   'friend.sharedProfileAccepted': 'Already friends',
   'friend.sharedProfileBlocked': 'Friend requests are unavailable for this profile right now.',
 
@@ -819,20 +1042,25 @@ const en = {
   'backup.exportError': 'Failed to export backup. Please try again.',
   'backup.connectionError': 'We could not reach the backup service. Please try again in a moment.',
   'backup.importSuccess': 'Backup imported successfully',
-  'backup.importSuccessDetail': 'Backup imported successfully ({{channelCount}} channel, {{dmCount}} DM messages).',
+  'backup.importSuccessDetail':
+    'Backup imported successfully ({{channelCount}} channel, {{dmCount}} DM messages).',
   'backup.importError': 'Failed to import backup. The file may be corrupted or the wrong key.',
-  'backup.importInvalid': 'We could not verify that backup file. Check the file and backup key, then try again.',
+  'backup.importInvalid':
+    'We could not verify that backup file. Check the file and backup key, then try again.',
   'backup.importTooLarge': 'That backup file is too large to import right now.',
   'backup.noKey': 'No encryption key found. Please generate keys first.',
-  'backup.rateLimited': 'Too many backup requests are in progress. Please wait a moment and try again.',
+  'backup.rateLimited':
+    'Too many backup requests are in progress. Please wait a moment and try again.',
 
   // QR Code / Profile Share
   'qr.myCode': 'My QR Code',
   'qr.shareLink': 'Share profile link',
   'qr.copyShareText': 'Copy share text',
-  'qr.shareTextTemplate': 'Add {{name}} on zkTalk: {{link}}\n\nIn the desktop app, paste this text or link into the Friends menu to open the profile right away.',
+  'qr.shareTextTemplate':
+    'Add {{name}} on zkTalk: {{link}}\n\nIn the desktop app, paste this text or link into the Friends menu to open the profile right away.',
   'qr.scanDesc': 'Others can scan this code to send you a friend request',
-  'qr.shareTextHint': 'Copy the same share message format that mobile sends and paste it straight into desktop Friends.',
+  'qr.shareTextHint':
+    'Copy the same share message format that mobile sends and paste it straight into desktop Friends.',
 
   // Offline Queue
   'offline.pending': 'Sending...',
@@ -842,9 +1070,11 @@ const en = {
 
   // Connection Status
   'connection.offlineTitle': 'You are offline',
-  'connection.offlineBody': 'Messages and updates will resume automatically when your internet connection returns.',
+  'connection.offlineBody':
+    'Messages and updates will resume automatically when your internet connection returns.',
   'connection.reconnectingTitle': 'Reconnecting…',
-  'connection.reconnectingBody': 'zkTalk is restoring the live connection. New updates should appear again in a moment.',
+  'connection.reconnectingBody':
+    'zkTalk is restoring the live connection. New updates should appear again in a moment.',
 
   // P2P File Transfer
   'p2p.shareFile': 'Share File (P2P)',
@@ -877,10 +1107,13 @@ const en = {
   'ai.replyDraftFromMessage': 'AI reply draft',
   'ai.rewriteDraftFromMessage': 'AI rewrite draft',
   'ai.replyDraftApplied': 'AI drafted a reply from the selected message.',
-  'ai.replyDraftAppliedMock': 'Applied a mock AI reply draft from the selected message. Verify it before sending.',
+  'ai.replyDraftAppliedMock':
+    'Applied a mock AI reply draft from the selected message. Verify it before sending.',
   'ai.rewriteDraftApplied': 'AI rewrote the current draft from the selected message context.',
-  'ai.rewriteDraftAppliedMock': 'Applied a mock AI rewrite from the selected message context. Verify it before sending.',
-  'ai.rewriteNeedsDraft': 'Write a draft in the composer before using AI rewrite from a selected message.',
+  'ai.rewriteDraftAppliedMock':
+    'Applied a mock AI rewrite from the selected message context. Verify it before sending.',
+  'ai.rewriteNeedsDraft':
+    'Write a draft in the composer before using AI rewrite from a selected message.',
   'ai.selectedMessageUnavailable': 'The selected message is not available for AI yet.',
   'ai.runtimeLive': 'Live AI',
   'ai.runtimeMock': 'Mock AI',
@@ -888,21 +1121,27 @@ const en = {
   'ai.runtimeDisabled': 'AI disabled',
   'ai.runtimeMisconfigured': 'AI misconfigured',
   'ai.runtimeLiveHint': 'Responses use the configured provider for this signed-in session.',
-  'ai.runtimeMockHint': 'Responses come from local mock output. Do not treat them as provider-backed AI.',
+  'ai.runtimeMockHint':
+    'Responses come from local mock output. Do not treat them as provider-backed AI.',
   'ai.runtimeUnavailableHint': 'AI is disabled or misconfigured on the current backend.',
   'ai.runtimeUnavailableHintWithIssue': 'AI is unavailable: {{issue}}',
-  'ai.runtimeDisabledHint': 'AI is turned off on the current backend until an operator enables a provider.',
+  'ai.runtimeDisabledHint':
+    'AI is turned off on the current backend until an operator enables a provider.',
   'ai.runtimeDisabledHintWithIssue': 'AI is disabled: {{issue}}',
-  'ai.runtimeMisconfiguredHint': 'AI is configured incorrectly on the current backend and needs operator action.',
+  'ai.runtimeMisconfiguredHint':
+    'AI is configured incorrectly on the current backend and needs operator action.',
   'ai.runtimeMisconfiguredHintWithIssue': 'AI is misconfigured: {{issue}}',
-  'ai.selectedMessageScopeHint': 'Here, AI can draft a reply from the selected message or rewrite the current draft with that message as context. Translation stays inline on the selected message.',
+  'ai.selectedMessageScopeHint':
+    'Here, AI can draft a reply from the selected message or rewrite the current draft with that message as context. Translation stays inline on the selected message.',
   'localMachine.commandAccepted': 'The target machine accepted the command.',
   'localMachine.commandStreaming': 'The target machine is streaming command output.',
   'localMachine.commandCompleted': 'The target machine completed the command.',
   'localMachine.commandOffline': 'The target machine is offline.',
   'localMachine.commandBusy': 'The target machine is busy with another command.',
-  'localMachine.commandAuthMissing': 'The target machine is reachable, but local Codex auth is missing.',
+  'localMachine.commandAuthMissing':
+    'The target machine is reachable, but local Codex auth is missing.',
   'localMachine.commandBridgeMissing': 'The target machine does not have an active local bridge.',
+  'localMachine.commandTimedOut': 'The target machine command timed out before completion.',
   'localMachine.commandRejected': 'The target machine rejected the command.',
 
   // Scheduled Messages

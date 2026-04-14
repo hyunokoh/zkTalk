@@ -1,10 +1,12 @@
 import { expect, test } from '@playwright/test';
 
+const webBaseUrl = process.env.ZKTALK_WEB_URL ?? `http://127.0.0.1:${process.env.ZKTALK_WEB_PORT ?? '3000'}`;
+
 test.describe('auth smoke', () => {
   test('email login follows the dev verify link and honors next redirect', async ({ page }) => {
     const email = `playwright-email-${Date.now()}@example.com`;
 
-    await page.goto('/login?next=%2Fsettings');
+    await page.goto(`${webBaseUrl}/login?next=%2Fsettings`);
     await page.getByTestId('login-tab-email').click();
     await page.getByTestId('login-email-input').fill(email);
     await page.getByTestId('login-email-submit').click();
@@ -24,7 +26,7 @@ test.describe('auth smoke', () => {
   test('phone login restores the session after reload and allows logout from settings', async ({ page }) => {
     const phoneNumber = `010${String(Date.now()).slice(-8)}`;
 
-    await page.goto('/login');
+    await page.goto(`${webBaseUrl}/login`);
     await page.getByTestId('login-tab-phone').click();
     await page.getByTestId('login-phone-input').fill(phoneNumber);
     await page.getByTestId('login-phone-submit').click();
@@ -47,7 +49,7 @@ test.describe('auth smoke', () => {
     await expect(page).toHaveURL(/\/home$/);
     await expect(page.getByTestId('community-rail-profile-link')).toBeVisible();
 
-    await page.goto('/settings');
+    await page.goto(`${webBaseUrl}/settings`);
     await expect(page.getByTestId('settings-signout-button')).toBeVisible();
     await page.getByTestId('settings-signout-button').click();
 
@@ -56,7 +58,7 @@ test.describe('auth smoke', () => {
       .poll(() => page.evaluate(() => window.sessionStorage.getItem('zktalk_session_token')))
       .toBeNull();
 
-    await page.goto('/home');
+    await page.goto(`${webBaseUrl}/home`);
     await expect(page).toHaveURL(/\/login\?next=%2Fhome$/);
   });
 });

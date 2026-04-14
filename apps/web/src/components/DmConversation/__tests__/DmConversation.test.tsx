@@ -3,7 +3,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DmConversation } from '../DmConversation';
 
-const { mockApi, mockShowToast, mockPush, mockMessageBody, mockAiRuntimeUsable } = vi.hoisted(() => ({
+const {
+  mockApi,
+  mockShowToast,
+  mockPush,
+  mockMessageBody,
+  mockAiRuntimeUsable,
+  mockTranslationDisplay,
+} = vi.hoisted(() => ({
   mockApi: vi.fn(),
   mockShowToast: vi.fn(),
   mockPush: vi.fn(),
@@ -12,6 +19,19 @@ const { mockApi, mockShowToast, mockPush, mockMessageBody, mockAiRuntimeUsable }
   },
   mockAiRuntimeUsable: {
     value: true,
+  },
+  mockTranslationDisplay: {
+    value: {
+      uiLocale: 'ko',
+      mode: 'manual_only',
+      targetLanguage: null,
+      readableLanguages: [],
+    } as {
+      uiLocale: string;
+      mode: string;
+      targetLanguage: string | null;
+      readableLanguages: string[];
+    },
   },
 }));
 
@@ -68,6 +88,14 @@ vi.mock('@tanstack/react-query', () => ({
           provider: 'mock',
           status: 'mock',
           issue: 'mock runtime',
+        },
+      };
+    }
+
+    if (key === 'user-settings') {
+      return {
+        data: {
+          translationDisplay: mockTranslationDisplay.value,
         },
       };
     }
@@ -147,6 +175,7 @@ vi.mock('@/lib/error-copy', () => ({
 vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    locale: 'ko',
   }),
   t: (key: string) => key,
 }));
@@ -222,6 +251,12 @@ describe('DmConversation selected-message AI actions', () => {
     mockPush.mockReset();
     mockMessageBody.value = 'Need status update by noon.';
     mockAiRuntimeUsable.value = true;
+    mockTranslationDisplay.value = {
+      uiLocale: 'ko',
+      mode: 'manual_only',
+      targetLanguage: null,
+      readableLanguages: [],
+    };
     Element.prototype.scrollIntoView = vi.fn();
   });
 
@@ -310,7 +345,10 @@ describe('DmConversation selected-message AI actions', () => {
   });
 
   it('translates the selected DM message inline without touching the composer', async () => {
-    mockApi.mockResolvedValueOnce({ translatedText: '정오 전까지 상태 업데이트가 필요합니다.' });
+    mockApi.mockResolvedValueOnce({
+      translatedText: '정오 전까지 상태 업데이트가 필요합니다.',
+      runtime: { status: 'available' },
+    });
 
     render(<DmConversation conversationId="dm-1" />);
 
@@ -326,8 +364,42 @@ describe('DmConversation selected-message AI actions', () => {
     expect((screen.getByTestId('dm-composer-input') as HTMLTextAreaElement).value).toBe('');
   });
 
+  it('auto-translates DM rows from the saved translation display preference', async () => {
+    mockTranslationDisplay.value = {
+      uiLocale: 'en',
+      mode: 'target_language_except_readable',
+      targetLanguage: 'en',
+      readableLanguages: ['en'],
+    };
+    mockMessageBody.value = '회의는 오후 3시에 시작합니다.';
+    mockApi.mockResolvedValueOnce({
+      translatedText: 'The meeting starts at 3 PM.',
+      runtime: { status: 'available' },
+    });
+
+    render(<DmConversation conversationId="dm-1" />);
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledWith('/api/translate', expect.objectContaining({
+        method: 'POST',
+        body: expect.objectContaining({
+          text: '회의는 오후 3시에 시작합니다.',
+          targetLang: 'en',
+        }),
+      }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('translate.autoTranslated')).toBeTruthy();
+      expect(screen.getByText('The meeting starts at 3 PM.')).toBeTruthy();
+    });
+  });
+
   it('reuses the cached inline translation and toggles visibility without another API call', async () => {
-    mockApi.mockResolvedValueOnce({ translatedText: '정오 전까지 상태 업데이트가 필요합니다.' });
+    mockApi.mockResolvedValueOnce({
+      translatedText: '정오 전까지 상태 업데이트가 필요합니다.',
+      runtime: { status: 'available' },
+    });
 
     render(<DmConversation conversationId="dm-1" />);
 

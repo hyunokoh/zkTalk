@@ -27,6 +27,12 @@ Prioritize the highest-leverage path:
 - implement a visibility model where public communities can be discovered broadly while individual channels still enforce open, members-only, invite-only, or private access
 - add user-level automatic translation display preferences so messages can render in the user's preferred readable language by default
 - add a desktop-first local machine agent model so one user's zkTalk clients can dispatch work to named personal machines that run local Codex sessions
+- converge desktop/web and mobile chat/settings UX so core non-voice surfaces feel like one product rather than three separate variants
+- generalize translation preferences beyond Korean/English-oriented examples so users can choose arbitrary preferred display and readable-language combinations
+- turn the local-machine agent model from shared contracts into a working desktop-first bridge that can actually dispatch, run, and return work across a user's named machines by default
+- make the desktop-first local Codex bridge come online by default for authenticated desktop users instead of requiring manual register/heartbeat steps
+- let users choose Korean or English from settings on mobile, web, and desktop, and remove the most visible hard-coded English settings copy on desktop/web
+- finish the remaining mobile parity and stability work so mobile no longer trails desktop/web on the core non-voice product experience
 
 # Non-Goals
 
@@ -60,6 +66,12 @@ Prioritize the highest-leverage path:
 - public-community discovery, locked-channel gating, and post-join unlock behavior are testable and documented instead of implied
 - automatic translation is preference-driven, cross-platform consistent, and distinct from manual per-message translation
 - the repo gains a concrete local-machine bridge plan plus implementation work for named-machine registration, command routing, and result return using local Codex identity
+- desktop/web/mobile chat chrome, composer, header actions, and settings IA are intentionally aligned instead of drifting by platform
+- translation preferences can express arbitrary target/readable languages in product settings rather than only preset examples
+- the first desktop-only local-machine bridge can register a machine, report heartbeat/presence, accept a command, execute via local Codex, and return structured status/results through zkTalk
+- desktop packaged/dev app auto-connects its local machine bridge for the signed-in owner whenever local Codex auth is present, instead of making the operator manually register the machine first
+- settings language can be changed between Korean and English from product settings, and core settings IA on web/desktop no longer stays partly hard-coded in English after that switch
+- mobile settings, chat surfaces, translation preferences, and AI/message actions feel product-aligned with desktop/web and remain stable under repo-local verification
 
 # Verification
 

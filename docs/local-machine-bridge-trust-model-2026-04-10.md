@@ -168,6 +168,22 @@ The first bridge implementation batch should keep verification repo-local and in
 - desktop bridge loopback smoke for register -> command -> streamed update -> final summary
 - `.zkcoder/scripts/verify.sh`
 
+## Current Desktop Loopback Surface
+
+As of April 12, 2026, the packaged desktop shell exposes a repo-local loopback bridge surface through Electron IPC:
+
+- `local-machine-bridge:register`
+  - registers a named machine for one zkTalk user and persists the bridge identity in desktop user data
+- `local-machine-bridge:heartbeat`
+  - updates presence using only local loopback facts and keeps `online`, `busy`, `auth_missing`, and `bridge_missing` distinct
+- `local-machine-bridge:get-state`
+  - returns the persisted registration plus the current effective presence, degrading expired heartbeats to `offline`
+- `local-machine-bridge:dispatch-command`
+  - accepts one owner-scoped command envelope, runs it through the target machine's local `codex exec` path, and returns explicit `accepted`, `streaming`, `completed`, `busy`, `auth_missing`, and `rejected` updates
+  - command execution still depends on a real local Codex CLI/auth session on that machine; missing local setup remains an operator machine blocker rather than a server-side fallback
+
+This is intentionally not a cross-device transport yet. It is the smallest desktop-first proof that the app can register a machine locally, report honest bridge status, accept one owner-issued command, and avoid fake cloud execution claims while broader command routing work is still in flight.
+
 ## Immediate Follow-Up Queue Bias
 
 After this trust model, the next smallest useful tasks are:

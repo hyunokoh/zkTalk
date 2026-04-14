@@ -6,6 +6,21 @@ export {
   type AttachmentDisplayLike,
 } from './attachment-display';
 export {
+  resolveChannelSurfaceActionOrder,
+  type ChannelSurfaceActionId,
+} from './chat-surface-actions';
+export {
+  getMobileSettingsFocusTarget,
+  getSettingsSectionEntrypoint,
+  SETTINGS_SECTION_ENTRYPOINTS,
+  SETTINGS_SECTION_ORDER,
+  sortSettingsSectionIds,
+  type MobileSettingsFocusTarget,
+  type SettingsPlatform,
+  type SettingsSectionEntrypoint,
+  type SettingsSectionId,
+} from './settings-navigation';
+export {
   hasAiCapability,
   listAiCapabilities,
   type AiCapabilityId,
@@ -32,12 +47,22 @@ export {
   DEFAULT_TRANSLATION_DISPLAY_PREFERENCE,
   getTranslationDisplayPreset,
   inferMessageLanguage,
+  isValidTranslationLanguageCode,
   listTranslationDisplayPresets,
   normalizeTranslationDisplayPreference,
+  parseTranslationLanguageList,
   resolveTranslationDisplayPresetId,
   resolveTranslationDisplayDecision,
+  getTranslationDisplayProductSummary,
+  summarizeTranslationDisplayPreference,
+  validateTranslationDisplayInput,
   type ResolveTranslationDisplayDecisionInput,
+  type TranslationDisplayInputValidationFailureReason,
   type TranslationDisplayDecision,
+  type TranslationDisplayProductSummary,
+  type TranslationDisplayPreferenceSummary,
+  type ValidateTranslationDisplayInputOptions,
+  type ValidateTranslationDisplayInputResult,
 } from './translation-display';
 export {
   createTranslationRenderCacheEntry,
@@ -62,6 +87,7 @@ export {
   isMachinePresenceRunnable,
   normalizeMachineName,
   planLocalMachineBridgeExecution,
+  resolveLocalMachineHeartbeatPresence,
   resolveLocalMachineCommandDeliveryState,
   resolveLocalMachineDispatchAvailability,
   resolveLocalMachineRoutingDecision,
@@ -73,9 +99,11 @@ export {
   type LocalMachineDispatchAvailability,
   type LocalMachineDispatchBlockReason,
   type LocalMachineDispatchRuntime,
+  type LocalMachineHeartbeatPresenceSnapshot,
   type LocalMachineRoutingDecision,
   type LocalMachineRoutingFailureReason,
   type PlanLocalMachineBridgeExecutionInput,
+  type ResolveLocalMachineHeartbeatPresenceInput,
 } from './local-machine-bridge';
 export {
   canUseChannelAsOnboardingStarter,

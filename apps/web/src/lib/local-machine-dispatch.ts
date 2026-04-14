@@ -50,6 +50,8 @@ export function getLocalMachineDispatchBlockMessage(
       return 'The selected machine is online, but local Codex auth is missing.';
     case 'bridge_missing':
       return 'The selected machine does not have an active local bridge.';
+    case 'timed_out':
+      return 'The selected machine did not answer before the local bridge timed out.';
     case 'offline':
     default:
       return 'The selected machine is offline.';

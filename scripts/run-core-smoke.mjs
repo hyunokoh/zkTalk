@@ -88,7 +88,13 @@ function main() {
   const result = spawnSync('pnpm', command, {
     cwd: repoRoot,
     stdio: 'inherit',
-    env: process.env,
+    env: {
+      ...process.env,
+      ZKTALK_API_PORT: apiPort,
+      ZKTALK_WEB_PORT: webPort,
+      ZKTALK_BASE_URL: apiBaseUrl,
+      ZKTALK_SKIP_WEBSERVER: process.env.ZKTALK_SKIP_WEBSERVER ?? '1',
+    },
   });
 
   if (typeof result.status === 'number') {

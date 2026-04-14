@@ -55,12 +55,17 @@ import {
 } from '../lib/file-picker';
 import { getUserFacingErrorMessage } from '../lib/error-message';
 import { getToken, saveLastVisited } from '../lib/storage';
+import { fetchUserSettings } from '../lib/user-settings';
 import type { HomeStackParamList } from '../navigation/types';
 import { borderRadius, colors, fontSize as fs, spacing } from '../theme';
 import {
+  createTranslationRenderCacheEntry,
   getSelectedMessageAiSourceText,
   getTranslationRenderSourceVersion,
+  inferMessageLanguage,
   isImageAttachmentMimeType,
+  normalizeTranslationDisplayPreference,
+  resolveTranslationDisplayDecision,
   resolveTranslationResponse,
   resolveTranslationRenderCacheState,
   shouldHideAttachmentBody,
@@ -146,7 +151,7 @@ interface ChannelPermissions {
 }
 
 interface InlineTranslationState {
-  entry: TranslationRenderCacheEntry;
+  entry?: TranslationRenderCacheEntry | null;
   runtimeStatus: TranslationRuntimeStatus;
   issue?: string;
 }
@@ -204,6 +209,7 @@ export default function ThreadScreen({ navigation, route }: Props) {
   const [editingMessage, setEditingMessage] = React.useState<ThreadMessage | null>(null);
   const [actionMessage, setActionMessage] = React.useState<ThreadMessage | null>(null);
   const [translatedBodies, setTranslatedBodies] = React.useState<Record<string, InlineTranslationState>>({});
+  const [autoTranslatedBodies, setAutoTranslatedBodies] = React.useState<Record<string, InlineTranslationState>>({});
   const [pendingAttachment, setPendingAttachment] = React.useState<PickedFile | null>(null);
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
   const [showAttachMenu, setShowAttachMenu] = React.useState(false);
@@ -253,6 +259,11 @@ export default function ThreadScreen({ navigation, route }: Props) {
   const { data: aiRuntime } = useQuery({
     queryKey: ['ai-runtime'],
     queryFn: fetchAiRuntime,
+    staleTime: 60_000,
+  });
+  const { data: userSettings } = useQuery({
+    queryKey: ['user-settings'],
+    queryFn: fetchUserSettings,
     staleTime: 60_000,
   });
 
@@ -322,6 +333,14 @@ export default function ThreadScreen({ navigation, route }: Props) {
         new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
     );
   }, [focusedMessageQuery.data, replies, rootMessage?.id, threadId]);
+  const normalizedTranslationPreference = useMemo(
+    () => normalizeTranslationDisplayPreference(userSettings?.translationDisplay),
+    [userSettings?.translationDisplay],
+  );
+  const translationMessages = useMemo(
+    () => [...(rootMessage ? [rootMessage] : []), ...mergedReplies],
+    [mergedReplies, rootMessage],
+  );
   const messageIds = [
     ...(rootMessage ? [rootMessage.id] : []),
     ...mergedReplies.map((message) => message.id),
@@ -335,6 +354,109 @@ export default function ThreadScreen({ navigation, route }: Props) {
       ),
   });
   const reactionsByMessageId = reactionsData?.reactionsByMessageId ?? {};
+  useEffect(() => {
+    if (
+      normalizedTranslationPreference.mode === 'manual_only' ||
+      translationMessages.length === 0
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    for (const message of translationMessages) {
+      const body = shouldHideAttachmentBody(
+        message.bodyPlaintext || message.bodyMarkdown,
+        message.attachments ?? [],
+      )
+        ? ''
+        : message.bodyPlaintext;
+      if (!body.trim()) {
+        continue;
+      }
+
+      const sourceVersion = getTranslationRenderSourceVersion(message);
+      const translationState = autoTranslatedBodies[message.id];
+      const entry = translationState?.entry;
+      const cacheState = resolveTranslationRenderCacheState({
+        entry,
+        sourceVersion,
+        targetLanguage: normalizedTranslationPreference.targetLanguage,
+      });
+      const decision = resolveTranslationDisplayDecision({
+        preference: normalizedTranslationPreference,
+        messageLanguage: inferMessageLanguage(body),
+        hasTranslatedText: cacheState === 'ready' || cacheState === 'stale',
+        translationLanguage: entry?.targetLanguage ?? null,
+        runtime: translationState?.runtimeStatus ?? 'available',
+        stale: cacheState === 'stale',
+      });
+
+      if (
+        !decision.shouldAutoTranslate ||
+        (decision.state !== 'translation-pending' &&
+          decision.state !== 'translation-stale') ||
+        !decision.targetLanguage
+      ) {
+        continue;
+      }
+
+      void api<{
+        translatedText: string | null;
+        runtime: {
+          status: TranslationRuntimeStatus;
+          issue?: string;
+        };
+      }>('/api/translate', {
+        method: 'POST',
+        body: {
+          text: body,
+          targetLang: decision.targetLanguage,
+        },
+      })
+        .then((result) => {
+          if (cancelled) {
+            return;
+          }
+
+          setAutoTranslatedBodies((prev) => ({
+            ...prev,
+            [message.id]: result.translatedText
+              ? {
+                  entry: createTranslationRenderCacheEntry({
+                    translatedText: result.translatedText,
+                    targetLanguage: decision.targetLanguage as string,
+                    sourceVersion,
+                  }),
+                  runtimeStatus: result.runtime.status,
+                  issue: result.runtime.issue,
+                }
+              : {
+                  entry: null,
+                  runtimeStatus: result.runtime.status,
+                  issue: result.runtime.issue,
+                },
+          }));
+        })
+        .catch(() => {
+          if (cancelled) {
+            return;
+          }
+
+          setAutoTranslatedBodies((prev) => ({
+            ...prev,
+            [message.id]: {
+              entry: null,
+              runtimeStatus: 'unavailable',
+            },
+          }));
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [autoTranslatedBodies, normalizedTranslationPreference, translationMessages]);
   const filterCounts = useMemo(() => {
     const lastReadMessageId = threadQuery.data?.lastReadMessageId ?? null;
     return {
@@ -1168,27 +1290,88 @@ export default function ThreadScreen({ navigation, route }: Props) {
 
   const getRenderedTranslation = useCallback(
     (message: ThreadMessage) => {
-      const translationState = translatedBodies[message.id];
-      const entry = translationState?.entry;
-      const cacheState = resolveTranslationRenderCacheState({
-        entry,
-        sourceVersion: getTranslationRenderSourceVersion(message),
+      const sourceVersion = getTranslationRenderSourceVersion(message);
+      const manualState = translatedBodies[message.id];
+      const manualEntry = manualState?.entry;
+      const manualCacheState = resolveTranslationRenderCacheState({
+        entry: manualEntry,
+        sourceVersion,
         targetLanguage: locale,
       });
-      if (!entry || (cacheState !== 'ready' && cacheState !== 'stale')) {
-        return { body: undefined, label: undefined };
+      if (manualEntry && (manualCacheState === 'ready' || manualCacheState === 'stale')) {
+        return {
+          body: manualEntry.translatedText,
+          variant: 'manual' as const,
+          label:
+            manualCacheState === 'stale'
+              ? t('message.translatedStale')
+              : manualState?.runtimeStatus === 'mock'
+                ? t('message.translatedMock')
+                : t('message.translated'),
+          statusLabel: undefined,
+          statusIssue: undefined,
+        };
       }
+
+      const body = shouldHideAttachmentBody(
+        message.bodyPlaintext || message.bodyMarkdown,
+        message.attachments ?? [],
+      )
+        ? ''
+        : message.bodyPlaintext;
+      const autoState = autoTranslatedBodies[message.id];
+      const autoEntry = autoState?.entry;
+      const autoCacheState = resolveTranslationRenderCacheState({
+        entry: autoEntry,
+        sourceVersion,
+        targetLanguage: normalizedTranslationPreference.targetLanguage,
+      });
+      const autoDecision = resolveTranslationDisplayDecision({
+        preference: normalizedTranslationPreference,
+        messageLanguage: inferMessageLanguage(body),
+        hasTranslatedText: autoCacheState === 'ready' || autoCacheState === 'stale',
+        translationLanguage: autoEntry?.targetLanguage ?? null,
+        runtime: autoState?.runtimeStatus ?? 'available',
+        stale: autoCacheState === 'stale',
+      });
+
+      if (
+        autoDecision.render === 'translated' &&
+        autoEntry &&
+        (autoCacheState === 'ready' || autoCacheState === 'stale')
+      ) {
+        return {
+          body: autoEntry.translatedText,
+          variant: 'automatic' as const,
+          label:
+            autoDecision.state === 'translation-runtime-mock'
+              ? t('message.autoTranslatedMock')
+              : autoDecision.state === 'translation-stale'
+                ? t('message.autoTranslatedStale')
+                : t('message.autoTranslated'),
+          statusLabel: undefined,
+          statusIssue: undefined,
+        };
+      }
+
       return {
-        body: entry.translatedText,
-        label:
-          cacheState === 'stale'
-            ? t('message.translatedStale')
-            : translationState?.runtimeStatus === 'mock'
-              ? t('message.translatedMock')
-              : t('message.translated'),
+        body: undefined,
+        variant: undefined,
+        label: undefined,
+        statusLabel:
+          autoDecision.state === 'translation-runtime-disabled'
+            ? t('message.autoTranslationDisabled')
+            : autoDecision.state === 'translation-unavailable'
+              ? t('message.autoTranslationUnavailable')
+              : undefined,
+        statusIssue:
+          autoDecision.state === 'translation-runtime-disabled' ||
+          autoDecision.state === 'translation-unavailable'
+            ? autoState?.issue
+            : undefined,
       };
     },
-    [locale, t, translatedBodies],
+    [autoTranslatedBodies, locale, normalizedTranslationPreference, t, translatedBodies],
   );
 
   const handleAiReplyDraft = useCallback(async () => {
@@ -1671,6 +1854,9 @@ export default function ThreadScreen({ navigation, route }: Props) {
                     }
                     translatedBody={getRenderedTranslation(rootMessage).body}
                     translatedLabel={getRenderedTranslation(rootMessage).label}
+                    translationVariant={getRenderedTranslation(rootMessage).variant}
+                    translationStatusLabel={getRenderedTranslation(rootMessage).statusLabel}
+                    translationStatusIssue={getRenderedTranslation(rootMessage).statusIssue}
                     time={formatMessageMetaTime(rootMessage.createdAt)}
                     isOwn={rootMessage.authorUserId === currentUser?.id}
                     isEdited={rootMessage.isEdited}
@@ -2037,6 +2223,9 @@ export default function ThreadScreen({ navigation, route }: Props) {
                     }
                     translatedBody={getRenderedTranslation(item).body}
                     translatedLabel={getRenderedTranslation(item).label}
+                    translationVariant={getRenderedTranslation(item).variant}
+                    translationStatusLabel={getRenderedTranslation(item).statusLabel}
+                    translationStatusIssue={getRenderedTranslation(item).statusIssue}
                     time={formatMessageMetaTime(item.createdAt)}
                     isOwn={item.authorUserId === currentUser?.id}
                     isEdited={item.isEdited}

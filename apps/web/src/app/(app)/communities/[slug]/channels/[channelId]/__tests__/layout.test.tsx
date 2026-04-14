@@ -258,4 +258,75 @@ describe('ChannelLayout locked channel deep link handling', () => {
     expect(screen.queryByTestId('channel-layout-join-community')).toBeNull();
     expect(mockPush).not.toHaveBeenCalled();
   });
+
+  it('keeps shared primary actions visible and routes source DM through overflow', async () => {
+    mockApi.mockImplementation((path: string) => {
+      if (path === '/api/communities/alpha-team') {
+        return Promise.resolve({
+          community: {
+            id: 'community-1',
+            slug: 'alpha-team',
+            name: 'Alpha Team',
+          },
+        });
+      }
+
+      if (path === '/api/channels/channel-1') {
+        return Promise.resolve({
+          channel: {
+            id: 'channel-1',
+            communityId: 'community-1',
+            name: 'general',
+            type: 'chat',
+            sourceDmConversationId: 'dm-42',
+            sourceDmConversation: {
+              id: 'dm-42',
+              name: 'Ops bridge',
+            },
+          },
+        });
+      }
+
+      if (path === '/api/communities/community-1/channels') {
+        return Promise.resolve({
+          uncategorized: [],
+          categories: [],
+        });
+      }
+
+      return Promise.resolve({});
+    });
+
+    const { container } = renderWithQueryClient(
+      <ChannelLayout>
+        <div>children</div>
+      </ChannelLayout>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('channel-header-overflow-button')).toBeTruthy();
+    });
+
+    const searchLink = screen.getByTestId('channel-header-search-link');
+    const pinsButton = screen.getByTestId('channel-header-pins-button');
+    const overflowButton = screen.getByTestId('channel-header-overflow-button');
+
+    expect(searchLink.getAttribute('href')).toBe('/communities/alpha-team/search?channelId=channel-1');
+    expect(
+      searchLink.compareDocumentPosition(pinsButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      pinsButton.compareDocumentPosition(overflowButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(overflowButton);
+
+    const sourceLink = await screen.findByTestId('channel-source-dm-link');
+    const settingsLink = screen.getByTestId('channel-header-settings-link');
+
+    expect(sourceLink.getAttribute('href')).toBe('/dm/dm-42');
+    expect(settingsLink.getAttribute('href')).toBe('/communities/alpha-team/settings');
+
+    expect(container).toBeTruthy();
+  });
 });
