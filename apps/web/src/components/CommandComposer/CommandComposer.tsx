@@ -9,9 +9,19 @@ export interface CommandComposerProps {
   device: AgentDevice;
   agents: DeviceAgent[];
   disabled?: boolean;
+  /**
+   * Which agent to route plain-text (natural-language) input to when the user
+   * doesn't use the slash-command syntax. Defaults to 'codex'. The composer
+   * will fall back to 'shell' if neither 'codex' nor the configured default
+   * agent is installed on the current device.
+   */
+  defaultAiAgentSlug?: string;
 }
 
+type InputMode = 'natural' | 'slash';
+
 interface ParsedCommand {
+  mode: InputMode;
   agentSlug: string | null;
   verb: string | null;
   args: string;
@@ -20,39 +30,74 @@ interface ParsedCommand {
 }
 
 /**
- * Parse a slash command of form:
- *   /<deviceSlug>[.<agentSlug>[.<verb>]] <args>
- * Device slug is optional because the composer is scoped to a specific device
- * — if the user types a different device, we still accept it and route via
- * deviceSlug on the API call.
+ * Parse composer input.
+ *
+ * Two supported modes:
+ *   1. NATURAL  — bare text, routes to the device's AI agent (codex by
+ *      default) as a single `args` prompt. No slash prefix needed. This is
+ *      the "write in plain language" path Anna asked for.
+ *   2. SLASH    — classic `/<deviceSlug>.<agentSlug>[.<verb>] <args>` for
+ *      power users who want to pick a specific agent / verb.
  */
-function parseCommand(input: string, currentDeviceSlug: string): ParsedCommand {
+function parseCommand(
+  input: string,
+  currentDeviceSlug: string,
+  defaultAiAgentSlug: string,
+  installedAgentSlugs: Set<string>,
+): ParsedCommand {
   const trimmed = input.trim();
   if (!trimmed) {
-    return { agentSlug: null, verb: null, args: '', valid: false, reason: 'empty' };
-  }
-
-  if (!trimmed.startsWith('/')) {
     return {
+      mode: 'natural',
       agentSlug: null,
       verb: null,
-      args: trimmed,
+      args: '',
       valid: false,
-      reason: 'missing_slash',
+      reason: 'empty',
     };
   }
 
+  // Natural-language mode: anything that isn't a slash command. Route to the
+  // default AI agent (codex) with the entire input as `args`.
+  if (!trimmed.startsWith('/')) {
+    const fallback = installedAgentSlugs.has(defaultAiAgentSlug)
+      ? defaultAiAgentSlug
+      : installedAgentSlugs.has('codex')
+        ? 'codex'
+        : installedAgentSlugs.has('claude')
+          ? 'claude'
+          : null;
+    if (!fallback) {
+      return {
+        mode: 'natural',
+        agentSlug: null,
+        verb: null,
+        args: trimmed,
+        valid: false,
+        reason: 'no_ai_agent_installed',
+      };
+    }
+    return {
+      mode: 'natural',
+      agentSlug: fallback,
+      verb: null,
+      args: trimmed,
+      valid: true,
+    };
+  }
+
+  // Slash mode.
   const [head, ...rest] = trimmed.slice(1).split(/\s+/);
   const args = rest.join(' ').trim();
   const parts = head.split('.');
 
-  // parts = [deviceSlug?, agentSlug?, verb?]
   const deviceSlug = parts[0] ?? '';
   const agentSlug = parts[1] ?? null;
   const verb = parts[2] ?? null;
 
   if (deviceSlug !== currentDeviceSlug) {
     return {
+      mode: 'slash',
       agentSlug,
       verb,
       args,
@@ -63,6 +108,7 @@ function parseCommand(input: string, currentDeviceSlug: string): ParsedCommand {
 
   if (!agentSlug) {
     return {
+      mode: 'slash',
       agentSlug: null,
       verb,
       args,
@@ -71,20 +117,33 @@ function parseCommand(input: string, currentDeviceSlug: string): ParsedCommand {
     };
   }
 
-  return { agentSlug, verb, args, valid: true };
+  return { mode: 'slash', agentSlug, verb, args, valid: true };
 }
 
-export function CommandComposer({ device, agents, disabled }: CommandComposerProps) {
+export function CommandComposer({
+  device,
+  agents,
+  disabled,
+  defaultAiAgentSlug = 'codex',
+}: CommandComposerProps) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
 
-  const parsed = useMemo(() => parseCommand(value, device.slug), [value, device.slug]);
+  const installedAgentSlugs = useMemo(
+    () => new Set(agents.filter((a) => a.isEnabled).map((a) => a.agentSlug)),
+    [agents],
+  );
+
+  const parsed = useMemo(
+    () => parseCommand(value, device.slug, defaultAiAgentSlug, installedAgentSlugs),
+    [value, device.slug, defaultAiAgentSlug, installedAgentSlugs],
+  );
 
   const mutation = useMutation({
     mutationFn: async (rawCommand: string) => {
       if (!parsed.valid || !parsed.agentSlug) {
-        throw new Error('Invalid command syntax');
+        throw new Error('Invalid command');
       }
       return queueCommand({
         deviceSlug: device.slug,
@@ -101,8 +160,7 @@ export function CommandComposer({ device, agents, disabled }: CommandComposerPro
   });
 
   const suggestions = useMemo(() => {
-    // Only show suggestions when user has typed "/<deviceSlug>." but no agent yet,
-    // or has typed "/<deviceSlug>.<partial>" that doesn't match any installed agent.
+    // Suggestions only fire in slash mode after "/<deviceSlug>."
     if (!value.startsWith(`/${device.slug}.`)) return [];
     const afterDot = value.slice(device.slug.length + 2).split(/\s+/)[0] ?? '';
     const [agentFragment] = afterDot.split('.');
@@ -144,13 +202,17 @@ export function CommandComposer({ device, agents, disabled }: CommandComposerPro
 
   const helperText = mutation.isError
     ? (mutation.error as Error)?.message || 'Failed to queue command'
-    : parsed.reason === 'missing_slash'
-      ? `Start with /${device.slug}.<agent>`
-      : parsed.reason === 'wrong_device'
-        ? `Device does not match /${device.slug}`
-        : parsed.reason === 'missing_agent'
-          ? `Add an agent, e.g. /${device.slug}.shell ls`
-          : `Enter sends · Shift+Enter for newline`;
+    : parsed.reason === 'wrong_device'
+      ? `Device does not match /${device.slug}`
+      : parsed.reason === 'missing_agent'
+        ? `Add an agent, e.g. /${device.slug}.shell ls`
+        : parsed.reason === 'no_ai_agent_installed'
+          ? `No AI agent installed on ${device.name} — install codex or claude, or use /${device.slug}.shell …`
+          : parsed.mode === 'natural' && parsed.valid
+            ? `↩ sends to ${parsed.agentSlug} on ${device.name} · / for raw agent syntax`
+            : `↩ sends · Shift+↩ newline · type plain text for AI, / for raw agent`;
+
+  const isNaturalMode = parsed.mode === 'natural';
 
   return (
     <form
@@ -171,8 +233,10 @@ export function CommandComposer({ device, agents, disabled }: CommandComposerPro
                 onClick={() => applySuggestion(a.agentSlug)}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-fg hover:bg-bg-hover"
               >
-                <span className="h-1.5 w-1.5 rounded-pill bg-agent" aria-hidden="true" />
-                <span className="font-medium">/{device.slug}.{a.agentSlug}</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-agent" aria-hidden="true" />
+                <span className="font-medium">
+                  /{device.slug}.{a.agentSlug}
+                </span>
                 <span className="text-fg-muted">· {a.displayName}</span>
                 {a.version ? (
                   <span className="ml-auto text-fg-subtle">@{a.version}</span>
@@ -191,15 +255,17 @@ export function CommandComposer({ device, agents, disabled }: CommandComposerPro
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           rows={1}
-          placeholder={`/${device.slug}.shell ls ~/Downloads`}
+          placeholder={`Ask ${device.name} anything… (e.g. 다운로드 폴더 정리해줘)`}
           disabled={disabled || mutation.isPending}
-          className="min-h-[40px] max-h-[160px] flex-1 resize-none rounded-md border border-line bg-bg-elevated px-3 py-2 font-mono text-[13px] leading-[20px] text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none disabled:opacity-60"
+          className={`min-h-[40px] max-h-[160px] flex-1 resize-none rounded-md border border-line bg-bg-elevated px-3 py-2 text-[14px] leading-[20px] text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none disabled:opacity-60 ${
+            isNaturalMode ? '' : 'font-mono text-[13px]'
+          }`}
         />
         <button
           type="submit"
           data-testid="command-composer-send"
           disabled={!canSend}
-          className="inline-flex h-10 items-center rounded-md bg-accent px-4 text-[13px] font-semibold text-[color:var(--on-accent)] transition hover:bg-accent-strong disabled:opacity-50"
+          className="inline-flex h-10 items-center rounded-md bg-accent px-4 text-[13px] font-semibold text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong disabled:opacity-50"
         >
           {mutation.isPending ? 'Sending…' : 'Send'}
         </button>
