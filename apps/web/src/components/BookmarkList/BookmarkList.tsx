@@ -91,10 +91,10 @@ export function BookmarkList() {
 
   return (
     <div data-testid="bookmarks-page" className="flex flex-1 flex-col">
-      <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_100%)] px-5 py-5 md:px-8">
+      <div className="border-b border-line bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_100%)] px-5 py-5 md:px-8">
         <div className="mx-auto w-full max-w-5xl">
           <h2 className="text-xl font-bold text-white">{t('bookmark.title')}</h2>
-          <p className="mt-1 text-sm text-white/56">{t('bookmark.empty')}</p>
+          <p className="mt-1 text-sm text-fg-muted">{t('bookmark.empty')}</p>
         </div>
       </div>
 
@@ -128,7 +128,7 @@ export function BookmarkList() {
                       router.push(href);
                     }
                   }}
-                  className="rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(19,28,42,0.98),rgba(11,18,29,0.98))] px-4 py-4 text-left shadow-[0_18px_42px_rgba(2,8,23,0.18)] transition hover:border-white/12 hover:bg-white/[0.04]"
+                  className="rounded-2xl border border-line bg-[linear-gradient(180deg,rgba(19,28,42,0.98),rgba(11,18,29,0.98))] px-4 py-4 text-left shadow-[0_18px_42px_rgba(2,8,23,0.18)] transition hover:border-line hover:bg-bg-hover"
                 >
                   <div className="flex items-start gap-3">
                     <UserAvatar
@@ -157,7 +157,7 @@ export function BookmarkList() {
                         event.stopPropagation();
                         removeMutation.mutate(bm.message.id ?? bm.messageId);
                       }}
-                      className="shrink-0 rounded-xl p-2 text-fg-muted transition hover:bg-white/10 hover:text-danger"
+                      className="shrink-0 rounded-xl p-2 text-fg-muted transition hover:bg-bg-hover hover:text-danger"
                       title={t('bookmark.remove')}
                     >
                       <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">

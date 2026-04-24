@@ -51,7 +51,7 @@ export function ToastViewport({ className = '' }: ToastViewportProps) {
             <button
               type="button"
               onClick={() => dismissToast(toast.id)}
-              className="rounded-md px-1 text-white/80 transition hover:bg-white/10 hover:text-white"
+              className="rounded-md px-1 text-fg transition hover:bg-bg-hover hover:text-white"
               aria-label="Dismiss notification"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

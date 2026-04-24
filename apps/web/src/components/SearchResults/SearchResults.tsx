@@ -79,7 +79,7 @@ export function SearchResults({ results, isLoading, query }: SearchResultsProps)
         <Link
           key={result.id}
           href={`/communities/${result.communitySlug}/channels/${result.channelId}#${result.id}`}
-          className="block rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(19,28,42,0.98),rgba(11,18,29,0.98))] p-4 transition hover:border-white/12 hover:bg-white/[0.04]"
+          className="block rounded-2xl border border-line bg-[linear-gradient(180deg,rgba(19,28,42,0.98),rgba(11,18,29,0.98))] p-4 transition hover:border-line hover:bg-bg-hover"
         >
           <div className="flex items-center gap-2 text-xs text-fg-muted">
             <span className="text-fg-muted"># {result.channelName}</span>

@@ -45,7 +45,7 @@ export function OnboardingModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-subtle">
       <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-bg-subtle">
         {/* Welcome */}
         <h2 className="text-center text-2xl font-bold text-fg dark:text-fg-muted">

@@ -223,7 +223,7 @@ export function DmList({ onConversationSelect }: DmListProps) {
               className={`px-3 py-2.5 transition-colors ${
                 isActive
                   ? 'bg-bg-hover'
-                  : 'hover:bg-white/[0.04]'
+                  : 'hover:bg-bg-hover'
               }`}
               data-testid="dm-list-row"
               data-conversation-id={conv.id}

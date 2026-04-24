@@ -87,7 +87,7 @@ export default function CommunityLayout({
   if (communityLoading) {
     return (
       <div className="flex flex-1 items-center justify-center bg-transparent px-6">
-        <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-medium text-white/70 shadow-[0_24px_60px_rgba(2,6,23,0.38)] backdrop-blur-xl">
+        <div className="rounded-[2rem] border border-line bg-bg-hover px-6 py-4 text-sm font-medium text-fg shadow-[0_24px_60px_rgba(2,6,23,0.38)] backdrop-blur-xl">
           {t('community.loadingCommunity')}
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function CommunityLayout({
   if (!community) {
     return (
       <div className="flex flex-1 items-center justify-center px-6">
-        <div className="rounded-[2rem] border border-white/10 bg-bg-elevated px-7 py-6 text-center shadow-[0_28px_70px_rgba(2,8,23,0.5)] backdrop-blur-xl">
+        <div className="rounded-[2rem] border border-line bg-bg-elevated px-7 py-6 text-center shadow-[0_28px_70px_rgba(2,8,23,0.5)] backdrop-blur-xl">
           <h2 className="text-xl font-semibold text-white">{t('community.notFound')}</h2>
           <Link href="/home" className="mt-2 inline-flex text-sm font-medium text-accent hover:text-accent">
             {t('community.goHome')}
@@ -146,7 +146,7 @@ export default function CommunityLayout({
       {!channelId && (
         <button
           onClick={toggleChannelSidebar}
-          className="fixed left-16 top-3 z-30 flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-bg-elevated text-white/78 shadow-[0_16px_38px_rgba(2,8,23,0.44)] backdrop-blur-xl transition hover:bg-bg-hover hover:text-white md:hidden"
+          className="fixed left-16 top-3 z-30 flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-bg-elevated text-fg shadow-[0_16px_38px_rgba(2,8,23,0.44)] backdrop-blur-xl transition hover:bg-bg-hover hover:text-white md:hidden"
           aria-label="Toggle channels"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -186,12 +186,12 @@ export default function CommunityLayout({
           aria-label="Resize channel sidebar"
           title="Resize channel sidebar"
         >
-          <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/8 transition hover:bg-white/30" />
+          <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-bg-hover transition hover:bg-bg-hover" />
         </button>
       </div>
 
       {/* Main content area */}
-      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden border-l border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_18%),linear-gradient(180deg,rgba(8,17,29,0.84),rgba(8,17,29,0.96))]">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden border-l border-line bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_18%),linear-gradient(180deg,rgba(8,17,29,0.84),rgba(8,17,29,0.96))]">
         {children}
       </div>
 

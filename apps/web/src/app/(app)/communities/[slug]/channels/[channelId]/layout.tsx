@@ -195,7 +195,7 @@ export default function ChannelLayout({
             )}
             <Link
               href={`/communities/${slug}`}
-              className="rounded-xl border border-warning/20 px-3 py-2 text-sm font-medium text-warning/85 transition hover:bg-white/10 hover:text-white"
+              className="rounded-xl border border-warning/20 px-3 py-2 text-sm font-medium text-warning/85 transition hover:bg-bg-hover hover:text-white"
             >
               {t('common.back')}
             </Link>
@@ -223,7 +223,7 @@ export default function ChannelLayout({
         {/* Mobile: channel sidebar toggle — positioned right of the app hamburger */}
         <button
           onClick={toggleChannelSidebar}
-          className="absolute left-[50px] top-1 flex h-10 w-10 items-center justify-center rounded-md text-fg-muted hover:bg-white/10 hover:text-white md:hidden"
+          className="absolute left-[50px] top-1 flex h-10 w-10 items-center justify-center rounded-md text-fg-muted hover:bg-bg-hover hover:text-white md:hidden"
           aria-label="Toggle channels"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -274,7 +274,7 @@ export default function ChannelLayout({
             <Link
               href={channelSearchHref}
               data-testid="channel-header-search-link"
-              className="rounded-md p-1.5 text-fg-subtle hover:bg-white/10 hover:text-fg"
+              className="rounded-md p-1.5 text-fg-subtle hover:bg-bg-hover hover:text-fg"
               title={t('search.title')}
             >
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -290,7 +290,7 @@ export default function ChannelLayout({
             <button
               data-testid="channel-header-pins-button"
               onClick={() => setShowPinned(!showPinned)}
-              className={`rounded-md p-1.5 hover:bg-white/10 ${showPinned ? 'text-white' : 'text-fg-subtle hover:text-fg'}`}
+              className={`rounded-md p-1.5 hover:bg-bg-hover ${showPinned ? 'text-white' : 'text-fg-subtle hover:text-fg'}`}
               title={t('pin.pinned')}
             >
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -304,7 +304,7 @@ export default function ChannelLayout({
                 type="button"
                 data-testid="channel-header-overflow-button"
                 onClick={() => setShowHeaderOverflow((prev) => !prev)}
-                className={`rounded-md p-1.5 hover:bg-white/10 ${showHeaderOverflow ? 'text-white' : 'text-fg-subtle hover:text-fg'}`}
+                className={`rounded-md p-1.5 hover:bg-bg-hover ${showHeaderOverflow ? 'text-white' : 'text-fg-subtle hover:text-fg'}`}
                 title={t('message.moreActions')}
                 aria-expanded={showHeaderOverflow}
               >
@@ -315,14 +315,14 @@ export default function ChannelLayout({
               {showHeaderOverflow && (
                 <div
                   data-testid="channel-header-overflow-menu"
-                  className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl border border-white/10 bg-bg-subtle p-1.5 shadow-[0_20px_45px_rgba(0,0,0,0.35)]"
+                  className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl border border-line bg-bg-subtle p-1.5 shadow-[0_20px_45px_rgba(0,0,0,0.35)]"
                 >
                   {channelActionOrder.overflow.includes('source_dm') && sourceDmConversationId && (
                     <Link
                       href={`/dm/${sourceDmConversationId}`}
                       data-testid="channel-source-dm-link"
                       onClick={() => setShowHeaderOverflow(false)}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-fg transition hover:bg-white/10"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-fg transition hover:bg-bg-hover"
                       title={sourceDmFullLabel}
                     >
                       <svg className="h-4 w-4 shrink-0 text-fg-subtle" viewBox="0 0 20 20" fill="currentColor">
@@ -336,7 +336,7 @@ export default function ChannelLayout({
                       href={`/communities/${slug}/settings`}
                       data-testid="channel-header-settings-link"
                       onClick={() => setShowHeaderOverflow(false)}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-fg transition hover:bg-white/10"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-fg transition hover:bg-bg-hover"
                       title={t('nav.settings')}
                     >
                       <svg className="h-4 w-4 shrink-0 text-fg-subtle" viewBox="0 0 20 20" fill="currentColor">

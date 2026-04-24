@@ -365,7 +365,7 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center bg-transparent px-6">
-        <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] px-6 py-4 text-sm font-medium text-white/68 shadow-[0_22px_56px_rgba(2,8,23,0.34)] backdrop-blur-xl">
+        <div className="rounded-[2rem] border border-line bg-bg-hover px-6 py-4 text-sm font-medium text-fg-muted shadow-[0_22px_56px_rgba(2,8,23,0.34)] backdrop-blur-xl">
           {t('message.loading')}
         </div>
       </div>
@@ -375,15 +375,15 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-transparent">
       {requireTopic && topicsData && topicsData.length > 0 && (
-        <div className="border-b border-white/8 bg-white/[0.02] px-5 py-3 md:px-8">
+        <div className="border-b border-line bg-bg-hover px-5 py-3 md:px-8">
           <div className="mx-auto flex w-full max-w-5xl items-center gap-2 overflow-x-auto">
-            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/42">{t('topic.filter')}</span>
+            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">{t('topic.filter')}</span>
             <button
               onClick={() => onTopicSelect?.(null)}
               className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition ${
                 !topicFilter
                   ? 'border-accent/30 bg-accent/14 text-accent'
-                  : 'border-white/8 bg-white/[0.04] text-white/56 hover:bg-white/[0.08] hover:text-white'
+                  : 'border-line bg-bg-hover text-fg-muted hover:bg-bg-hover hover:text-white'
               }`}
             >
               {t('topic.all')}
@@ -395,7 +395,7 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
                 className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition ${
                   topicFilter === topicItem.topic
                     ? 'border-accent/30 bg-accent/14 text-accent'
-                    : 'border-white/8 bg-white/[0.04] text-white/56 hover:bg-white/[0.08] hover:text-white'
+                    : 'border-line bg-bg-hover text-fg-muted hover:bg-bg-hover hover:text-white'
                 }`}
               >
                 {topicItem.topic} ({topicItem.messageCount})
@@ -412,13 +412,13 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
       >
         <div className="mx-auto w-full max-w-5xl">
           {isFetchingNextPage && (
-            <div className="py-4 text-center text-xs font-medium text-white/42">{t('message.loadingOlder')}</div>
+            <div className="py-4 text-center text-xs font-medium text-fg-muted">{t('message.loadingOlder')}</div>
           )}
           {hasNextPage && !isFetchingNextPage && (
             <div className="py-4 text-center">
               <button
                 onClick={() => fetchNextPage()}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-medium text-white/72 transition hover:bg-white/[0.08] hover:text-white"
+                className="rounded-full border border-line bg-bg-hover px-4 py-1.5 text-xs font-medium text-fg transition hover:bg-bg-hover hover:text-white"
               >
                 {t('message.loadMore')}
               </button>
@@ -437,7 +437,7 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
                 <button
                   type="button"
                   onClick={() => void flushOfflineQueueForChannel(channelId)}
-                  className="rounded-full border border-warning/25 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-white/15"
+                  className="rounded-full border border-warning/25 bg-bg-hover px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-bg-hover"
                 >
                   {t('offline.retry')}
                 </button>
@@ -445,27 +445,27 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
             )}
 
             {allMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-[2rem] border border-white/8 bg-white/[0.03] px-8 py-16 text-white/44 shadow-[0_24px_60px_rgba(2,8,23,0.18)]">
-                <svg className="mb-4 h-12 w-12 text-white/24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <div className="flex flex-col items-center justify-center rounded-[2rem] border border-line bg-bg-hover px-8 py-16 text-fg-muted shadow-[0_24px_60px_rgba(2,8,23,0.18)]">
+                <svg className="mb-4 h-12 w-12 text-fg-subtle" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25z" />
                 </svg>
-                <p className="text-sm font-medium text-white/70">{t('message.noMessages')}</p>
+                <p className="text-sm font-medium text-fg">{t('message.noMessages')}</p>
               </div>
             ) : groupedByTopic ? (
               groupedByTopic.map((group) => (
                 <div key={group.topic}>
-                  <div className="sticky top-3 z-10 mx-auto mb-3 flex w-fit max-w-full items-center gap-2 rounded-full border border-white/8 bg-bg-elevated px-4 py-2 text-white/44 shadow-[0_16px_34px_rgba(2,8,23,0.28)] backdrop-blur-xl">
-                    <svg className="h-3.5 w-3.5 text-white/40" viewBox="0 0 20 20" fill="currentColor">
+                  <div className="sticky top-3 z-10 mx-auto mb-3 flex w-fit max-w-full items-center gap-2 rounded-full border border-line bg-bg-elevated px-4 py-2 text-fg-muted shadow-[0_16px_34px_rgba(2,8,23,0.28)] backdrop-blur-xl">
+                    <svg className="h-3.5 w-3.5 text-fg-muted" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M9.243 3.03a1 1 0 01.727 1.213L9.53 6h2.94l.56-2.243a1 1 0 111.94.486L14.53 6H17a1 1 0 110 2h-2.97l-1 4H15a1 1 0 110 2h-2.47l-.56 2.243a1 1 0 11-1.94-.486L10.47 14H7.53l-.56 2.243a1 1 0 11-1.94-.486L5.47 14H3a1 1 0 110-2h2.97l1-4H5a1 1 0 110-2h2.47l.56-2.243a1 1 0 011.213-.727zM9.03 8l-1 4h2.938l1-4H9.031z" clipRule="evenodd" />
                     </svg>
                     <button
                       onClick={() => onTopicSelect?.(group.topic === '(no topic)' ? null : group.topic)}
-                      className="truncate text-xs font-medium text-white/78 hover:text-white"
+                      className="truncate text-xs font-medium text-fg hover:text-white"
                     >
                       {group.topic}
                     </button>
-                    <span className="text-[10px] text-white/36">({group.messages.length})</span>
+                    <span className="text-[10px] text-fg-subtle">({group.messages.length})</span>
                   </div>
                   {group.messages.map((msg, groupIndex) => {
                     const previousMessage = groupIndex > 0 ? group.messages[groupIndex - 1] : undefined;
@@ -532,7 +532,7 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
 
       {typingText && (
         <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 -translate-x-1/2">
-          <div className="rounded-full border border-white/10 bg-bg-elevated px-4 py-2 text-xs font-medium text-white/72 shadow-[0_16px_36px_rgba(2,8,23,0.32)] backdrop-blur-xl">
+          <div className="rounded-full border border-line bg-bg-elevated px-4 py-2 text-xs font-medium text-fg shadow-[0_16px_36px_rgba(2,8,23,0.32)] backdrop-blur-xl">
             {typingText}
           </div>
         </div>

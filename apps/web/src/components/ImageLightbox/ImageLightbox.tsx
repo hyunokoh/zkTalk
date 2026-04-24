@@ -76,7 +76,7 @@ export function ImageLightbox({
               event.stopPropagation();
               onSave();
             }}
-            className="rounded-full border border-slate-200/80 bg-white/92 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg transition-colors hover:bg-white hover:text-slate-900"
+            className="rounded-full border border-slate-200/80 bg-bg-hover px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg transition-colors hover:bg-white hover:text-slate-900"
             title={t('attachment.save')}
           >
             {t('attachment.save')}
@@ -84,7 +84,7 @@ export function ImageLightbox({
         ) : null}
         <button
           onClick={onClose}
-          className="rounded-full border border-slate-200/80 bg-white/92 p-2 text-slate-600 shadow-lg transition-colors hover:bg-white hover:text-slate-900"
+          className="rounded-full border border-slate-200/80 bg-bg-hover p-2 text-slate-600 shadow-lg transition-colors hover:bg-white hover:text-slate-900"
           title={t('lightbox.close')}
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -99,7 +99,7 @@ export function ImageLightbox({
             e.stopPropagation();
             handlePrev();
           }}
-          className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200/80 bg-white/92 p-2 text-slate-600 shadow-lg transition-colors hover:bg-white hover:text-slate-900"
+          className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200/80 bg-bg-hover p-2 text-slate-600 shadow-lg transition-colors hover:bg-white hover:text-slate-900"
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -108,7 +108,7 @@ export function ImageLightbox({
       )}
 
       <div
-        className="max-h-[90vh] max-w-[90vw] overflow-hidden rounded-[28px] border border-white/70 bg-white/86 p-2 shadow-2xl"
+        className="max-h-[90vh] max-w-[90vw] overflow-hidden rounded-[28px] border border-line0 bg-bg-hover p-2 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <img
@@ -126,7 +126,7 @@ export function ImageLightbox({
             e.stopPropagation();
             handleNext();
           }}
-          className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200/80 bg-white/92 p-2 text-slate-600 shadow-lg transition-colors hover:bg-white hover:text-slate-900"
+          className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200/80 bg-bg-hover p-2 text-slate-600 shadow-lg transition-colors hover:bg-white hover:text-slate-900"
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -135,7 +135,7 @@ export function ImageLightbox({
       )}
 
       {hasMultiple && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-slate-200/80 bg-white/92 px-3 py-1 text-sm font-semibold text-slate-700 shadow-lg">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-slate-200/80 bg-bg-hover px-3 py-1 text-sm font-semibold text-slate-700 shadow-lg">
           {currentIndex + 1} / {images.length}
         </div>
       )}

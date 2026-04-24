@@ -689,7 +689,7 @@ export default function AISettingsPage() {
                                 <p className="mt-2 text-sm leading-6">{update.summary}</p>
                               ) : null}
                               {update.outputText ? (
-                                <pre className="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-black/20 p-3 text-xs leading-5 text-inherit whitespace-pre-wrap">
+                                <pre className="mt-3 overflow-x-auto rounded-xl border border-line bg-bg-subtle p-3 text-xs leading-5 text-inherit whitespace-pre-wrap">
                                   {update.outputText}
                                 </pre>
                               ) : null}

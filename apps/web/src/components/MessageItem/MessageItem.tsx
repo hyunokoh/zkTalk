@@ -88,7 +88,7 @@ function getButtonA11yToRender(expanded: boolean): string {
 
 function getButtonClassToRender(isAuthor: boolean): string {
   return isAuthor
-    ? 'mt-2 inline-flex w-fit items-center rounded-pill border border-white/30 bg-white/15 px-3 py-1 text-[11px] font-semibold text-[color:var(--on-accent)] transition hover:bg-white/25'
+    ? 'mt-2 inline-flex w-fit items-center rounded-pill border border-line bg-bg-hover px-3 py-1 text-[11px] font-semibold text-[color:var(--on-accent)] transition hover:bg-bg-hover'
     : 'mt-2 inline-flex w-fit items-center rounded-pill border border-line bg-bg-hover px-3 py-1 text-[11px] font-semibold text-fg-muted transition hover:border-line-strong hover:text-fg';
 }
 
@@ -793,7 +793,7 @@ export function MessageItem({
     ? 'border-transparent bg-accent text-[color:var(--on-accent)] shadow-[var(--shadow-1)]'
     : 'border-line bg-bg-subtle text-fg shadow-[var(--shadow-1)]';
   const replyTone = isAuthor
-    ? 'border-white/25 bg-white/15 text-[color:var(--on-accent)]/85'
+    ? 'border-line bg-bg-hover text-[color:var(--on-accent)]/85'
     : 'border-line bg-bg-hover text-fg-muted';
   const sideMeta = (
     <div className={`shrink-0 self-end pb-0.5 text-[11px] leading-tight text-fg-subtle ${isAuthor ? 'text-right' : 'text-left'}`}>

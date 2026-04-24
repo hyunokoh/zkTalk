@@ -179,7 +179,7 @@ function ImageAttachment({
           event.stopPropagation();
           onSave();
         }}
-        className="absolute right-3 top-3 rounded-full border border-white/15 bg-bg-elevated/75 px-3 py-1 text-xs font-semibold text-white opacity-0 transition-opacity hover:bg-bg-elevated group-hover:opacity-100"
+        className="absolute right-3 top-3 rounded-full border border-line bg-bg-elevated/75 px-3 py-1 text-xs font-semibold text-white opacity-0 transition-opacity hover:bg-bg-elevated group-hover:opacity-100"
       >
         {saveLabel}
       </button>

@@ -42,7 +42,7 @@ export function InviteModal({ communityId, onClose }: InviteModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-subtle" onClick={onClose}>
       <div
         className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-bg-subtle"
         onClick={(e) => e.stopPropagation()}

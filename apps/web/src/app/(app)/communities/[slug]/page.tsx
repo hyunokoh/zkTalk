@@ -284,7 +284,7 @@ export default function CommunityOverviewPage() {
             ) : null}
           </div>
           {sortedVoiceChannels.length > 0 && (
-            <div className="mx-auto mt-8 max-w-2xl rounded-3xl border border-line bg-white/85 p-5 shadow-sm">
+            <div className="mx-auto mt-8 max-w-2xl rounded-3xl border border-line bg-bg-hover p-5 shadow-sm">
               <div className="mb-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-fg-muted">
                   {t('voice.quickJoinTitle')}

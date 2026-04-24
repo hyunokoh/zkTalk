@@ -98,10 +98,10 @@ export default function SearchPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
-      <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_100%)] px-5 py-5 md:px-8">
+      <div className="border-b border-line bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_100%)] px-5 py-5 md:px-8">
         <div className="mx-auto w-full max-w-5xl">
           <h1 className="text-xl font-bold text-white">{t('search.title')}</h1>
-          <p className="mt-1 text-sm text-white/56">{t('search.placeholder')}</p>
+          <p className="mt-1 text-sm text-fg-muted">{t('search.placeholder')}</p>
         </div>
       </div>
 

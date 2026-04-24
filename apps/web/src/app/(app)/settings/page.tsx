@@ -161,7 +161,7 @@ export default function SettingsPage() {
           <div className="rounded-[1.25rem] border border-line bg-bg-elevated/50 p-2">
             <Link
               href="/friends"
-              className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-white/5"
+              className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-bg-hover"
             >
               <div>
                 <p className="text-base font-semibold text-white">{t('friend.title')}</p>
@@ -171,7 +171,7 @@ export default function SettingsPage() {
             </Link>
             <Link
               href="/settings#profile-share"
-              className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-white/5"
+              className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-bg-hover"
             >
               <div>
                 <p className="text-base font-semibold text-white">
@@ -319,7 +319,7 @@ export default function SettingsPage() {
           <div className="rounded-[1.25rem] border border-line bg-bg-elevated/50 p-2">
             <Link
               href="/settings/privacy"
-              className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-white/5"
+              className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-bg-hover"
             >
               <div>
                 <p className="text-base font-semibold text-white">{t('privacy.metadata')}</p>
@@ -329,7 +329,7 @@ export default function SettingsPage() {
             </Link>
             <Link
               href="/settings/backup"
-              className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-white/5"
+              className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-bg-hover"
             >
               <div>
                 <p className="text-base font-semibold text-white">{t('backup.title')}</p>

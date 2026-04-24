@@ -62,7 +62,7 @@ export function ForwardMessageModal({ messageId, communityId, onClose }: Forward
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-subtle" onClick={onClose}>
       <div
         className="w-full max-w-md rounded-lg border border-line bg-white shadow-xl dark:border-line dark:bg-bg-subtle"
         onClick={(e) => e.stopPropagation()}

@@ -35,12 +35,12 @@ export function ConfirmDialog({
       : 'bg-accent text-white hover:bg-accent';
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 px-4" onClick={onCancel}>
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-bg-subtle px-4" onClick={onCancel}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-bg-subtle p-6 shadow-[0_30px_70px_rgba(0,0,0,0.45)]"
+        className="w-full max-w-md rounded-2xl border border-line bg-bg-subtle p-6 shadow-[0_30px_70px_rgba(0,0,0,0.45)]"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="confirm-dialog-title" className="text-lg font-semibold text-white">
@@ -54,7 +54,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-fg-muted transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl border border-line bg-bg-hover px-4 py-2 text-sm font-medium text-fg-muted transition hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelLabel}
           </button>

@@ -1909,13 +1909,13 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                         <AttachmentPreview attachments={messageAttachments} />
                       ) : null}
                       {!msg.isDeleted ? (
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-black/10 pt-2">
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line pt-2">
                           <button
                             type="button"
                             data-testid="dm-message-ai-reply-button"
                             onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'reply-draft')}
                             disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
-                            className="rounded-pill border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-pill border border-line bg-bg-hover px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50"
                             title={aiRuntimePresentation?.description ?? t('ai.replyDraftFromMessage')}
                           >
                             {t('ai.replyDraftFromMessage')}
@@ -1925,7 +1925,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                             data-testid="dm-message-ai-rewrite-button"
                             onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'rewrite-draft')}
                             disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
-                            className="rounded-pill border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-pill border border-line bg-bg-hover px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50"
                             title={aiRuntimePresentation?.description ?? t('ai.rewriteDraftFromMessage')}
                           >
                             {t('ai.rewriteDraftFromMessage')}
@@ -1935,13 +1935,13 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                             data-testid="dm-message-ai-translate-button"
                             onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'translate-inline')}
                             disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
-                            className="rounded-pill border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-pill border border-line bg-bg-hover px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50"
                             title={aiRuntimePresentation?.description ?? t('translate.translate')}
                           >
                             {t('translate.translate')}
                           </button>
                           {aiRuntimePresentation ? (
-                            <span className="rounded-pill border border-white/20 bg-black/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--on-accent)]/80">
+                            <span className="rounded-pill border border-line bg-bg-subtle px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--on-accent)]/80">
                               {aiRuntimePresentation.label}
                             </span>
                           ) : null}

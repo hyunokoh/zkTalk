@@ -115,7 +115,7 @@ export default function DesktopHarnessPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-6 text-center">
-      <div className="w-full max-w-md rounded-[2rem] border border-white/60 bg-white/90 px-6 py-8 shadow-xl">
+      <div className="w-full max-w-md rounded-[2rem] border border-line0 bg-bg-hover px-6 py-8 shadow-xl">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
           {t('desktopHarness.label')}
         </p>

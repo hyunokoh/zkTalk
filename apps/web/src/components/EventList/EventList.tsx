@@ -250,7 +250,7 @@ export function EventList({
 
       {attendeesEvent && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-bg-subtle p-4"
           onClick={() => setAttendeesEvent(null)}
           data-testid="event-attendees-modal"
           data-event-id={attendeesEvent.id}

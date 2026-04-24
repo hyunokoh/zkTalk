@@ -138,7 +138,7 @@ export default function ChannelPage() {
   if (channel.type === 'voice') {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-xl rounded-2xl border border-line bg-white/80 p-8 text-center shadow-sm dark:border-line dark:bg-bg-subtle/80">
+        <div className="w-full max-w-xl rounded-2xl border border-line bg-bg-hover p-8 text-center shadow-sm dark:border-line dark:bg-bg-subtle/80">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success text-success dark:bg-success/30 dark:text-success">
             <svg className="h-7 w-7" viewBox="0 0 20 20" fill="currentColor">
               <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
