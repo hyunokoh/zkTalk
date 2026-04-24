@@ -1,0 +1,460 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>zkTalk token preview</title>
+<style>
+/* === Tokens (ported verbatim from apps/web/src/styles/globals.css) === */
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f4f6fa;
+  --bg-hover: #eef1f6;
+  --bg-elevated: #ffffff;
+  --line: #e5e9f0;
+  --line-strong: #d4dae3;
+  --fg: #17212b;
+  --fg-muted: #6b7785;
+  --fg-subtle: #97a3af;
+  --accent: #2a7fff;
+  --accent-strong: #1664e6;
+  --accent-soft: #e8f1ff;
+  --agent: #8a5cf6;
+  --agent-strong: #6f3ef0;
+  --agent-soft: #f2ebff;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --success-soft: rgba(34,197,94,0.12);
+  --warning-soft: rgba(245,158,11,0.14);
+  --danger-soft: rgba(239,68,68,0.12);
+}
+.dark {
+  --bg: #0e1621;
+  --bg-subtle: #17212b;
+  --bg-hover: #1e2a3a;
+  --bg-elevated: #212d3b;
+  --line: #232f3e;
+  --line-strong: #344253;
+  --fg: #e7eef5;
+  --fg-muted: #8a97a6;
+  --fg-subtle: #6d7a8a;
+  --accent: #5aa3ff;
+  --accent-strong: #3b87f0;
+  --accent-soft: rgba(90,163,255,0.14);
+  --agent: #b294ff;
+  --agent-strong: #9671ff;
+  --agent-soft: rgba(178,148,255,0.14);
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  font-family: -apple-system, "Inter", "Pretendard", "SF Pro Text", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.stage > section {
+  padding: 32px;
+  min-height: 100vh;
+  border-right: 1px solid var(--line);
+}
+.stage > section:last-child { border-right: 0; }
+.stage-label {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+  color: var(--fg-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+
+h3 {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg-subtle);
+  margin: 32px 0 12px;
+}
+h3:first-of-type { margin-top: 0; }
+
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+/* --- Rail --- */
+.rail {
+  width: 60px;
+  background: var(--bg);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  gap: 4px;
+  border-radius: 16px 0 0 16px;
+}
+.rail-tile {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+  color: var(--fg-muted);
+  position: relative;
+}
+.rail-tile.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.rail-tile.active::before {
+  content: '';
+  position: absolute;
+  left: -10px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 24px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+.rail-tile .initial {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--accent) 18%, var(--bg-subtle));
+  color: var(--fg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600;
+}
+.rail-tile.community-active .initial {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.rail-divider {
+  height: 1px; width: 32px;
+  background: var(--line);
+  margin: 8px 0;
+}
+
+/* --- Bubbles --- */
+.bubble-row { margin: 6px 0; display: flex; }
+.bubble-row.self { justify-content: flex-end; }
+.bubble {
+  max-width: 320px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.bubble.other {
+  background: var(--bg-subtle);
+  color: var(--fg);
+  border-top-left-radius: 6px;
+}
+.bubble.self {
+  background: var(--accent);
+  color: white;
+  border-top-right-radius: 6px;
+}
+.bubble.agent {
+  background: var(--agent-soft);
+  color: var(--fg);
+  border-left: 4px solid var(--agent);
+  border-top-left-radius: 6px;
+}
+.bubble-meta {
+  font-size: 11px;
+  color: var(--fg-subtle);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.bubble-meta .agent-mark { color: var(--agent); font-weight: 700; }
+
+/* --- Agent pill --- */
+.agent-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; font-size: 11px; font-weight: 600;
+  color: var(--agent); background: var(--agent-soft);
+  border-radius: 999px;
+}
+
+/* --- Status dots --- */
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 6px; }
+.dot.online  { background: var(--success); }
+.dot.busy    { background: var(--warning); }
+.dot.offline { background: var(--fg-subtle); }
+
+/* --- Buttons --- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 9px 16px;
+  border-radius: 12px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none;
+  transition: background 120ms ease;
+}
+.btn-primary  { background: var(--accent); color: white; }
+.btn-primary:hover  { background: var(--accent-strong); }
+.btn-agent    { background: var(--agent); color: white; }
+.btn-ghost    { background: var(--bg-subtle); color: var(--fg); border: 1px solid var(--line); }
+.btn-danger   { background: var(--danger); color: white; }
+.btn-success-soft { background: var(--success-soft); color: var(--success); }
+.btn-warning-soft { background: var(--warning-soft); color: var(--warning); }
+.btn-danger-soft  { background: var(--danger-soft);  color: var(--danger); }
+
+/* --- Device card --- */
+.device-card {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  margin-bottom: 10px;
+}
+.device-tile {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--agent) 18%, var(--bg-subtle));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: var(--fg);
+}
+.device-name { font-weight: 600; font-size: 14px; }
+.device-meta { font-size: 12px; color: var(--fg-muted); margin-top: 2px; }
+
+/* --- Settings row --- */
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 10px;
+}
+.settings-row:hover { background: var(--bg-hover); }
+.settings-label { font-size: 14px; color: var(--fg); }
+.settings-value { font-size: 13px; color: var(--fg-muted); }
+
+/* --- Command block --- */
+.cmd-block {
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, "Menlo", monospace;
+  font-size: 13px;
+  background: var(--bg-subtle);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: inline-block;
+}
+
+/* --- Composer --- */
+.composer {
+  display: flex; gap: 10px; align-items: center;
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 14px;
+}
+.composer input {
+  flex: 1; background: transparent; border: 0; outline: 0;
+  color: var(--fg); font-size: 14px; font-family: inherit;
+}
+.composer input::placeholder { color: var(--fg-subtle); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <!-- LIGHT -->
+  <section>
+    <span class="stage-label">Light · :root</span>
+
+    <h3>Left rail (§2 IA)</h3>
+    <div class="card" style="padding: 0;">
+      <div class="rail">
+        <div class="rail-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M6 10v10h12V10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="rail-tile active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 7.5h14v9A2.5 2.5 0 0116.5 19H10l-4.5 3v-3.5A2.5 2.5 0 015 16.5v-9z"/></svg></div>
+        <div class="rail-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.5l3.3 5.3 5.2 3.2-5.2 3.2L12 20.5 8.7 15.3 3.5 12l5.2-3.3L12 3.5z"/></svg></div>
+        <div class="rail-divider"></div>
+        <div class="rail-tile community-active"><div class="initial">K</div></div>
+        <div class="rail-tile"><div class="initial" style="background: color-mix(in oklab, var(--agent) 18%, var(--bg-subtle));">Z</div></div>
+        <div class="rail-tile"><div class="initial" style="background: color-mix(in oklab, var(--success) 18%, var(--bg-subtle));">D</div></div>
+      </div>
+    </div>
+
+    <h3>Message bubbles (§3 chat)</h3>
+    <div class="card">
+      <div class="bubble-row"><div>
+        <div class="bubble-meta">Anna · 오후 3:24</div>
+        <div class="bubble other">저녁 어디서 먹을까요?</div>
+      </div></div>
+      <div class="bubble-row self"><div>
+        <div class="bubble self">이 근처 칼국수 어때요?</div>
+      </div></div>
+      <div class="bubble-row"><div>
+        <div class="bubble-meta"><span class="agent-mark">◆ claude-code</span> on home-pc · 오후 3:25</div>
+        <div class="bubble agent">근처에 평점 4.6↑ 칼국수집 2곳 있어요:<br/>• 서울칼국수 (도보 3분)<br/>• 한결칼국수 (도보 8분)</div>
+      </div></div>
+    </div>
+
+    <h3>Agent pill + status dots (§5)</h3>
+    <div class="card">
+      <span class="agent-pill">◆ Agent · claude-code</span>&nbsp;
+      <span class="agent-pill" style="color: var(--accent); background: var(--accent-soft);">● Shell</span>
+      <div style="margin-top: 14px; font-size: 13px;">
+        <span class="dot online"></span>Online<br/>
+        <span class="dot busy"></span>Busy<br/>
+        <span class="dot offline"></span>Offline
+      </div>
+    </div>
+
+    <h3>Device card (§7 dashboard)</h3>
+    <div class="card" style="background: transparent; border: 0; padding: 0;">
+      <div class="device-card">
+        <div class="device-tile">HM</div>
+        <div>
+          <div class="device-name"><span class="dot online"></span>home-pc</div>
+          <div class="device-meta">CPU 12% · RAM 34% (5.4 GB) · 3 agents · heartbeat 8s ago</div>
+        </div>
+        <span class="agent-pill">3 agents</span>
+      </div>
+      <div class="device-card">
+        <div class="device-tile" style="background: color-mix(in oklab, var(--accent) 18%, var(--bg-subtle));">MB</div>
+        <div>
+          <div class="device-name"><span class="dot busy"></span>macbook</div>
+          <div class="device-meta">CPU 64% · RAM 71% · running: shell echo …</div>
+        </div>
+        <span class="agent-pill" style="color: var(--warning); background: var(--warning-soft);">Busy</span>
+      </div>
+    </div>
+
+    <h3>Buttons + composer</h3>
+    <div class="card">
+      <button class="btn btn-primary">Join community</button>&nbsp;
+      <button class="btn btn-agent">Ask agent</button>&nbsp;
+      <button class="btn btn-ghost">Cancel</button>&nbsp;
+      <button class="btn btn-danger">Delete</button>
+      <div style="margin-top: 14px;">
+        <button class="btn btn-success-soft">Approved</button>&nbsp;
+        <button class="btn btn-warning-soft">Awaiting</button>&nbsp;
+        <button class="btn btn-danger-soft">Rejected</button>
+      </div>
+      <div style="margin-top: 18px;">
+        <div class="composer">
+          <span class="cmd-block" style="padding: 4px 8px; font-size: 12px;">/home-pc.shell</span>
+          <input placeholder="echo hello" />
+          <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <h3>Settings list</h3>
+    <div class="card" style="padding: 6px;">
+      <div class="settings-row"><span class="settings-label">Language</span><span class="settings-value">한국어 ›</span></div>
+      <div class="settings-row"><span class="settings-label">Notifications</span><span class="settings-value">All ›</span></div>
+      <div class="settings-row"><span class="settings-label">Appearance</span><span class="settings-value">Light ›</span></div>
+      <div class="settings-row"><span class="settings-label" style="color: var(--danger);">Sign out</span></div>
+    </div>
+  </section>
+
+  <!-- DARK -->
+  <section class="dark" style="background: var(--bg); color: var(--fg); border-right: 0;">
+    <span class="stage-label">Dark · .dark</span>
+
+    <h3>Left rail (§2 IA)</h3>
+    <div class="card" style="padding: 0;">
+      <div class="rail">
+        <div class="rail-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M6 10v10h12V10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="rail-tile active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 7.5h14v9A2.5 2.5 0 0116.5 19H10l-4.5 3v-3.5A2.5 2.5 0 015 16.5v-9z"/></svg></div>
+        <div class="rail-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.5l3.3 5.3 5.2 3.2-5.2 3.2L12 20.5 8.7 15.3 3.5 12l5.2-3.3L12 3.5z"/></svg></div>
+        <div class="rail-divider"></div>
+        <div class="rail-tile community-active"><div class="initial">K</div></div>
+        <div class="rail-tile"><div class="initial" style="background: color-mix(in oklab, var(--agent) 18%, var(--bg-subtle));">Z</div></div>
+        <div class="rail-tile"><div class="initial" style="background: color-mix(in oklab, var(--success) 18%, var(--bg-subtle));">D</div></div>
+      </div>
+    </div>
+
+    <h3>Message bubbles (§3 chat)</h3>
+    <div class="card">
+      <div class="bubble-row"><div>
+        <div class="bubble-meta">Anna · 오후 3:24</div>
+        <div class="bubble other">저녁 어디서 먹을까요?</div>
+      </div></div>
+      <div class="bubble-row self"><div>
+        <div class="bubble self">이 근처 칼국수 어때요?</div>
+      </div></div>
+      <div class="bubble-row"><div>
+        <div class="bubble-meta"><span class="agent-mark">◆ claude-code</span> on home-pc · 오후 3:25</div>
+        <div class="bubble agent">근처에 평점 4.6↑ 칼국수집 2곳 있어요:<br/>• 서울칼국수 (도보 3분)<br/>• 한결칼국수 (도보 8분)</div>
+      </div></div>
+    </div>
+
+    <h3>Agent pill + status dots (§5)</h3>
+    <div class="card">
+      <span class="agent-pill">◆ Agent · claude-code</span>&nbsp;
+      <span class="agent-pill" style="color: var(--accent); background: var(--accent-soft);">● Shell</span>
+      <div style="margin-top: 14px; font-size: 13px;">
+        <span class="dot online"></span>Online<br/>
+        <span class="dot busy"></span>Busy<br/>
+        <span class="dot offline"></span>Offline
+      </div>
+    </div>
+
+    <h3>Device card (§7 dashboard)</h3>
+    <div class="card" style="background: transparent; border: 0; padding: 0;">
+      <div class="device-card">
+        <div class="device-tile">HM</div>
+        <div>
+          <div class="device-name"><span class="dot online"></span>home-pc</div>
+          <div class="device-meta">CPU 12% · RAM 34% (5.4 GB) · 3 agents · heartbeat 8s ago</div>
+        </div>
+        <span class="agent-pill">3 agents</span>
+      </div>
+      <div class="device-card">
+        <div class="device-tile" style="background: color-mix(in oklab, var(--accent) 18%, var(--bg-subtle));">MB</div>
+        <div>
+          <div class="device-name"><span class="dot busy"></span>macbook</div>
+          <div class="device-meta">CPU 64% · RAM 71% · running: shell echo …</div>
+        </div>
+        <span class="agent-pill" style="color: var(--warning); background: var(--warning-soft);">Busy</span>
+      </div>
+    </div>
+
+    <h3>Buttons + composer</h3>
+    <div class="card">
+      <button class="btn btn-primary">Join community</button>&nbsp;
+      <button class="btn btn-agent">Ask agent</button>&nbsp;
+      <button class="btn btn-ghost">Cancel</button>&nbsp;
+      <button class="btn btn-danger">Delete</button>
+      <div style="margin-top: 14px;">
+        <button class="btn btn-success-soft">Approved</button>&nbsp;
+        <button class="btn btn-warning-soft">Awaiting</button>&nbsp;
+        <button class="btn btn-danger-soft">Rejected</button>
+      </div>
+      <div style="margin-top: 18px;">
+        <div class="composer">
+          <span class="cmd-block" style="padding: 4px 8px; font-size: 12px;">/home-pc.shell</span>
+          <input placeholder="echo hello" />
+          <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <h3>Settings list</h3>
+    <div class="card" style="padding: 6px;">
+      <div class="settings-row"><span class="settings-label">Language</span><span class="settings-value">한국어 ›</span></div>
+      <div class="settings-row"><span class="settings-label">Notifications</span><span class="settings-value">All ›</span></div>
+      <div class="settings-row"><span class="settings-label">Appearance</span><span class="settings-value">Dark ›</span></div>
+      <div class="settings-row"><span class="settings-label" style="color: var(--danger);">Sign out</span></div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
