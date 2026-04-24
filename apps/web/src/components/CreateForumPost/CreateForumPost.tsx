@@ -44,7 +44,7 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Post title"
-          className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+          className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           autoFocus
         />
         <textarea
@@ -53,7 +53,7 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
           onChange={(e) => setBody(e.target.value)}
           placeholder="Write your post content... (Markdown supported)"
           rows={4}
-          className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+          className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
 
         {createPost.isError && (
@@ -67,7 +67,7 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
             type="button"
             data-testid="forum-create-cancel-button"
             onClick={onClose}
-            className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg-muted"
+            className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg"
           >
             Cancel
           </button>
@@ -75,7 +75,7 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
             type="submit"
             data-testid="forum-create-submit-button"
             disabled={!title.trim() || !body.trim() || createPost.isPending}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createPost.isPending ? 'Posting...' : 'Create Post'}
           </button>

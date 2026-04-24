@@ -128,7 +128,7 @@ export default function SettingsPage() {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-xl font-semibold text-white">
+            <h1 className="truncate text-xl font-semibold text-fg">
               {user?.displayName ?? t('settings.title')}
             </h1>
             <p className="mt-1 text-sm text-fg-muted">@{user?.username ?? 'unknown'}</p>
@@ -140,7 +140,7 @@ export default function SettingsPage() {
             type="button"
             onClick={() => setProfileEditorOpen(true)}
             data-testid="settings-profile-edit-button"
-            className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent"
+            className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] transition hover:bg-accent-strong"
           >
             {t('profile.edit')}
           </button>
@@ -153,7 +153,7 @@ export default function SettingsPage() {
           className="rounded-[1.75rem] border border-line bg-bg-elevated/70 p-5 scroll-mt-24"
         >
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-white">{t('settings.accountSectionTitle')}</h2>
+            <h2 className="text-lg font-semibold text-fg">{t('settings.accountSectionTitle')}</h2>
             <p className="mt-1 text-sm text-fg-muted">
               {t('settings.accountSectionBody')}
             </p>
@@ -164,7 +164,7 @@ export default function SettingsPage() {
               className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-bg-hover"
             >
               <div>
-                <p className="text-base font-semibold text-white">{t('friend.title')}</p>
+                <p className="text-base font-semibold text-fg">{t('friend.title')}</p>
                 <p className="mt-1 text-sm text-fg-muted">{t('settings.cardPeopleBody')}</p>
               </div>
               <span className="text-lg text-fg-muted">{'›'}</span>
@@ -174,7 +174,7 @@ export default function SettingsPage() {
               className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-bg-hover"
             >
               <div>
-                <p className="text-base font-semibold text-white">
+                <p className="text-base font-semibold text-fg">
                   {t('settings.profileShareTitle')}
                 </p>
                 <p className="mt-1 text-sm text-fg-muted">{t('settings.profileShareBody')}</p>
@@ -210,7 +210,7 @@ export default function SettingsPage() {
           id="notifications"
           className="rounded-[1.75rem] border border-line bg-bg-elevated/70 p-5 scroll-mt-24"
         >
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-fg">
             {t('settings.notificationsSectionTitle')}
           </h2>
           <p className="mt-2 text-sm leading-6 text-fg-muted">
@@ -223,7 +223,7 @@ export default function SettingsPage() {
             id="language"
             className="rounded-[1.75rem] border border-line bg-bg-elevated/70 p-5 scroll-mt-24"
           >
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-fg">
               {t('settings.languageSectionTitle')}
             </h2>
             <p className="mt-2 text-sm leading-6 text-fg-muted">
@@ -238,7 +238,7 @@ export default function SettingsPage() {
             id="ai-translation"
             className="rounded-[1.75rem] border border-line bg-bg-elevated/70 p-5 scroll-mt-24"
           >
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-fg">
               {t('settings.aiTranslationSectionTitle')}
             </h2>
             <p className="mt-2 text-sm leading-6 text-fg-muted">
@@ -246,7 +246,7 @@ export default function SettingsPage() {
             </p>
             <Link
               href={getSettingsSectionEntrypoint('ai_translation', 'web')}
-              className="mt-4 inline-flex rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-white transition hover:border-line hover:bg-bg-subtle"
+              className="mt-4 inline-flex rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg transition hover:border-line hover:bg-bg-hover"
             >
               {t('settings.aiTranslationSectionAction')}
             </Link>
@@ -256,7 +256,7 @@ export default function SettingsPage() {
             id="machine-control"
             className="rounded-[1.75rem] border border-line bg-bg-elevated/70 p-5 scroll-mt-24"
           >
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-fg">
               {t('settings.machineControlSectionTitle')}
             </h2>
             <p className="mt-2 text-sm leading-6 text-fg-muted">
@@ -264,7 +264,7 @@ export default function SettingsPage() {
             </p>
             <div className="mt-4 rounded-[1.25rem] border border-line bg-bg-elevated/60 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-fg">
                   {t('settings.machineControlSnapshotTitle')}
                 </p>
                 <span className="rounded-full border border-line bg-bg-subtle px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
@@ -297,7 +297,7 @@ export default function SettingsPage() {
             </div>
             <Link
               href={getSettingsSectionEntrypoint('machine_control', 'web')}
-              className="mt-4 inline-flex rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-white transition hover:border-line hover:bg-bg-subtle"
+              className="mt-4 inline-flex rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg transition hover:border-line hover:bg-bg-hover"
             >
               {t('settings.machineControlSectionAction')}
             </Link>
@@ -309,7 +309,7 @@ export default function SettingsPage() {
           className="rounded-[1.75rem] border border-line bg-bg-elevated/70 p-5 scroll-mt-24"
         >
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-fg">
               {t('settings.dataPrivacySectionTitle')}
             </h2>
             <p className="mt-1 text-sm text-fg-muted">
@@ -322,7 +322,7 @@ export default function SettingsPage() {
               className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-bg-hover"
             >
               <div>
-                <p className="text-base font-semibold text-white">{t('privacy.metadata')}</p>
+                <p className="text-base font-semibold text-fg">{t('privacy.metadata')}</p>
                 <p className="mt-1 text-sm text-fg-muted">{t('settings.cardSecurityBody')}</p>
               </div>
               <span className="text-lg text-fg-muted">{'›'}</span>
@@ -332,7 +332,7 @@ export default function SettingsPage() {
               className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-bg-hover"
             >
               <div>
-                <p className="text-base font-semibold text-white">{t('backup.title')}</p>
+                <p className="text-base font-semibold text-fg">{t('backup.title')}</p>
                 <p className="mt-1 text-sm text-fg-muted">{t('settings.cardDataBody')}</p>
               </div>
               <span className="text-lg text-fg-muted">{'›'}</span>
@@ -345,7 +345,7 @@ export default function SettingsPage() {
         id="profile-share"
         className="mt-6 rounded-[1.75rem] border border-line bg-bg-elevated/70 p-5 scroll-mt-24"
       >
-        <h2 className="text-lg font-semibold text-white">{t('settings.profileShareTitle')}</h2>
+        <h2 className="text-lg font-semibold text-fg">{t('settings.profileShareTitle')}</h2>
         <div className="mt-4">
           <ProfileQR hideHeading />
         </div>

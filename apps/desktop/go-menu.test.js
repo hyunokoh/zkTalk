@@ -71,6 +71,9 @@ test('getDesktopMenuLabels localizes the top-level desktop menu copy', () => {
     localAgentLanguagePresetLabel: 'Local agent language preset',
     localAgentLanguagePresetHint:
       'This preset is reserved for the desktop-first local Codex bridge so host and worker machines render predictable language output.',
+    agentDeviceBridgeEnabledLabel: 'Enable this computer as an Agent host',
+    agentDeviceBridgeEnabledHint:
+      'When enabled, this desktop registers itself as a command target and can run /device.codex instructions with its local Codex session.',
     desktopConfigPathHint: 'Desktop config: {{path}}',
     saveAndRetry: 'Save and retry',
     openConfigFileError: 'Could not open the desktop config file.',
@@ -116,6 +119,9 @@ test('getDesktopMenuLabels localizes the top-level desktop menu copy', () => {
     localAgentLanguagePresetLabel: '로컬 에이전트 언어 프리셋',
     localAgentLanguagePresetHint:
       '이 프리셋은 데스크톱 우선 로컬 Codex 브리지 전용입니다. 호스트와 워커 머신이 예측 가능한 언어 출력으로 동작하도록 맞춥니다.',
+    agentDeviceBridgeEnabledLabel: '이 컴퓨터를 Agent 호스트로 사용',
+    agentDeviceBridgeEnabledHint:
+      '켜면 이 데스크톱이 명령 대상 디바이스로 등록되고, 로컬 Codex 세션으로 /device.codex 명령을 실행할 수 있습니다.',
     desktopConfigPathHint: '데스크톱 설정: {{path}}',
     saveAndRetry: '저장 후 다시 시도',
     openConfigFileError: '데스크톱 설정 파일을 열지 못했습니다.',

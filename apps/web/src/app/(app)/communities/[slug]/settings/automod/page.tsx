@@ -141,12 +141,12 @@ export default function AutoModPage() {
   return (
     <div className="mx-auto max-w-3xl p-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-fg dark:text-fg-muted">
+        <h1 className="text-2xl font-bold text-fg-muted">
           {t('automod.title')}
         </h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong"
         >
           {t('automod.addRule')}
         </button>
@@ -154,33 +154,33 @@ export default function AutoModPage() {
 
       {/* Create rule form */}
       {showForm && (
-        <div className="mb-6 rounded-lg border border-line bg-white p-4 dark:border-line dark:bg-bg-subtle">
-          <h2 className="mb-4 text-lg font-semibold text-fg dark:text-fg-muted">
+        <div className="mb-6 rounded-lg border border-line bg-white p-4 dark:bg-bg-subtle">
+          <h2 className="mb-4 text-lg font-semibold text-fg-muted">
             {t('automod.addRule')}
           </h2>
 
           <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-fg dark:text-fg-muted">
+              <label className="mb-1 block text-sm font-medium text-fg-muted">
                 Name
               </label>
               <input
                 type="text"
                 value={ruleName}
                 onChange={(e) => setRuleName(e.target.value)}
-                className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
+                className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:bg-bg-subtle"
                 placeholder="Rule name"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-fg dark:text-fg-muted">
+              <label className="mb-1 block text-sm font-medium text-fg-muted">
                 Type
               </label>
               <select
                 value={ruleType}
                 onChange={(e) => setRuleType(e.target.value as RuleType)}
-                className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
+                className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:bg-bg-subtle"
               >
                 <option value="keyword_filter">{t('automod.keywordFilter')}</option>
                 <option value="spam_filter">{t('automod.spamFilter')}</option>
@@ -191,13 +191,13 @@ export default function AutoModPage() {
             {/* Type-specific config */}
             {ruleType === 'keyword_filter' && (
               <div>
-                <label className="mb-1 block text-sm font-medium text-fg dark:text-fg-muted">
+                <label className="mb-1 block text-sm font-medium text-fg-muted">
                   Keywords (comma-separated)
                 </label>
                 <textarea
                   value={keywords}
                   onChange={(e) => setKeywords(e.target.value)}
-                  className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
+                  className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:bg-bg-subtle"
                   rows={3}
                   placeholder="bad, spam, unwanted"
                 />
@@ -207,26 +207,26 @@ export default function AutoModPage() {
             {ruleType === 'spam_filter' && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-fg dark:text-fg-muted">
+                  <label className="mb-1 block text-sm font-medium text-fg-muted">
                     Max messages
                   </label>
                   <input
                     type="number"
                     value={maxMessages}
                     onChange={(e) => setMaxMessages(e.target.value)}
-                    className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
+                    className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:bg-bg-subtle"
                     min="1"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-fg dark:text-fg-muted">
+                  <label className="mb-1 block text-sm font-medium text-fg-muted">
                     Window (seconds)
                   </label>
                   <input
                     type="number"
                     value={windowSeconds}
                     onChange={(e) => setWindowSeconds(e.target.value)}
-                    className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
+                    className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:bg-bg-subtle"
                     min="1"
                   />
                 </div>
@@ -234,7 +234,7 @@ export default function AutoModPage() {
             )}
 
             {ruleType === 'link_filter' && (
-              <label className="flex items-center gap-2 text-sm text-fg dark:text-fg-muted">
+              <label className="flex items-center gap-2 text-sm text-fg-muted">
                 <input
                   type="checkbox"
                   checked={blockLinks}
@@ -246,13 +246,13 @@ export default function AutoModPage() {
             )}
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-fg dark:text-fg-muted">
+              <label className="mb-1 block text-sm font-medium text-fg-muted">
                 Action
               </label>
               <select
                 value={ruleAction}
                 onChange={(e) => setRuleAction(e.target.value as RuleAction)}
-                className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
+                className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg dark:bg-bg-subtle"
               >
                 <option value="block">{t('automod.action.block')}</option>
                 <option value="flag">{t('automod.action.flag')}</option>
@@ -264,13 +264,13 @@ export default function AutoModPage() {
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={!ruleName.trim() || createMutation.isPending}
-                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
+                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
               >
                 {createMutation.isPending ? t('common.loading') : t('common.create')}
               </button>
               <button
                 onClick={() => setShowForm(false)}
-                className="rounded-md border border-line px-4 py-2 text-sm font-medium text-fg hover:bg-bg-subtle dark:border-line dark:text-fg-muted dark:hover:bg-bg-subtle"
+                className="rounded-md border border-line px-4 py-2 text-sm font-medium text-fg hover:bg-bg-subtle dark:hover:bg-bg-subtle"
               >
                 {t('common.cancel')}
               </button>
@@ -289,17 +289,17 @@ export default function AutoModPage() {
           {rules.map((rule) => (
             <div
               key={rule.id}
-              className="flex items-center justify-between rounded-lg border border-line bg-white p-4 dark:border-line dark:bg-bg-subtle"
+              className="flex items-center justify-between rounded-lg border border-line bg-white p-4 dark:bg-bg-subtle"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-medium text-fg dark:text-fg-muted">
+                  <h3 className="font-medium text-fg-muted">
                     {rule.name}
                   </h3>
-                  <span className="rounded-full bg-bg-hover px-2 py-0.5 text-xs text-fg dark:bg-bg-subtle dark:text-fg-muted">
+                  <span className="rounded-full bg-bg-hover px-2 py-0.5 text-xs text-fg-subtle">
                     {ruleTypeLabel(rule.type)}
                   </span>
-                  <span className="rounded-full bg-bg-hover px-2 py-0.5 text-xs text-fg dark:bg-bg-subtle dark:text-fg-muted">
+                  <span className="rounded-full bg-bg-hover px-2 py-0.5 text-xs text-fg-subtle">
                     {actionLabel(rule.action)}
                   </span>
                 </div>
@@ -325,7 +325,7 @@ export default function AutoModPage() {
                     })
                   }
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    rule.isEnabled ? 'bg-accent' : 'bg-bg-hover dark:bg-bg-subtle'
+                    rule.isEnabled ? 'bg-accent' : 'bg-bg-hover-subtle'
                   }`}
                 >
                   <span

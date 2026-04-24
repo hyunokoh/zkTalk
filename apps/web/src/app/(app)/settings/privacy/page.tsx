@@ -23,7 +23,7 @@ export default function PrivacySettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-6 text-2xl font-bold text-white">
+      <h1 className="mb-6 text-2xl font-bold text-fg">
         {t('privacy.metadata')}
       </h1>
 
@@ -32,7 +32,7 @@ export default function PrivacySettingsPage() {
         <div className="rounded-lg border border-line bg-bg-subtle p-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-fg">
                 {t('privacy.sealedSender')}
               </h2>
               <p className="mt-1 text-sm text-fg-muted">
@@ -42,7 +42,7 @@ export default function PrivacySettingsPage() {
 
             <button
               onClick={handleToggle}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-gray-900 ${
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg ${
                 sealedEnabled ? 'bg-accent' : 'bg-bg-subtle'
               }`}
               role="switch"

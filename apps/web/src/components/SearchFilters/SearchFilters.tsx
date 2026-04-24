@@ -48,7 +48,7 @@ export function SearchFilters({ channels, filters, onChange }: SearchFiltersProp
           </svg>
           {t('search.filters')}
           {activeCount > 0 && (
-            <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-white">
+            <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-[color:var(--on-accent)]">
               {activeCount}
             </span>
           )}

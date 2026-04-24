@@ -45,13 +45,13 @@ export function DesktopProfileQuickActions({
         <button
           type="button"
           onClick={() => void handlePasteProfile()}
-          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
+          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-hover"
         >
           {t('app.desktopPasteProfile')}
         </button>
         <Link
           href="/settings#profile-share"
-          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
+          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-hover"
         >
           {t('app.desktopShareProfile')}
         </Link>
@@ -72,19 +72,19 @@ export function DesktopProfileQuickActions({
         <button
           type="button"
           onClick={() => void handlePasteProfile()}
-          className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent"
+          className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] transition hover:bg-accent-strong"
         >
           {t('friend.sharedProfilePaste')}
         </button>
         <Link
           href="/friends"
-          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
+          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-hover"
         >
           {t('settings.openFriends')}
         </Link>
         <Link
           href="/settings#profile-share"
-          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
+          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-hover"
         >
           {t('app.desktopShareProfile')}
         </Link>

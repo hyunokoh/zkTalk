@@ -93,7 +93,7 @@ function VerifyContent() {
             <p className="mt-2 text-sm text-fg-muted">{error}</p>
             <Link
               href="/login"
-              className="mt-6 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent"
+              className="mt-6 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong"
             >
               {t('auth.backToLogin')}
             </Link>

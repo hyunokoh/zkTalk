@@ -755,7 +755,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
                 <button
                   type="button"
                   onClick={() => onAddChannel?.(null)}
-                  className="rounded-md border border-accent/30 bg-accent-soft p-2 text-accent transition hover:bg-accent hover:text-[color:var(--on-accent)]"
+                  className="rounded-md border border-accent/30 bg-accent-soft p-2 text-accent transition hover:bg-accent-strong hover:text-[color:var(--on-accent)]"
                   title={t('channel.create')}
                 >
                   <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -878,7 +878,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
                           <Link
                             href={`/communities/${community.slug}/channels/${channel.id}`}
                             onClick={onChannelClick}
-                            className="flex items-center gap-1.5 text-sm font-medium text-fg hover:text-white"
+                            className="flex items-center gap-1.5 text-sm font-medium text-fg hover:text-fg"
                           >
                             <ChannelIcon type={channel.type} />
                             <span className="truncate">{channel.name}</span>

@@ -152,7 +152,7 @@ export function DmList({ onConversationSelect }: DmListProps) {
       );
     }
     return (
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-bg-subtle text-sm font-medium text-white">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-bg-subtle text-sm font-medium text-fg">
         ?
       </div>
     );
@@ -174,7 +174,7 @@ export function DmList({ onConversationSelect }: DmListProps) {
             onClick={() => setShowNewDm(true)}
             title={t('dm.new')}
             data-testid="dm-list-new-button"
-            className="inline-flex h-9 shrink-0 items-center justify-center rounded-full bg-accent px-3 text-xs font-semibold text-white transition hover:bg-accent"
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-full bg-accent px-3 text-xs font-semibold text-[color:var(--on-accent)] transition hover:bg-accent-strong"
           >
             {t('dm.new')}
           </button>
@@ -267,7 +267,7 @@ export function DmList({ onConversationSelect }: DmListProps) {
                     )}
                     <div className="mt-0.5 flex items-center gap-1.5">
                       {row.unreadCount > 0 && !promotedTarget && (
-                        <span className="inline-block rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium text-white">
+                        <span className="inline-block rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium text-[color:var(--on-accent)]">
                           {row.unreadCount}
                         </span>
                       )}
@@ -290,11 +290,11 @@ export function DmList({ onConversationSelect }: DmListProps) {
                           onConversationSelect?.();
                         }}
                         data-testid="dm-list-view-history-button"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-bg-hover px-2.5 py-1 text-[11px] font-semibold text-fg transition-colors hover:bg-bg-hover"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-bg-hover px-2.5 py-1 text-[11px] font-semibold text-fg transition-colors"
                       >
                         {t('dm.viewHistory')}
                         {row.unreadCount > 0 && (
-                          <span className="inline-flex min-w-[1.15rem] items-center justify-center rounded-full bg-accent px-1 py-0.5 text-[10px] font-semibold text-white">
+                          <span className="inline-flex min-w-[1.15rem] items-center justify-center rounded-full bg-accent px-1 py-0.5 text-[10px] font-semibold text-[color:var(--on-accent)]">
                             {row.unreadCount}
                           </span>
                         )}

@@ -102,7 +102,7 @@ export function UserAvatar({
   return (
     <span className="relative inline-block">
       <div
-        className={`${sizeClasses} flex shrink-0 items-center justify-center rounded-full bg-accent font-medium text-white ${className}`}
+        className={`${sizeClasses} flex shrink-0 items-center justify-center rounded-full bg-accent font-medium text-[color:var(--on-accent)] ${className}`}
       >
         {getInitials(displayName)}
       </div>

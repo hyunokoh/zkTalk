@@ -166,7 +166,7 @@ export default function ChannelLayout({
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-warning/70">
             {t('channel.lockedPromptTitle')}
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-white">{lockedBrowseChannel.name}</h2>
+          <h2 className="mt-2 text-lg font-semibold text-fg">{lockedBrowseChannel.name}</h2>
           <p className="mt-3 text-sm leading-6 text-warning/90">
             {t(lockedBrowsePresentation?.lockedPromptBodyKey ?? 'channel.lockedPromptJoinBody')}
           </p>
@@ -176,7 +176,7 @@ export default function ChannelLayout({
                 type="button"
                 data-testid="channel-layout-open-invite"
                 onClick={() => router.push('/')}
-                className="rounded-xl bg-warning px-3 py-2 text-sm font-semibold text-warning transition hover:bg-white"
+                className="rounded-xl bg-warning px-3 py-2 text-sm font-semibold text-white transition hover:bg-warning/85"
               >
                 {t('channel.lockedPromptInviteAction')}
               </button>
@@ -195,7 +195,7 @@ export default function ChannelLayout({
             )}
             <Link
               href={`/communities/${slug}`}
-              className="rounded-xl border border-warning/20 px-3 py-2 text-sm font-medium text-warning/85 transition hover:bg-bg-hover hover:text-white"
+              className="rounded-xl border border-warning/20 px-3 py-2 text-sm font-medium text-warning/85 transition hover:bg-bg-hover hover:text-fg"
             >
               {t('common.back')}
             </Link>
@@ -223,7 +223,7 @@ export default function ChannelLayout({
         {/* Mobile: channel sidebar toggle — positioned right of the app hamburger */}
         <button
           onClick={toggleChannelSidebar}
-          className="absolute left-[50px] top-1 flex h-10 w-10 items-center justify-center rounded-md text-fg-muted hover:bg-bg-hover hover:text-white md:hidden"
+          className="absolute left-[50px] top-1 flex h-10 w-10 items-center justify-center rounded-md text-fg-muted hover:bg-bg-hover hover:text-fg md:hidden"
           aria-label="Toggle channels"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -252,7 +252,7 @@ export default function ChannelLayout({
           </span>
           <h1
             data-testid="channel-header-title"
-            className="truncate text-base font-semibold text-white"
+            className="truncate text-base font-semibold text-fg"
           >
             {channel.name}
           </h1>

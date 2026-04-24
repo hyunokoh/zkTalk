@@ -159,7 +159,7 @@ export function P2PFileCard({
         {state === 'idle' && (
           <button
             onClick={handleDownload}
-            className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent"
+            className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-[color:var(--on-accent)] hover:bg-accent-strong"
           >
             <svg className="inline-block h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
               <path

@@ -115,7 +115,7 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               autoFocus
             />
           </div>
@@ -131,7 +131,7 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('channel.descPlaceholder')}
               rows={2}
-              className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
@@ -149,8 +149,8 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
                   onClick={() => setVisibility(opt.value)}
                   className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                     visibility === opt.value
-                      ? 'bg-accent text-white'
-                      : 'bg-bg-subtle text-fg-muted hover:bg-bg-subtle'
+                      ? 'bg-accent text-[color:var(--on-accent)]'
+                      : 'bg-bg-subtle text-fg-muted hover:bg-bg-hover'
                   }`}
                 >
                   {opt.label}
@@ -170,7 +170,7 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
               min={0}
               value={slowModeSeconds}
               onChange={(e) => setSlowModeSeconds(Math.max(0, parseInt(e.target.value, 10) || 0))}
-              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
             <p className="mt-1 text-xs text-fg-muted">{t('channel.slowModeDesc')}</p>
           </div>
@@ -227,14 +227,14 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
                     type="button"
                     onClick={() => archiveChannel.mutate()}
                     disabled={archiveChannel.isPending}
-                    className="rounded-md bg-danger px-4 py-2 text-sm font-medium text-white hover:bg-danger disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-md bg-danger px-4 py-2 text-sm font-medium text-white hover:bg-danger/85 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {t('common.confirm')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowArchiveConfirm(false)}
-                    className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg-muted"
+                    className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg"
                   >
                     {t('common.cancel')}
                   </button>
@@ -249,7 +249,7 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
               type="button"
               onClick={handleDelete}
               disabled={deleteChannel.isPending}
-              className="rounded-md bg-danger px-4 py-2 text-sm font-medium text-white hover:bg-danger disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md bg-danger px-4 py-2 text-sm font-medium text-white hover:bg-danger/85 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {deleteChannel.isPending ? t('common.loading') : t('channel.delete')}
             </button>
@@ -265,14 +265,14 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg-muted"
+              className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg"
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={!name.trim() || updateChannel.isPending}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
             >
               {updateChannel.isPending ? t('channel.saving') : t('common.save')}
             </button>

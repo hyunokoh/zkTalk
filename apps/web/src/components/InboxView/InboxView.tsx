@@ -49,12 +49,12 @@ export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
               className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeTab === tab.value
                   ? 'text-white'
-                  : 'text-fg-muted hover:text-fg-muted'
+                  : 'text-fg-muted hover:text-fg'
               }`}
             >
               {tab.label}
               {count > 0 && (
-                <span className="ml-1.5 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-accent px-1 py-0.5 text-[10px] font-bold text-white">
+                <span className="ml-1.5 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-accent px-1 py-0.5 text-[10px] font-bold text-[color:var(--on-accent)]">
                   {count}
                 </span>
               )}
@@ -81,7 +81,7 @@ export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
             className="m-4"
           />
         ) : (
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-line">
             {filtered.map((item) => (
               <InboxItem key={item.id} item={item} onMarkRead={onMarkRead} />
             ))}

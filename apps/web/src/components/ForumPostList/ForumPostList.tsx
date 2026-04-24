@@ -62,7 +62,7 @@ export function ForumPostList({ channelId, communitySlug }: ForumPostListProps) 
             className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
               sort === 'latest'
                 ? 'bg-bg-subtle text-fg-muted'
-                : 'text-fg-muted hover:text-fg-muted'
+                : 'text-fg-muted hover:text-fg'
             }`}
           >
             Latest
@@ -72,7 +72,7 @@ export function ForumPostList({ channelId, communitySlug }: ForumPostListProps) 
             className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
               sort === 'top'
                 ? 'bg-bg-subtle text-fg-muted'
-                : 'text-fg-muted hover:text-fg-muted'
+                : 'text-fg-muted hover:text-fg'
             }`}
           >
             Top
@@ -82,7 +82,7 @@ export function ForumPostList({ channelId, communitySlug }: ForumPostListProps) 
         <button
           data-testid="forum-new-post-button"
           onClick={() => setShowCreate(true)}
-          className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent"
+          className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong"
         >
           New Post
         </button>
@@ -106,7 +106,7 @@ export function ForumPostList({ channelId, communitySlug }: ForumPostListProps) 
             <p className="text-sm">{t('forum.noPosts')}</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-line">
             {rows.map((row) => (
               <ForumPostItem
                 key={row.thread.id}

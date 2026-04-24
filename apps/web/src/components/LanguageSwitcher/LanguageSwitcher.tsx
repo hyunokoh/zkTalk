@@ -41,7 +41,7 @@ export function LanguageSwitcher() {
           className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
             locale === code
               ? 'bg-accent/20 text-accent'
-              : 'text-fg-muted hover:text-fg-muted'
+              : 'text-fg-muted hover:text-fg'
           }`}
         >
           {name}

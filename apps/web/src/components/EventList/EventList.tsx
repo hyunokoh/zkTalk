@@ -107,7 +107,7 @@ export function EventList({
   if (events.length === 0) {
     return (
       <p
-        className="py-8 text-center text-sm text-fg-muted dark:text-fg-muted"
+        className="py-8 text-center text-sm text-fg-subtle"
         data-testid="event-empty-state"
       >
         {t('event.noEvents')}
@@ -121,7 +121,7 @@ export function EventList({
       {events.map((event) => (
         <div
           key={event.id}
-          className="rounded-lg border border-line p-4 dark:border-line"
+          className="rounded-lg border border-line p-4"
           data-testid="event-card"
           data-event-id={event.id}
           data-user-rsvp-status={event.userRsvpStatus ?? 'none'}
@@ -133,14 +133,14 @@ export function EventList({
               <button
                 onClick={() => setEditingEvent(event)}
                 data-testid="event-edit-button"
-                className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-subtle"
+                className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg-subtle dark:hover:bg-bg-subtle"
               >
                 {t('common.edit')}
               </button>
               <button
                 onClick={() => setPendingDeleteEvent(event)}
                 data-testid="event-delete-button"
-                className="rounded-lg bg-danger px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger dark:bg-danger/30 dark:text-danger dark:hover:bg-danger/50"
+                className="rounded-lg bg-danger px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/85 dark:bg-danger/30 dark:text-danger dark:hover:bg-danger/50"
               >
                 {t('common.delete')}
               </button>
@@ -148,8 +148,8 @@ export function EventList({
           )}
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="font-semibold text-fg dark:text-fg-muted">{event.title}</h3>
-              <p className="mt-0.5 text-sm text-fg-muted dark:text-fg-muted">
+              <h3 className="font-semibold text-fg-muted">{event.title}</h3>
+              <p className="mt-0.5 text-sm text-fg-subtle">
                 {new Date(event.startAt).toLocaleDateString(undefined, {
                   weekday: 'short',
                   month: 'short',
@@ -168,11 +168,11 @@ export function EventList({
           </div>
 
           {event.description && (
-            <p className="mt-2 text-sm text-fg dark:text-fg-muted">{event.description}</p>
+            <p className="mt-2 text-sm text-fg-muted">{event.description}</p>
           )}
 
           {event.location && (
-            <p className="mt-1 text-xs text-fg-muted dark:text-fg-muted">
+            <p className="mt-1 text-xs text-fg-subtle">
               {event.location}
             </p>
           )}
@@ -185,8 +185,8 @@ export function EventList({
               data-count={String(event.rsvpCounts.interested)}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                 event.userRsvpStatus === 'interested'
-                  ? 'bg-accent text-white'
-                  : 'bg-bg-hover text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-subtle'
+                  ? 'bg-accent text-[color:var(--on-accent)]'
+                  : 'bg-bg-hover text-fg hover:bg-line-subtle dark:hover:bg-bg-subtle'
               }`}
             >
               {t('event.interested')} ({event.rsvpCounts.interested})
@@ -199,7 +199,7 @@ export function EventList({
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                 event.userRsvpStatus === 'going'
                   ? 'bg-success text-white'
-                  : 'bg-bg-hover text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-subtle'
+                  : 'bg-bg-hover text-fg hover:bg-line-subtle dark:hover:bg-bg-subtle'
               }`}
             >
               {t('event.going')} ({event.rsvpCounts.going})
@@ -207,7 +207,7 @@ export function EventList({
             <button
               onClick={() => setAttendeesEvent(event)}
               data-testid="event-attendees-button"
-              className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-subtle"
+              className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg-subtle dark:hover:bg-bg-subtle"
             >
               {t('event.attendees')}
             </button>
@@ -262,17 +262,17 @@ export function EventList({
           >
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-fg dark:text-fg-muted">
+                <h2 className="text-lg font-semibold text-fg-muted">
                   {t('event.attendees')}
                 </h2>
-                <p className="mt-1 text-sm text-fg-muted dark:text-fg-muted">
+                <p className="mt-1 text-sm text-fg-subtle">
                   {attendeesEvent.title}
                 </p>
               </div>
               <button
                 onClick={() => setAttendeesEvent(null)}
                 data-testid="event-attendees-close-button"
-                className="rounded-lg px-3 py-1.5 text-sm text-fg-muted hover:bg-bg-hover hover:text-fg dark:text-fg-muted dark:hover:bg-bg-subtle dark:hover:text-fg-muted"
+                className="rounded-lg px-3 py-1.5 text-sm text-fg-muted hover:bg-bg-hover hover:text-fg-muted dark:hover:bg-bg-subtle dark:hover:text-fg"
               >
                 {t('common.cancel')}
               </button>
@@ -286,13 +286,13 @@ export function EventList({
               )}
 
               {attendeesQuery.isLoading && (
-                <p className="text-sm text-fg-muted dark:text-fg-muted">
+                <p className="text-sm text-fg-subtle">
                   {t('common.loading')}
                 </p>
               )}
 
               {!attendeesQuery.isLoading && (attendeesQuery.data?.length ?? 0) === 0 && (
-                <p className="text-sm text-fg-muted dark:text-fg-muted">
+                <p className="text-sm text-fg-subtle">
                   {t('event.noAttendees')}
                 </p>
               )}
@@ -300,16 +300,16 @@ export function EventList({
               {attendeesQuery.data?.map((attendee) => (
                 <div
                   key={attendee.user.id}
-                  className="flex items-center justify-between rounded-lg border border-line px-3 py-2 dark:border-line"
+                  className="flex items-center justify-between rounded-lg border border-line px-3 py-2"
                   data-testid="event-attendee-row"
                   data-user-id={attendee.user.id}
                   data-status={attendee.status}
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-fg dark:text-fg-muted">
+                    <p className="truncate text-sm font-medium text-fg-muted">
                       {attendee.user.displayName}
                     </p>
-                    <p className="truncate text-xs text-fg-muted dark:text-fg-muted">
+                    <p className="truncate text-xs text-fg-subtle">
                       @{attendee.user.username} · {attendee.status === 'going' ? t('event.going') : t('event.interested')}
                     </p>
                   </div>
@@ -317,7 +317,7 @@ export function EventList({
                     onClick={() => dmMutation.mutate(attendee.user.id)}
                     disabled={dmMutation.isPending}
                     data-testid="event-attendee-message-button"
-                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent disabled:opacity-50"
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
                   >
                     {t('event.messageAttendee')}
                   </button>

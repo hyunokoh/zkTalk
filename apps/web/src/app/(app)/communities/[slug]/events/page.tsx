@@ -50,14 +50,14 @@ export default function EventsPage() {
   return (
     <div className="mx-auto max-w-3xl p-6" data-testid="events-page">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-fg dark:text-fg-muted">
+        <h1 className="text-2xl font-bold text-fg-muted">
           {t('event.upcoming')}
         </h1>
         {canCreateEvent && (
           <button
             onClick={() => setShowCreateModal(true)}
             data-testid="events-create-button"
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong"
           >
             {t('event.create')}
           </button>

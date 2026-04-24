@@ -108,7 +108,7 @@ export function ReportButton({
                   <button
                     onClick={() => setOpen(false)}
                     data-testid="report-close-button"
-                    className="text-fg-muted hover:text-fg-muted"
+                    className="text-fg-muted hover:text-fg"
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -172,7 +172,7 @@ export function ReportButton({
                   <button
                     onClick={() => setOpen(false)}
                     data-testid="report-cancel-button"
-                    className="rounded-lg px-4 py-2 text-sm text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg-muted"
+                    className="rounded-lg px-4 py-2 text-sm text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg"
                   >
                     Cancel
                   </button>
@@ -180,7 +180,7 @@ export function ReportButton({
                     onClick={() => submitReport.mutate()}
                     disabled={!selectedReason || submitReport.isPending}
                     data-testid="report-submit-button"
-                    className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-danger disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-danger/85 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {submitReport.isPending ? 'Submitting...' : 'Submit Report'}
                   </button>

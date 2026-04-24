@@ -11,7 +11,7 @@ export default function FriendsPage() {
   return (
     <div className="flex-1 overflow-y-auto" data-testid="friends-page">
       <div className="mx-auto max-w-3xl p-6">
-        <h1 className="text-xl font-bold text-white">
+        <h1 className="text-xl font-bold text-fg">
           {t('friend.title')}
         </h1>
         <p className="mt-1 text-sm text-fg-muted">

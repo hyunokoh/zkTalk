@@ -47,16 +47,16 @@ export function InviteModal({ communityId, onClose }: InviteModalProps) {
         className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-bg-subtle"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-semibold text-fg dark:text-fg-muted">{t('invite.inviteMembers')}</h2>
+        <h2 className="mb-4 text-lg font-semibold text-fg-muted">{t('invite.inviteMembers')}</h2>
 
         {!inviteLink ? (
           <div className="space-y-4">
-            <p className="text-sm text-fg-muted dark:text-fg-muted">{t('invite.linkExpiry')}</p>
+            <p className="text-sm text-fg-subtle">{t('invite.linkExpiry')}</p>
             <button
               type="button"
               onClick={() => createInvite.mutate()}
               disabled={createInvite.isPending}
-              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
             >
               {createInvite.isPending ? t('common.loading') : t('invite.createLink')}
             </button>
@@ -73,7 +73,7 @@ export function InviteModal({ communityId, onClose }: InviteModalProps) {
                 type="text"
                 readOnly
                 value={inviteLink}
-                className="flex-1 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
+                className="flex-1 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg focus:outline-none dark:bg-bg-subtle"
               />
               <button
                 type="button"
@@ -81,7 +81,7 @@ export function InviteModal({ communityId, onClose }: InviteModalProps) {
                 className={`shrink-0 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                   copied
                     ? 'bg-success text-white'
-                    : 'bg-accent text-white hover:bg-accent'
+                    : 'bg-accent text-[color:var(--on-accent)] hover:bg-accent-strong'
                 }`}
               >
                 {copied ? t('invite.copied') : t('invite.copyLink')}
@@ -95,7 +95,7 @@ export function InviteModal({ communityId, onClose }: InviteModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-4 py-2 text-sm font-medium text-fg hover:text-fg dark:text-fg-muted dark:hover:text-fg-muted"
+            className="rounded-md px-4 py-2 text-sm font-medium text-fg hover:text-fg-muted dark:hover:text-fg"
           >
             {t('common.cancel')}
           </button>

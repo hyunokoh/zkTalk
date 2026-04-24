@@ -68,8 +68,8 @@ export function CreateChannelModal({ communityId, categoryId, onClose }: CreateC
                   onClick={() => setType(opt.value)}
                   className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                     type === opt.value
-                      ? 'bg-accent text-white'
-                      : 'bg-bg-subtle text-fg-muted hover:bg-bg-subtle'
+                      ? 'bg-accent text-[color:var(--on-accent)]'
+                      : 'bg-bg-subtle text-fg-muted hover:bg-bg-hover'
                   }`}
                 >
                   {opt.label}
@@ -89,7 +89,7 @@ export function CreateChannelModal({ communityId, categoryId, onClose }: CreateC
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="new-channel"
-              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               autoFocus
             />
           </div>
@@ -105,7 +105,7 @@ export function CreateChannelModal({ communityId, categoryId, onClose }: CreateC
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What is this channel about?"
               rows={2}
-              className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
@@ -121,14 +121,14 @@ export function CreateChannelModal({ communityId, categoryId, onClose }: CreateC
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg-muted"
+              className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!name.trim() || createChannel.isPending}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
             >
               {createChannel.isPending ? 'Creating...' : 'Create Channel'}
             </button>

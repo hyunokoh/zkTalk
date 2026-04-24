@@ -310,14 +310,14 @@ export function FriendList() {
               type="button"
               onClick={() => void handlePasteFromClipboard()}
               data-testid="friend-shared-profile-paste-button"
-              className="rounded-lg border border-line bg-bg-subtle px-3 py-2 text-xs font-medium text-fg-muted transition hover:border-line hover:text-white"
+              className="rounded-lg border border-line bg-bg-subtle px-3 py-2 text-xs font-medium text-fg-muted transition hover:border-line hover:text-fg"
             >
               {t('friend.sharedProfilePaste')}
             </button>
             <button
               type="submit"
               data-testid="friend-shared-profile-open-button"
-              className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-accent-strong"
+              className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong"
             >
               {t('friend.sharedProfileOpen')}
             </button>
@@ -355,7 +355,7 @@ export function FriendList() {
             <button
               onClick={dismissSharedProfile}
               data-testid="friend-shared-profile-dismiss-button"
-              className="rounded-full border border-line bg-bg-subtle px-2.5 py-1 text-xs font-medium text-fg-muted transition hover:border-line hover:text-white"
+              className="rounded-full border border-line bg-bg-subtle px-2.5 py-1 text-xs font-medium text-fg-muted transition hover:border-line hover:text-fg"
             >
               {t('common.cancel')}
             </button>
@@ -384,7 +384,7 @@ export function FriendList() {
                   onClick={() => addMutation.mutate(sharedProfile.userId)}
                   disabled={addMutation.isPending}
                   data-testid="friend-shared-profile-add-button"
-                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-accent-strong disabled:opacity-50"
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong disabled:opacity-50"
                 >
                   {t('friend.add')}
                 </button>
@@ -398,7 +398,7 @@ export function FriendList() {
                     onClick={() => dmMutation.mutate(sharedProfile.userId)}
                     disabled={dmMutation.isPending}
                     data-testid="friend-shared-profile-message-button"
-                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent disabled:opacity-50"
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
                   >
                     {t('friend.message')}
                   </button>
@@ -406,7 +406,7 @@ export function FriendList() {
                     onClick={() => callMutation.mutate({ targetUserId: sharedProfile.userId, mode: 'voice' })}
                     disabled={callMutation.isPending}
                     data-testid="friend-shared-profile-voice-button"
-                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover disabled:opacity-50 dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
+                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg disabled:opacity-50-subtle dark:hover:bg-bg-hover"
                   >
                     {t('voice.join')}
                   </button>
@@ -414,7 +414,7 @@ export function FriendList() {
                     onClick={() => callMutation.mutate({ targetUserId: sharedProfile.userId, mode: 'video' })}
                     disabled={callMutation.isPending}
                     data-testid="friend-shared-profile-video-button"
-                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover disabled:opacity-50 dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
+                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg disabled:opacity-50-subtle dark:hover:bg-bg-hover"
                   >
                     {t('voice.videoCall')}
                   </button>
@@ -430,14 +430,14 @@ export function FriendList() {
                   <button
                     onClick={() => acceptMutation.mutate(sharedFriendshipId)}
                     data-testid="friend-shared-profile-accept-button"
-                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent"
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-[color:var(--on-accent)] hover:bg-accent-strong"
                   >
                     {t('friend.accept')}
                   </button>
                   <button
                     onClick={() => removeMutation.mutate(sharedFriendshipId)}
                     data-testid="friend-shared-profile-decline-button"
-                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
+                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg-subtle dark:hover:bg-bg-hover"
                   >
                     {t('friend.decline')}
                   </button>
@@ -480,7 +480,7 @@ export function FriendList() {
 
         {searchFeedback && (
           <p
-            className="text-xs text-fg-muted dark:text-fg-muted"
+            className="text-xs text-fg-subtle"
             data-testid="friend-search-feedback"
           >
             {searchFeedback}
@@ -494,13 +494,13 @@ export function FriendList() {
             ) : searchResults.length === 0 ? (
               <EmptyState
                 title={t('friend.noSearchResults')}
-                className="border-line bg-bg-subtle px-6 py-10 text-fg-muted shadow-none dark:border-line dark:bg-bg-subtle/40"
+                className="border-line bg-bg-subtle px-6 py-10 text-fg-muted shadow-none dark:bg-bg-subtle/40"
               />
             ) : (
               searchResults.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center gap-3 rounded-lg border border-line p-3 dark:border-line"
+                  className="flex items-center gap-3 rounded-lg border border-line p-3"
                   data-testid="friend-search-result"
                   data-user-id={user.id}
                 >
@@ -510,10 +510,10 @@ export function FriendList() {
                     size="sm"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-fg dark:text-fg-muted">
+                    <p className="truncate font-medium text-fg-muted">
                       {user.displayName}
                     </p>
-                    <p className="text-xs text-fg-muted dark:text-fg-muted">
+                    <p className="text-xs text-fg-subtle">
                       @{user.username}
                     </p>
                   </div>
@@ -521,7 +521,7 @@ export function FriendList() {
                     onClick={() => addMutation.mutate(user.id)}
                     disabled={addMutation.isPending}
                     data-testid="friend-search-add-button"
-                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent disabled:opacity-50"
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
                   >
                     {t('friend.add')}
                   </button>
@@ -533,7 +533,7 @@ export function FriendList() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-line dark:border-line">
+      <div className="flex gap-1 border-b border-line">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -542,7 +542,7 @@ export function FriendList() {
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === tab.key
                 ? 'border-b-2 border-accent text-accent-strong'
-                : 'text-fg-muted hover:text-fg dark:text-fg-muted dark:hover:text-fg-muted'
+                : 'text-fg-muted hover:text-fg-muted dark:hover:text-fg'
             }`}
           >
             {tab.label}
@@ -568,12 +568,12 @@ export function FriendList() {
                   ? t('friend.sharedProfileBlocked')
                   : t('friend.friendsPageHelp')
             }
-            className="border-line bg-bg-subtle px-6 py-12 text-fg-muted shadow-none dark:border-line dark:bg-bg-subtle/40"
+            className="border-line bg-bg-subtle px-6 py-12 text-fg-muted shadow-none dark:bg-bg-subtle/40"
           />
         ) : friends.map((friend) => (
           <div
             key={friend.id}
-            className="flex items-center gap-3 rounded-lg border border-line p-3 dark:border-line"
+            className="flex items-center gap-3 rounded-lg border border-line p-3"
             data-testid="friend-row"
             data-friendship-id={friend.id}
             data-user-id={friend.user?.id ?? ''}
@@ -588,10 +588,10 @@ export function FriendList() {
                   size="sm"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-fg dark:text-fg-muted">
+                  <p className="truncate font-medium text-fg-muted">
                     {friend.user.displayName}
                   </p>
-                  <p className="text-xs text-fg-muted dark:text-fg-muted">
+                  <p className="text-xs text-fg-subtle">
                     @{friend.user.username}
                   </p>
                 </div>
@@ -603,7 +603,7 @@ export function FriendList() {
                 <button
                   onClick={() => acceptMutation.mutate(friend.id)}
                   data-testid="friend-row-accept-button"
-                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent"
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-[color:var(--on-accent)] hover:bg-accent-strong"
                 >
                   {t('friend.accept')}
                 </button>
@@ -612,7 +612,7 @@ export function FriendList() {
                 <button
                   onClick={() => removeMutation.mutate(friend.id)}
                   data-testid="friend-row-decline-button"
-                  className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
+                  className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg-subtle dark:hover:bg-bg-hover"
                 >
                   {t('friend.decline')}
                 </button>
@@ -627,7 +627,7 @@ export function FriendList() {
                       <button
                         onClick={() => dmMutation.mutate(friend.user!.id)}
                         data-testid="friend-row-message-button"
-                        className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent disabled:opacity-50"
+                        className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
                         disabled={dmMutation.isPending}
                       >
                         {t('friend.message')}
@@ -635,7 +635,7 @@ export function FriendList() {
                       <button
                         onClick={() => callMutation.mutate({ targetUserId: friend.user!.id, mode: 'voice' })}
                         data-testid="friend-row-voice-button"
-                        className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover disabled:opacity-50 dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
+                        className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg disabled:opacity-50-subtle dark:hover:bg-bg-hover"
                         disabled={callMutation.isPending}
                       >
                         {t('voice.join')}
@@ -643,7 +643,7 @@ export function FriendList() {
                       <button
                         onClick={() => callMutation.mutate({ targetUserId: friend.user!.id, mode: 'video' })}
                         data-testid="friend-row-video-button"
-                        className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover disabled:opacity-50 dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
+                        className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg disabled:opacity-50-subtle dark:hover:bg-bg-hover"
                         disabled={callMutation.isPending}
                       >
                         {t('voice.videoCall')}
@@ -653,14 +653,14 @@ export function FriendList() {
                   <button
                     onClick={() => blockMutation.mutate(friend.id)}
                     data-testid="friend-row-block-button"
-                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
+                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg-subtle dark:hover:bg-bg-hover"
                   >
                     {t('friend.block')}
                   </button>
                   <button
                     onClick={() => removeMutation.mutate(friend.id)}
                     data-testid="friend-row-remove-button"
-                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger dark:bg-bg-subtle dark:text-danger dark:hover:bg-danger/30"
+                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/85-subtle dark:text-danger dark:hover:bg-danger/30"
                   >
                     {t('friend.remove')}
                   </button>
@@ -670,7 +670,7 @@ export function FriendList() {
                 <button
                   onClick={() => removeMutation.mutate(friend.id)}
                   data-testid="friend-row-unblock-button"
-                  className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
+                  className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg-subtle dark:hover:bg-bg-hover"
                 >
                   {t('friend.unblock')}
                 </button>

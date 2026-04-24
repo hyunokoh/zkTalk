@@ -15,7 +15,7 @@
  *      the matching agent driver, and submit the result via
  *      POST /api/commands/:id/result.
  *
- * The `shell` driver is the only one with a real implementation in 9B. The
+ * The `shell` and `codex` drivers have real implementations in 9B. The
  * `finder` and `browser` drivers register so the API surface is complete,
  * but their execute() returns a NOT_IMPLEMENTED error until 9C.
  *
@@ -27,6 +27,7 @@
 const os = require('node:os');
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
+const { createCodexAgentDriver } = require('./agent-ai-driver');
 
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 30_000;
 const DEFAULT_DISPATCH_INTERVAL_MS = 3_000;
@@ -166,6 +167,7 @@ const BUILTIN_AGENT_DRIVERS = [
       return executeShellCommand(cmd, options);
     },
   },
+  createCodexAgentDriver(),
   {
     agentSlug: 'finder',
     displayName: 'Finder',
@@ -274,6 +276,8 @@ function createAgentDeviceBridge(options = {}) {
     heartbeatIntervalMs = DEFAULT_HEARTBEAT_INTERVAL_MS,
     dispatchIntervalMs = DEFAULT_DISPATCH_INTERVAL_MS,
     commandTimeoutMs = DEFAULT_COMMAND_TIMEOUT_MS,
+    codexBin = null,
+    codexCwd = null,
     fetchImpl = globalThis.fetch,
     logger = () => {},
     drivers = BUILTIN_AGENT_DRIVERS,
@@ -281,6 +285,9 @@ function createAgentDeviceBridge(options = {}) {
 
   if (!apiBaseUrl) {
     throw new Error('agent-device-bridge: apiBaseUrl is required');
+  }
+  if (typeof apiBaseUrl !== 'string' && typeof apiBaseUrl !== 'function') {
+    throw new Error('agent-device-bridge: apiBaseUrl must be a string or function');
   }
   if (typeof getSessionToken !== 'function') {
     throw new Error('agent-device-bridge: getSessionToken must be a function');
@@ -301,6 +308,10 @@ function createAgentDeviceBridge(options = {}) {
 
   const agents = [...drivers];
 
+  function resolveApiBaseUrl() {
+    return typeof apiBaseUrl === 'function' ? apiBaseUrl() : apiBaseUrl;
+  }
+
   async function request(path, init = {}) {
     const token = getSessionToken();
     const headers = {
@@ -309,7 +320,7 @@ function createAgentDeviceBridge(options = {}) {
     };
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    const res = await fetchImpl(`${apiBaseUrl}${path}`, {
+    const res = await fetchImpl(`${resolveApiBaseUrl()}${path}`, {
       ...init,
       headers,
     });
@@ -433,7 +444,12 @@ function createAgentDeviceBridge(options = {}) {
       };
     }
     try {
-      return await driver.execute(command, { timeoutMs: commandTimeoutMs });
+      const timeoutMs = driver.commandTimeoutMs ?? commandTimeoutMs;
+      return await driver.execute(command, {
+        timeoutMs,
+        codexBin,
+        cwd: codexCwd,
+      });
     } catch (err) {
       return {
         exitCode: -1,

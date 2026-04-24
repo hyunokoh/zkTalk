@@ -125,7 +125,7 @@ export default function NewCommunityPage() {
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder={t('community.namePlaceholder')}
-              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-400 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
@@ -163,7 +163,7 @@ export default function NewCommunityPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('community.descPlaceholder')}
-              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-400 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
@@ -216,7 +216,7 @@ export default function NewCommunityPage() {
             <button
               type="submit"
               disabled={isSubmitting || !name.trim() || !slug.trim()}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong disabled:opacity-50"
             >
               {isSubmitting ? t('community.creating') : t('community.createBtn')}
             </button>

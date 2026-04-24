@@ -207,7 +207,7 @@ export default function WebhooksSettingsPage() {
               value={webhookName}
               onChange={(e) => setWebhookName(e.target.value)}
               placeholder={t('webhook.namePlaceholder')}
-              className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
@@ -235,7 +235,7 @@ export default function WebhooksSettingsPage() {
             type="button"
             onClick={() => createWebhookMutation.mutate()}
             disabled={!webhookName.trim() || !webhookChannelId || createWebhookMutation.isPending}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
           >
             {createWebhookMutation.isPending ? t('common.loading') : t('webhook.create')}
           </button>
@@ -286,7 +286,7 @@ export default function WebhooksSettingsPage() {
                   <button
                     type="button"
                     onClick={() => handleCopyToken(wh.token, wh.id)}
-                    className="shrink-0 rounded-lg bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-bg-subtle"
+                    className="shrink-0 rounded-lg bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-bg-hover"
                   >
                     {copiedTokenId === wh.id ? t('webhook.tokenCopied') : t('webhook.copyToken')}
                   </button>
@@ -322,7 +322,7 @@ export default function WebhooksSettingsPage() {
               value={botName}
               onChange={(e) => setBotName(e.target.value)}
               placeholder={t('bot.namePlaceholder')}
-              className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
@@ -330,7 +330,7 @@ export default function WebhooksSettingsPage() {
             type="button"
             onClick={() => createBotMutation.mutate()}
             disabled={!botName.trim() || createBotMutation.isPending}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
           >
             {createBotMutation.isPending ? t('common.loading') : t('bot.create')}
           </button>
@@ -381,7 +381,7 @@ export default function WebhooksSettingsPage() {
                   <button
                     type="button"
                     onClick={() => handleCopyToken(bot.token, bot.id)}
-                    className="shrink-0 rounded-lg bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-bg-subtle"
+                    className="shrink-0 rounded-lg bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-bg-hover"
                   >
                     {copiedTokenId === bot.id ? t('webhook.tokenCopied') : t('webhook.copyToken')}
                   </button>

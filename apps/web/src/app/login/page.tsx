@@ -378,7 +378,7 @@ function LoginContent() {
               setDevOtpCode(null);
               setError(null);
             }}
-            className="mt-6 block w-full text-center text-sm text-fg-muted hover:text-fg-muted"
+            className="mt-6 block w-full text-center text-sm text-fg-muted hover:text-fg"
           >
             {t('common.back')}
           </button>
@@ -415,7 +415,7 @@ function LoginContent() {
               setEmailSubmitted(false);
               setDevToken(null);
             }}
-            className="mt-6 text-sm text-fg-muted hover:text-fg-muted"
+            className="mt-6 text-sm text-fg-muted hover:text-fg"
           >
             {t('auth.useDifferentEmail')}
           </button>
@@ -463,7 +463,7 @@ function LoginContent() {
               setQrToken(null);
               setError(null);
             }}
-            className="mt-6 text-sm text-fg-muted hover:text-fg-muted"
+            className="mt-6 text-sm text-fg-muted hover:text-fg"
           >
             {t('common.back')}
           </button>
@@ -486,8 +486,8 @@ function LoginContent() {
             onClick={() => { setActiveTab('phone'); setError(null); }}
             className={`flex-1 rounded-l-md px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === 'phone'
-                ? 'bg-accent text-white'
-                : 'bg-bg-subtle text-fg-muted hover:text-fg-muted'
+                ? 'bg-accent text-[color:var(--on-accent)]'
+                : 'bg-bg-subtle text-fg-muted hover:text-fg'
             }`}
           >
             {t('auth.phoneTab')}
@@ -497,8 +497,8 @@ function LoginContent() {
             onClick={() => { setActiveTab('email'); setError(null); }}
             className={`flex-1 rounded-r-md px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === 'email'
-                ? 'bg-accent text-white'
-                : 'bg-bg-subtle text-fg-muted hover:text-fg-muted'
+                ? 'bg-accent text-[color:var(--on-accent)]'
+                : 'bg-bg-subtle text-fg-muted hover:text-fg'
             }`}
           >
             {t('auth.emailTab')}
@@ -531,7 +531,7 @@ function LoginContent() {
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder={t('auth.phonePlaceholder')}
-                  className="flex-1 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-400 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  className="flex-1 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 />
               </div>
             </div>
@@ -542,7 +542,7 @@ function LoginContent() {
               data-testid="login-phone-submit"
               type="submit"
               disabled={isSubmitting || !phoneNumber.trim()}
-              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
+              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong disabled:opacity-50"
             >
               {isSubmitting ? t('auth.sending') : t('auth.sendCode')}
             </button>
@@ -564,7 +564,7 @@ function LoginContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('auth.emailPlaceholder')}
-                className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-400 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
             </div>
 
@@ -574,7 +574,7 @@ function LoginContent() {
               data-testid="login-email-submit"
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
+              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong disabled:opacity-50"
             >
               {isSubmitting ? t('auth.sending') : t('auth.continueWithEmail')}
             </button>
@@ -592,7 +592,7 @@ function LoginContent() {
         <div className="space-y-3">
           <button
             onClick={handleGoogleLogin}
-            className="flex w-full items-center justify-center gap-3 rounded-md border border-line bg-bg-subtle px-4 py-2.5 text-sm font-medium text-fg-muted transition-colors hover:bg-bg-subtle"
+            className="flex w-full items-center justify-center gap-3 rounded-md border border-line bg-bg-subtle px-4 py-2.5 text-sm font-medium text-fg-muted transition-colors hover:bg-bg-hover"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -617,7 +617,7 @@ function LoginContent() {
 
           <button
             onClick={handleAppleLogin}
-            className="flex w-full items-center justify-center gap-3 rounded-md border border-line bg-bg-subtle px-4 py-2.5 text-sm font-medium text-fg-muted transition-colors hover:bg-bg-subtle"
+            className="flex w-full items-center justify-center gap-3 rounded-md border border-line bg-bg-subtle px-4 py-2.5 text-sm font-medium text-fg-muted transition-colors hover:bg-bg-hover"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
@@ -630,7 +630,7 @@ function LoginContent() {
         <div className="mt-6 border-t border-line pt-4 text-center">
           <button
             onClick={handleShowQr}
-            className="inline-flex items-center gap-2 text-sm text-fg-muted transition-colors hover:text-fg-muted"
+            className="inline-flex items-center gap-2 text-sm text-fg-muted transition-colors hover:text-fg"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="3" width="7" height="7" rx="1" />

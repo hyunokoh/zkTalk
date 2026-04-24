@@ -94,11 +94,11 @@ export function GifPicker({ onSelect, onClose }: GifPickerProps) {
   return (
     <div
       ref={popoverRef}
-      className="absolute bottom-full left-0 z-50 mb-2 w-80 overflow-hidden rounded-lg border border-line bg-white shadow-xl dark:border-line dark:bg-bg-subtle"
+      className="absolute bottom-full left-0 z-50 mb-2 w-80 overflow-hidden rounded-lg border border-line bg-white shadow-xl dark:bg-bg-subtle"
     >
       {/* Header */}
-      <div className="border-b border-line px-3 py-2 dark:border-line">
-        <h3 className="text-sm font-semibold text-fg dark:text-fg-muted">
+      <div className="border-b border-line px-3 py-2">
+        <h3 className="text-sm font-semibold text-fg-muted">
           {t('gif.title')}
         </h3>
       </div>
@@ -111,7 +111,7 @@ export function GifPicker({ onSelect, onClose }: GifPickerProps) {
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('gif.search')}
           autoFocus
-          className="w-full rounded-md border border-line bg-bg-subtle px-3 py-1.5 text-sm text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted dark:placeholder:text-fg-muted"
+          className="w-full rounded-md border border-line bg-bg-subtle px-3 py-1.5 text-sm text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none dark:bg-bg-subtle dark:placeholder:text-fg-muted"
         />
       </div>
 
@@ -122,7 +122,7 @@ export function GifPicker({ onSelect, onClose }: GifPickerProps) {
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-indigo-500" />
           </div>
         ) : gifs.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-fg-muted dark:text-fg-muted">
+          <div className="flex h-full items-center justify-center text-sm text-fg-subtle">
             No GIFs found
           </div>
         ) : (
@@ -155,8 +155,8 @@ export function GifPicker({ onSelect, onClose }: GifPickerProps) {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-line px-3 py-1.5 dark:border-line">
-        <p className="text-center text-xs text-fg-muted dark:text-fg-muted">
+      <div className="border-t border-line px-3 py-1.5">
+        <p className="text-center text-xs text-fg-subtle">
           {t('gif.poweredBy')}
         </p>
       </div>

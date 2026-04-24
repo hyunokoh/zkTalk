@@ -109,12 +109,12 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder={t('category.namePlaceholder')}
-            className="flex-1 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="flex-1 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
           <button
             type="submit"
             disabled={!newName.trim() || createCategory.isPending}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createCategory.isPending ? t('category.creating') : t('category.create')}
           </button>
@@ -159,7 +159,7 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
                   <button
                     type="button"
                     onClick={() => setEditingId(null)}
-                    className="rounded px-2 py-1 text-xs font-medium text-fg-muted hover:text-fg-muted"
+                    className="rounded px-2 py-1 text-xs font-medium text-fg-muted hover:text-fg"
                   >
                     {t('common.cancel')}
                   </button>
@@ -170,7 +170,7 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
                   <button
                     type="button"
                     onClick={() => startEditing(category)}
-                    className="rounded px-2 py-1 text-xs font-medium text-fg-muted hover:text-fg-muted"
+                    className="rounded px-2 py-1 text-xs font-medium text-fg-muted hover:text-fg"
                   >
                     {t('category.edit')}
                   </button>
@@ -200,7 +200,7 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg-muted"
+            className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg"
           >
             {t('common.cancel')}
           </button>

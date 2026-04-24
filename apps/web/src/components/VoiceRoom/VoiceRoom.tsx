@@ -78,23 +78,23 @@ function LocalizedControlBar() {
     <div className="flex items-center gap-2 p-2">
       <TrackToggle
         source={Track.Source.Microphone}
-        className="rounded-full bg-bg-subtle px-3 py-2 text-xs text-white hover:bg-bg-subtle"
+        className="rounded-full bg-bg-subtle px-3 py-2 text-xs text-fg hover:bg-bg-hover"
       >
         {t('voice.microphone')}
       </TrackToggle>
       <TrackToggle
         source={Track.Source.Camera}
-        className="rounded-full bg-bg-subtle px-3 py-2 text-xs text-white hover:bg-bg-subtle"
+        className="rounded-full bg-bg-subtle px-3 py-2 text-xs text-fg hover:bg-bg-hover"
       >
         {t('voice.camera')}
       </TrackToggle>
       <TrackToggle
         source={Track.Source.ScreenShare}
-        className="rounded-full bg-accent px-3 py-2 text-xs text-white hover:bg-accent"
+        className="rounded-full bg-accent px-3 py-2 text-xs text-[color:var(--on-accent)] hover:bg-accent-strong"
       >
         {t('voice.screenShare')}
       </TrackToggle>
-      <DisconnectButton className="rounded-full bg-danger px-3 py-2 text-xs text-white hover:bg-danger">
+      <DisconnectButton className="rounded-full bg-danger px-3 py-2 text-xs text-white hover:bg-danger/85">
         {t('voice.disconnect')}
       </DisconnectButton>
     </div>
@@ -127,7 +127,7 @@ function ScreenShareIndicator() {
   if (screenShareTracks.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-1.5 rounded bg-accent px-2 py-0.5 text-xs font-medium text-white">
+    <div className="flex items-center gap-1.5 rounded bg-accent px-2 py-0.5 text-xs font-medium text-[color:var(--on-accent)]">
       <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
         <path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm5 8h4v2H8v-2z" />
       </svg>
@@ -169,7 +169,7 @@ export function VoiceRoom({ token, serverUrl, channelId, onDisconnected, isVideo
   }, [sendLeaveKeepalive]);
 
   return (
-    <div className="flex flex-col border-t border-line bg-bg-hover dark:border-line dark:bg-bg-subtle" style={{ height: isVideoEnabled ? '400px' : '120px' }}>
+    <div className="flex flex-col border-t border-line bg-bg-hover dark:bg-bg-subtle" style={{ height: isVideoEnabled ? '400px' : '120px' }}>
       <LiveKitRoom
         token={token}
         serverUrl={serverUrl}
@@ -196,7 +196,7 @@ export function VoiceRoom({ token, serverUrl, channelId, onDisconnected, isVideo
             <RoomAudioRenderer />
             <div className="flex flex-1 flex-col items-center justify-center gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-fg dark:text-fg-muted">{t('voice.connected')}</span>
+                <span className="text-sm text-fg-muted">{t('voice.connected')}</span>
                 <ScreenShareIndicator />
               </div>
               <LocalizedControlBar />

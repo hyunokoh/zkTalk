@@ -70,12 +70,12 @@ function ToggleCard({
     <div className="rounded-2xl border border-line bg-bg-subtle/60 p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-white">{title}</h2>
+          <h2 className="text-lg font-semibold text-fg">{title}</h2>
           <p className="mt-1 text-sm leading-6 text-fg-muted">{description}</p>
         </div>
         <button
           onClick={onToggle}
-          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-gray-900 ${
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg ${
             enabled ? 'bg-accent' : 'bg-bg-subtle'
           }`}
           role="switch"
@@ -368,14 +368,14 @@ export default function AISettingsPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent/80">
             {t('settings.aiPage.eyebrow')}
           </p>
-          <h1 className="mt-2 text-3xl font-bold text-white">{t('settings.aiPage.title')}</h1>
+          <h1 className="mt-2 text-3xl font-bold text-fg">{t('settings.aiPage.title')}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-fg-muted">
             {t('settings.aiPage.description')}
           </p>
         </div>
         <Link
           href="/settings"
-          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
+          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-hover"
         >
           {t('settings.aiPage.backToSettings')}
         </Link>
@@ -410,7 +410,7 @@ export default function AISettingsPage() {
           >
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">
+                <h2 className="text-lg font-semibold text-fg">
                   {t('settings.aiPage.translation.title')}
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-fg-muted">
@@ -484,7 +484,7 @@ export default function AISettingsPage() {
                       } disabled:cursor-not-allowed disabled:opacity-60`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span className="font-medium text-white">{localizedPreset.label}</span>
+                        <span className="font-medium text-fg">{localizedPreset.label}</span>
                         {isActive ? (
                           <span className="text-xs font-semibold uppercase tracking-[0.12em] text-accent">
                             {t('settings.aiPage.translationPresetActive')}
@@ -526,7 +526,7 @@ export default function AISettingsPage() {
                     onChange={(event) =>
                       setTranslationMode(event.target.value as TranslationDisplayMode)
                     }
-                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-white outline-none transition focus:border-accent/60"
+                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-fg outline-none transition focus:border-accent/60"
                   >
                     <option value="manual_only">
                       {t('settings.aiPage.translationMode.manual_only')}
@@ -549,7 +549,7 @@ export default function AISettingsPage() {
                     onChange={(event) => setTargetLanguageInput(event.target.value)}
                     placeholder="pt-BR"
                     disabled={translationMode === 'manual_only'}
-                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-white outline-none transition placeholder:text-fg focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-fg outline-none transition placeholder:text-fg focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </label>
                 <label className="space-y-2 text-sm text-fg-muted">
@@ -562,7 +562,7 @@ export default function AISettingsPage() {
                     onChange={(event) => setReadableLanguagesInput(event.target.value)}
                     placeholder="en, ko, zh-Hant"
                     disabled={translationMode === 'target_language_all'}
-                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-white outline-none transition placeholder:text-fg focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-fg outline-none transition placeholder:text-fg focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </label>
               </div>
@@ -572,7 +572,7 @@ export default function AISettingsPage() {
                   data-testid="translation-custom-save-button"
                   disabled={isSavingTranslationPreset}
                   onClick={() => void handleCustomTranslationSave()}
-                  className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-fg transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {t('settings.aiPage.translationSaveButton')}
                 </button>
@@ -599,7 +599,7 @@ export default function AISettingsPage() {
           >
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">
+                <h2 className="text-lg font-semibold text-fg">
                   {t('settings.aiPage.machineControl.title')}
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-fg-muted">
@@ -611,7 +611,7 @@ export default function AISettingsPage() {
               </span>
             </div>
             <div className="mt-4 rounded-2xl border border-line bg-bg-elevated/30 p-4">
-              <p className="text-sm font-medium text-white">
+              <p className="text-sm font-medium text-fg">
                 {t('settings.aiPage.machineControl.availabilityTitle')}
               </p>
               <p className="mt-2 text-sm leading-6 text-fg-muted">
@@ -625,7 +625,7 @@ export default function AISettingsPage() {
                   className="rounded-2xl border border-line bg-bg-elevated/40 px-4 py-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-white">{row.platform}</p>
+                    <p className="text-sm font-semibold text-fg">{row.platform}</p>
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fg-muted">
                       {row.surface}
                     </p>
@@ -637,7 +637,7 @@ export default function AISettingsPage() {
             <div className="mt-4 rounded-2xl border border-line bg-bg-elevated/40 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-fg">
                     {t('settings.aiPage.machineControl.timelineTitle')}
                   </p>
                   <p className="mt-1 text-sm leading-6 text-fg-muted">
@@ -719,7 +719,7 @@ export default function AISettingsPage() {
             {t('settings.aiPage.runtime.title')}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <h2 className="text-xl font-semibold text-white">{providerLabel}</h2>
+            <h2 className="text-xl font-semibold text-fg">{providerLabel}</h2>
             {runtimePresentation ? (
               <span
                 className={
@@ -738,7 +738,7 @@ export default function AISettingsPage() {
             {t('settings.aiPage.runtime.description')}
           </p>
           <div className="mt-4 rounded-2xl border border-line bg-bg-elevated/70 p-4 text-sm text-fg-muted">
-            <p className="font-medium text-white">{t('settings.aiPage.runtime.sessionTitle')}</p>
+            <p className="font-medium text-fg">{t('settings.aiPage.runtime.sessionTitle')}</p>
             <p className="mt-2 leading-6">
               {runtimePresentation?.description ?? t('settings.aiPage.runtime.loading')}
             </p>
@@ -755,7 +755,7 @@ export default function AISettingsPage() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-accent/40 bg-accent-soft/20 p-4 text-sm text-accent/80">
-            <p className="font-medium text-white">{t('settings.aiPage.mobileActions.title')}</p>
+            <p className="font-medium text-fg">{t('settings.aiPage.mobileActions.title')}</p>
             <p className="mt-2 leading-6">{t('settings.aiPage.mobileActions.description')}</p>
             <ul className="mt-3 space-y-2">
               {selectedMessageBehaviorItems.map((item) => (
@@ -768,7 +768,7 @@ export default function AISettingsPage() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-agent/40 bg-agent-soft/20 p-4 text-sm text-agent/80">
-            <p className="font-medium text-white">{t('settings.aiPage.desktopPresets.title')}</p>
+            <p className="font-medium text-fg">{t('settings.aiPage.desktopPresets.title')}</p>
             <p className="mt-2 leading-6">{t('settings.aiPage.desktopPresets.description')}</p>
             <p className="mt-2 text-xs uppercase tracking-[0.14em] text-agent/70">
               {currentDesktopBridgePreset
@@ -780,7 +780,7 @@ export default function AISettingsPage() {
             <ul className="mt-3 space-y-3">
               {bridgeLanguagePresets.map((preset) => (
                 <li key={preset.id}>
-                  <span className="font-medium text-white">
+                  <span className="font-medium text-fg">
                     {getLocalizedTranslationPreset(preset.id).label}
                   </span>
                   <span className="block mt-1 leading-6">
@@ -795,7 +795,7 @@ export default function AISettingsPage() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-line bg-bg-elevated/70 p-4 text-sm text-fg-muted">
-            <p className="font-medium text-white">{t('settings.aiPage.platformFeatures.title')}</p>
+            <p className="font-medium text-fg">{t('settings.aiPage.platformFeatures.title')}</p>
             <div className="mt-3 space-y-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fg-muted">

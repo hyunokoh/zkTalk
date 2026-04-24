@@ -7,7 +7,7 @@ export default function DmHomePage() {
 
   return (
     <div className="flex h-full flex-1 items-center justify-center">
-      <p className="text-sm text-fg-muted dark:text-fg-muted">
+      <p className="text-sm text-fg-subtle">
         {t('dm.selectOrStart')}
       </p>
     </div>

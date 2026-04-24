@@ -10,6 +10,7 @@ const {
   truncateOutput,
   BUILTIN_AGENT_DRIVERS,
 } = require('./agent-device-bridge');
+const { createCodexAgentDriver } = require('./agent-ai-driver');
 
 function createMockFetch(script) {
   const calls = [];
@@ -44,7 +45,7 @@ function createMemoryStore() {
 
 test('BUILTIN_AGENT_DRIVERS ships the three canonical slugs', () => {
   const slugs = BUILTIN_AGENT_DRIVERS.map((d) => d.agentSlug).sort();
-  assert.deepEqual(slugs, ['browser', 'finder', 'shell']);
+  assert.deepEqual(slugs, ['browser', 'codex', 'finder', 'shell']);
 });
 
 test('buildDefaultDeviceSlug produces a stable, slug-shaped value', () => {
@@ -112,6 +113,14 @@ test('BUILTIN shell driver executes args from the CommandExecution row', async (
   });
   assert.equal(result.exitCode, 0);
   assert.match(result.stdoutTrunc, /driver-route/);
+});
+
+test('BUILTIN codex driver is registered with AI execution scopes', () => {
+  const codex = BUILTIN_AGENT_DRIVERS.find((d) => d.agentSlug === 'codex');
+  assert.ok(codex);
+  assert.equal(codex.displayName, 'Codex');
+  assert.ok(codex.scopes.includes('ai:codex'));
+  assert.ok(codex.commandTimeoutMs >= 60_000);
 });
 
 test('createAgentDeviceBridge.start registers a new device when list returns empty', async () => {
@@ -248,6 +257,75 @@ test('dispatchOne claims a queued command, runs it, and submits the result', asy
   const resultBody = JSON.parse(resultCall.init.body);
   assert.equal(resultBody.exitCode, 0);
   assert.match(resultBody.stdoutTrunc, /dispatched/);
+});
+
+test('dispatchOne can route a queued codex command to the local AI driver', async () => {
+  const store = createMemoryStore();
+  store.set('agentDeviceId', 'dev-1');
+
+  const fetchImpl = createMockFetch([
+    {
+      ok: true,
+      body: {
+        commands: [
+          {
+            id: 'cmd-ai-1',
+            status: 'queued',
+            agentSlug: 'codex',
+            args: 'summarize this machine',
+            rawCommand: '/x.codex summarize this machine',
+            queuedAt: '2026-04-24T00:00:00.000Z',
+          },
+        ],
+      },
+    },
+    {
+      ok: true,
+      body: {
+        command: {
+          id: 'cmd-ai-1',
+          status: 'running',
+          agentSlug: 'codex',
+          args: 'summarize this machine',
+          rawCommand: '/x.codex summarize this machine',
+        },
+      },
+    },
+    { ok: true, body: { command: { id: 'cmd-ai-1', status: 'completed' } } },
+  ]);
+
+  const codexDriver = createCodexAgentDriver({
+    commandTimeoutMs: 90_000,
+    async execute(command, options) {
+      assert.equal(command.args, 'summarize this machine');
+      assert.equal(options.timeoutMs, 90_000);
+      return {
+        exitCode: 0,
+        stdoutTrunc: 'codex answer from target machine',
+        stderrTrunc: '',
+      };
+    },
+  });
+
+  const bridge = createAgentDeviceBridge({
+    apiBaseUrl: 'https://api.test',
+    getSessionToken: () => 'tok',
+    configStore: store,
+    heartbeatIntervalMs: 1_000_000,
+    dispatchIntervalMs: 1_000_000,
+    fetchImpl,
+    drivers: [codexDriver],
+  });
+
+  await bridge.dispatchOne();
+
+  const resultCall = fetchImpl.calls.find((c) =>
+    c.url.endsWith('/api/commands/cmd-ai-1/result'),
+  );
+  assert.ok(resultCall, 'POST /result should be called');
+  const resultBody = JSON.parse(resultCall.init.body);
+  assert.equal(resultBody.exitCode, 0);
+  assert.match(resultBody.stdoutTrunc, /codex answer/);
 });
 
 test('dispatchOne skips when no queued/approved commands', async () => {

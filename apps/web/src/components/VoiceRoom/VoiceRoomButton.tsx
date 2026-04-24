@@ -60,11 +60,11 @@ export function VoiceRoomButton({
     ? 'rounded-full bg-success px-1.5 py-0.5 text-[10px] font-medium text-white'
     : 'rounded-full bg-success px-2 py-1 text-xs font-medium text-white';
   const activeLeaveClass = compact
-    ? 'rounded-full bg-danger px-2 py-1 text-[11px] font-semibold text-white hover:bg-danger disabled:opacity-50'
-    : 'rounded-full bg-danger px-3 py-2 text-xs font-semibold text-white hover:bg-danger disabled:opacity-50';
+    ? 'rounded-full bg-danger px-2 py-1 text-[11px] font-semibold text-white hover:bg-danger/85 disabled:opacity-50'
+    : 'rounded-full bg-danger px-3 py-2 text-xs font-semibold text-white hover:bg-danger/85 disabled:opacity-50';
   const joinButtonClass = compact
-    ? 'inline-flex items-center gap-1 rounded-md border border-line bg-bg-hover px-2 py-1 text-[11px] font-semibold text-fg hover:bg-bg-hover disabled:opacity-50'
-    : 'inline-flex items-center gap-1 rounded-full border border-line bg-bg-hover px-3 py-1.5 text-xs font-semibold text-fg hover:bg-bg-hover disabled:opacity-50';
+    ? 'inline-flex items-center gap-1 rounded-md border border-line bg-bg-hover px-2 py-1 text-[11px] font-semibold text-fg disabled:opacity-50'
+    : 'inline-flex items-center gap-1 rounded-full border border-line bg-bg-hover px-3 py-1.5 text-xs font-semibold text-fg disabled:opacity-50';
 
   useEffect(() => {
     if (!isActive || !participantsData?.participants) return;
@@ -158,7 +158,7 @@ export function VoiceRoomButton({
           </span>
         )}
         {isScreenSharing && (
-          <span className="flex items-center gap-1 rounded-full bg-accent px-2 py-1 text-xs font-medium text-white">
+          <span className="flex items-center gap-1 rounded-full bg-accent px-2 py-1 text-xs font-medium text-[color:var(--on-accent)]">
             <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
               <path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm5 8h4v2H8v-2z" />
             </svg>

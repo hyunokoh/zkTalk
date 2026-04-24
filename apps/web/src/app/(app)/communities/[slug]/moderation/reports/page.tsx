@@ -66,7 +66,7 @@ export default function ReportsPage() {
     <div className="flex-1 overflow-y-auto" data-testid="moderation-reports-page">
       <div className="border-b border-line bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_100%)] px-5 py-5 md:px-8">
         <div className="mx-auto w-full max-w-5xl">
-          <h1 className="text-xl font-bold text-white">{t('mod.reports')}</h1>
+          <h1 className="text-xl font-bold text-fg">{t('mod.reports')}</h1>
           <p className="mt-1 text-sm text-fg-muted">{t('mod.loadingReports')}</p>
         </div>
       </div>
@@ -82,7 +82,7 @@ export default function ReportsPage() {
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
                   statusFilter === f.value
                     ? 'border-accent/30 bg-accent/14 text-accent'
-                    : 'border-line bg-bg-hover text-fg-muted hover:bg-bg-hover hover:text-white'
+                    : 'border-line bg-bg-hover text-fg-muted hover:bg-line hover:text-fg'
                 }`}
               >
                 {f.label}

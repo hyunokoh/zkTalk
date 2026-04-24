@@ -103,13 +103,13 @@ export default function InvitePage() {
           <button
             onClick={handleJoin}
             disabled={joining}
-            className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
+            className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong disabled:opacity-50"
           >
             {joining ? t('invite.joining') : t('invite.accept')}
           </button>
           <Link
             href="/home"
-            className="block text-sm text-fg-muted hover:text-fg-muted"
+            className="block text-sm text-fg-muted hover:text-fg"
           >
             {t('invite.goHome')}
           </Link>

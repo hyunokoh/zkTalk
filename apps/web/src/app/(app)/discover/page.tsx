@@ -151,7 +151,7 @@ export default function DiscoverPage() {
                         type="button"
                         onClick={() => joinMutation.mutate(community)}
                         disabled={joinMutation.isPending}
-                        className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-strong disabled:opacity-50"
+                        className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong disabled:opacity-50"
                       >
                         {t('discover.join')}
                       </button>

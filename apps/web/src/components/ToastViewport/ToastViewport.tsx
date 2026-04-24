@@ -10,7 +10,7 @@ type ToastViewportProps = {
 const TONE_STYLES = {
   success: 'border-success/35 bg-success/95 text-white',
   error: 'border-danger/35 bg-danger/95 text-white',
-  info: 'border-accent/35 bg-accent/95 text-white',
+  info: 'border-accent/35 bg-accent/95 text-[color:var(--on-accent)]',
 } as const;
 
 export function ToastViewport({ className = '' }: ToastViewportProps) {
@@ -51,7 +51,7 @@ export function ToastViewport({ className = '' }: ToastViewportProps) {
             <button
               type="button"
               onClick={() => dismissToast(toast.id)}
-              className="rounded-md px-1 text-fg transition hover:bg-bg-hover hover:text-white"
+              className="rounded-md px-1 text-fg transition hover:bg-bg-hover hover:text-fg"
               aria-label="Dismiss notification"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

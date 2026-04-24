@@ -159,14 +159,14 @@ export function NewDmModal({ onClose, targetUserId, targetDisplayName }: NewDmMo
         key={user.id}
         type="button"
         onClick={() => onSelect(user)}
-        className="flex w-full items-center gap-3 rounded-lg border border-line bg-bg-subtle px-3 py-2 text-left transition-colors hover:border-accent-soft hover:bg-accent-soft dark:border-line dark:bg-bg-subtle/50 dark:hover:border-accent dark:hover:bg-bg-subtle"
+        className="flex w-full items-center gap-3 rounded-lg border border-line bg-bg-subtle px-3 py-2 text-left transition-colors hover:border-accent-soft hover:bg-accent-soft dark:bg-bg-subtle/50 dark:hover:border-accent dark:hover:bg-bg-subtle"
       >
         <UserAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium text-fg dark:text-fg-muted">
+          <div className="truncate text-sm font-medium text-fg-muted">
             {user.displayName}
           </div>
-          <div className="truncate text-xs text-fg-muted dark:text-fg-muted">
+          <div className="truncate text-xs text-fg-subtle">
             @{user.username}
           </div>
         </div>
@@ -180,22 +180,22 @@ export function NewDmModal({ onClose, targetUserId, targetDisplayName }: NewDmMo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-subtle" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-xl border border-line bg-white p-6 shadow-xl dark:border-line dark:bg-bg-subtle"
+        className="w-full max-w-md rounded-xl border border-line bg-white p-6 shadow-xl dark:bg-bg-subtle"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="mb-4 text-lg font-semibold text-fg dark:text-fg-muted">
+        <h3 className="mb-4 text-lg font-semibold text-fg-muted">
           {t('dm.new')}
         </h3>
 
         {/* Tab toggle */}
         {!targetUserId && (
-          <div className="mb-4 flex gap-1 rounded-lg bg-bg-hover p-1 dark:bg-bg-subtle">
+          <div className="mb-4 flex gap-1 rounded-lg bg-bg-hover p-1-subtle">
             <button
               onClick={() => setMode('direct')}
               className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 mode === 'direct'
-                  ? 'bg-white text-fg shadow dark:bg-bg-subtle dark:text-fg-muted'
-                  : 'text-fg-muted hover:text-fg dark:text-fg-muted dark:hover:text-fg-muted'
+                  ? 'bg-white text-fg shadow dark:bg-bg-subtle-muted'
+                  : 'text-fg-muted hover:text-fg-muted dark:hover:text-fg'
               }`}
             >
               {t('dm.oneToOne')}
@@ -204,8 +204,8 @@ export function NewDmModal({ onClose, targetUserId, targetDisplayName }: NewDmMo
               onClick={() => setMode('group')}
               className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 mode === 'group'
-                  ? 'bg-white text-fg shadow dark:bg-bg-subtle dark:text-fg-muted'
-                  : 'text-fg-muted hover:text-fg dark:text-fg-muted dark:hover:text-fg-muted'
+                  ? 'bg-white text-fg shadow dark:bg-bg-subtle-muted'
+                  : 'text-fg-muted hover:text-fg-muted dark:hover:text-fg'
               }`}
             >
               {t('dm.group')}
@@ -216,7 +216,7 @@ export function NewDmModal({ onClose, targetUserId, targetDisplayName }: NewDmMo
         {mode === 'direct' && (
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-sm text-fg dark:text-fg-muted">
+              <label className="mb-1 block text-sm text-fg-muted">
                 {t('dm.selectUser')}
               </label>
               <input
@@ -229,7 +229,7 @@ export function NewDmModal({ onClose, targetUserId, targetDisplayName }: NewDmMo
                 }}
                 placeholder={t('dm.searchUsers')}
                 disabled={!!targetUserId}
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none disabled:opacity-60 dark:border-line dark:bg-bg-subtle dark:text-fg-muted dark:placeholder:text-fg-muted"
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none disabled:opacity-60 dark:bg-bg-subtle dark:placeholder:text-fg-muted"
               />
               {selectedDirectUser && (
                 <p className="mt-1 text-xs text-accent-strong dark:text-accent">
@@ -241,12 +241,12 @@ export function NewDmModal({ onClose, targetUserId, targetDisplayName }: NewDmMo
             {!targetUserId && deferredDirectQuery && (
               <div className="space-y-2">
                 {directSearch.isLoading && (
-                  <p className="text-xs text-fg-muted dark:text-fg-muted">
+                  <p className="text-xs text-fg-subtle">
                     {t('dm.searchingUsers')}
                   </p>
                 )}
                 {!directSearch.isLoading && directResults.length === 0 && (
-                  <p className="text-xs text-fg-muted dark:text-fg-muted">
+                  <p className="text-xs text-fg-subtle">
                     {t('dm.noUserResults')}
                   </p>
                 )}
@@ -265,7 +265,7 @@ export function NewDmModal({ onClose, targetUserId, targetDisplayName }: NewDmMo
         {mode === 'group' && (
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-sm text-fg dark:text-fg-muted">
+              <label className="mb-1 block text-sm text-fg-muted">
                 {t('dm.groupName')} <span className="text-fg-muted">{t('common.optional')}</span>
               </label>
               <input
@@ -273,11 +273,11 @@ export function NewDmModal({ onClose, targetUserId, targetDisplayName }: NewDmMo
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
                 placeholder={t('dm.groupName')}
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted dark:placeholder:text-fg-muted"
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none dark:bg-bg-subtle dark:placeholder:text-fg-muted"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-fg dark:text-fg-muted">
+              <label className="mb-1 block text-sm text-fg-muted">
                 {t('dm.addMembers')}
               </label>
               <input
@@ -288,9 +288,9 @@ export function NewDmModal({ onClose, targetUserId, targetDisplayName }: NewDmMo
                   setError('');
                 }}
                 placeholder={t('dm.searchUsers')}
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted dark:placeholder:text-fg-muted"
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none dark:bg-bg-subtle dark:placeholder:text-fg-muted"
               />
-              <p className="mt-1 text-xs text-fg-muted dark:text-fg-muted">{t('dm.searchToAddMembers')}</p>
+              <p className="mt-1 text-xs text-fg-subtle">{t('dm.searchToAddMembers')}</p>
             </div>
 
             {selectedGroupUsers.length > 0 && (
@@ -313,12 +313,12 @@ export function NewDmModal({ onClose, targetUserId, targetDisplayName }: NewDmMo
             {deferredGroupQuery && (
               <div className="space-y-2">
                 {groupSearch.isLoading && (
-                  <p className="text-xs text-fg-muted dark:text-fg-muted">
+                  <p className="text-xs text-fg-subtle">
                     {t('dm.searchingUsers')}
                   </p>
                 )}
                 {!groupSearch.isLoading && groupResults.length === 0 && (
-                  <p className="text-xs text-fg-muted dark:text-fg-muted">
+                  <p className="text-xs text-fg-subtle">
                     {t('dm.noUserResults')}
                   </p>
                 )}
@@ -341,14 +341,14 @@ export function NewDmModal({ onClose, targetUserId, targetDisplayName }: NewDmMo
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-sm text-fg transition-colors hover:bg-bg-hover dark:text-fg-muted dark:hover:bg-bg-subtle"
+            className="rounded-lg px-4 py-2 text-sm text-fg transition-colors hover:bg-bg-hover-muted dark:hover:bg-bg-subtle"
           >
             {t('common.cancel')}
           </button>
           <button
             onClick={mode === 'direct' ? handleDirectSubmit : handleGroupSubmit}
             disabled={isPending || (mode === 'direct' && !selectedDirectUser && !targetUserId)}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong disabled:opacity-50"
           >
             {isPending ? t('dm.creating') : t('dm.startConversation')}
           </button>

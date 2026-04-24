@@ -93,7 +93,7 @@ export function BookmarkList() {
     <div data-testid="bookmarks-page" className="flex flex-1 flex-col">
       <div className="border-b border-line bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_100%)] px-5 py-5 md:px-8">
         <div className="mx-auto w-full max-w-5xl">
-          <h2 className="text-xl font-bold text-white">{t('bookmark.title')}</h2>
+          <h2 className="text-xl font-bold text-fg">{t('bookmark.title')}</h2>
           <p className="mt-1 text-sm text-fg-muted">{t('bookmark.empty')}</p>
         </div>
       </div>

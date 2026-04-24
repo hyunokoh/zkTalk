@@ -45,19 +45,19 @@ export function OnboardingModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-subtle">
-      <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-bg-subtle">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-fg/40 backdrop-blur-sm">
+      <div className="mx-4 w-full max-w-md rounded-xl bg-bg-elevated p-6 shadow-2xl">
         {/* Welcome */}
-        <h2 className="text-center text-2xl font-bold text-fg dark:text-fg-muted">
+        <h2 className="text-center text-2xl font-bold text-fg">
           {t('onboarding.welcome')}
         </h2>
-        <p className="mt-1 text-center text-sm text-fg-muted dark:text-fg-muted">
+        <p className="mt-1 text-center text-sm text-fg-muted">
           {communityName}
         </p>
 
         {/* Welcome message */}
         {onboarding.welcomeMessage && (
-          <p className="mt-4 rounded-lg bg-bg-subtle p-3 text-sm text-fg dark:bg-bg-subtle dark:text-fg-muted">
+          <p className="mt-4 rounded-lg bg-bg-subtle p-3 text-sm text-fg-subtle">
             {onboarding.welcomeMessage}
           </p>
         )}
@@ -65,13 +65,13 @@ export function OnboardingModal({
         {/* Rules */}
         {hasRules && (
           <div className="mt-4">
-            <h3 className="text-sm font-semibold text-fg dark:text-fg-muted">
+            <h3 className="text-sm font-semibold text-fg-muted">
               {t('onboarding.rules')}
             </h3>
             <ul className="mt-2 space-y-1.5">
               {rules.map((rule, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-fg dark:text-fg-muted">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-medium text-accent-strong dark:bg-accent dark:text-accent">
+                <li key={i} className="flex items-start gap-2 text-sm text-fg-muted">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-medium text-accent-strong">
                     {i + 1}
                   </span>
                   {rule}
@@ -79,7 +79,7 @@ export function OnboardingModal({
               ))}
             </ul>
 
-            <label className="mt-3 flex items-center gap-2 text-sm text-fg dark:text-fg-muted">
+            <label className="mt-3 flex items-center gap-2 text-sm text-fg-muted">
               <input
                 type="checkbox"
                 checked={rulesAccepted}
@@ -93,13 +93,13 @@ export function OnboardingModal({
 
         {starterChannels.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-sm font-semibold text-fg dark:text-fg-muted">
+            <h3 className="text-sm font-semibold text-fg-muted">
               {t('community.onboardingDefaultChannels')}
             </h3>
-            <p className="mt-1 text-sm text-fg-muted dark:text-fg-muted">
+            <p className="mt-1 text-sm text-fg-subtle">
               {t('community.onboardingDefaultChannelsHint')}
             </p>
-            <p className="mt-1 text-xs text-fg-muted dark:text-fg-muted">
+            <p className="mt-1 text-xs text-fg-subtle">
               {t('community.onboardingDefaultChannelsPolicyHint')}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -122,7 +122,7 @@ export function OnboardingModal({
           <button
             onClick={() => handleDone(primaryStarterChannel?.id)}
             disabled={hasRules && !rulesAccepted}
-            className="w-full rounded-lg bg-accent py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-lg bg-accent py-2.5 text-sm font-medium text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
           >
             {primaryStarterChannel
               ? t('onboarding.openChannel', { channel: primaryStarterChannel.name })
@@ -133,7 +133,7 @@ export function OnboardingModal({
               type="button"
               onClick={() => handleDone()}
               disabled={hasRules && !rulesAccepted}
-              className="w-full rounded-lg border border-line py-2.5 text-sm font-medium text-fg transition-colors hover:bg-bg-subtle disabled:cursor-not-allowed disabled:opacity-50 dark:border-line dark:text-fg-muted dark:hover:bg-bg-subtle"
+              className="w-full rounded-lg border border-line py-2.5 text-sm font-medium text-fg transition-colors hover:bg-bg-subtle disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-bg-subtle"
             >
               {t('onboarding.stayOnOverview')}
             </button>

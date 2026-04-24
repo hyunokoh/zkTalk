@@ -176,12 +176,12 @@ export default function OnboardingSettingsPage() {
     <div className="mx-auto max-w-2xl p-6">
       <button
         onClick={() => router.back()}
-        className="mb-4 text-sm text-fg-muted hover:text-fg dark:text-fg-muted dark:hover:text-fg-muted"
+        className="mb-4 text-sm text-fg-muted hover:text-fg-muted dark:hover:text-fg"
       >
         {t('common.back')}
       </button>
 
-      <h1 className="text-2xl font-bold text-fg dark:text-fg-muted">
+      <h1 className="text-2xl font-bold text-fg-muted">
         {t('onboarding.settings')}
       </h1>
 
@@ -194,38 +194,38 @@ export default function OnboardingSettingsPage() {
             onChange={(e) => setIsEnabled(e.target.checked)}
             className="rounded border-line text-accent-strong focus:ring-accent"
           />
-          <span className="text-sm font-medium text-fg dark:text-fg-muted">
+          <span className="text-sm font-medium text-fg-muted">
             {t('onboarding.settings')}
           </span>
         </label>
 
         {/* Welcome message */}
         <div>
-          <label className="block text-sm font-medium text-fg dark:text-fg-muted">
+          <label className="block text-sm font-medium text-fg-muted">
             {t('onboarding.welcome')}
           </label>
           <textarea
             value={welcomeMessage}
             onChange={(e) => setWelcomeMessage(e.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
+            className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none dark:bg-bg-subtle dark:text-fg-muted"
           />
         </div>
 
         {/* Rules */}
         <div>
           <div className="flex items-center justify-between gap-3">
-            <label className="block text-sm font-medium text-fg dark:text-fg-muted">
+            <label className="block text-sm font-medium text-fg-muted">
               {t('onboarding.rules')}
             </label>
-            <span className="text-xs text-fg-muted dark:text-fg-muted">
+            <span className="text-xs text-fg-subtle">
               {t('community.onboardingRulesCount', { count: rules.length })}
             </span>
           </div>
           <div className="mt-2 space-y-2">
             {rules.map((rule, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="flex-1 rounded-lg border border-line px-3 py-1.5 text-sm dark:border-line dark:text-fg-muted">
+                <span className="flex-1 rounded-lg border border-line px-3 py-1.5 text-sm dark:text-fg-muted">
                   {i + 1}. {rule}
                 </span>
                 <button
@@ -243,11 +243,11 @@ export default function OnboardingSettingsPage() {
               onChange={(e) => setNewRule(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addRule()}
               placeholder={t('onboarding.rules')}
-              className="flex-1 rounded-lg border border-line px-3 py-1.5 text-sm focus:border-accent focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
+              className="flex-1 rounded-lg border border-line px-3 py-1.5 text-sm focus:border-accent focus:outline-none dark:bg-bg-subtle dark:text-fg-muted"
             />
             <button
               onClick={addRule}
-              className="rounded-lg bg-bg-hover px-3 py-1.5 text-sm hover:bg-bg-hover dark:bg-bg-subtle dark:hover:bg-bg-hover"
+              className="rounded-lg bg-bg-hover px-3 py-1.5 text-sm-subtle dark:hover:bg-bg-hover"
             >
               +
             </button>
@@ -256,24 +256,24 @@ export default function OnboardingSettingsPage() {
 
         <div>
           <div className="flex items-center justify-between gap-3">
-            <label className="block text-sm font-medium text-fg dark:text-fg-muted">
+            <label className="block text-sm font-medium text-fg-muted">
               {t('community.onboardingDefaultChannels')}
             </label>
-            <span className="text-xs text-fg-muted dark:text-fg-muted">
+            <span className="text-xs text-fg-subtle">
               {defaultChannelIds.length > 0 ? `${defaultChannelIds.length}` : ''}
             </span>
           </div>
-          <p className="mt-1 text-sm text-fg-muted dark:text-fg-muted">
+          <p className="mt-1 text-sm text-fg-subtle">
             {t('community.onboardingDefaultChannelsHint')}
           </p>
-          <p className="mt-1 text-xs text-fg-muted dark:text-fg-muted">
+          <p className="mt-1 text-xs text-fg-subtle">
             {t('community.onboardingDefaultChannelsPolicyHint')}
           </p>
           <input
             value={channelSearchQuery}
             onChange={(e) => setChannelSearchQuery(e.target.value)}
             placeholder={t('community.onboardingChannelSearchPlaceholder')}
-            className="mt-3 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
+            className="mt-3 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none dark:bg-bg-subtle dark:text-fg-muted"
           />
           <div className="mt-3 flex flex-wrap gap-2">
             {filteredChannels.map((channel) => {
@@ -293,7 +293,7 @@ export default function OnboardingSettingsPage() {
                   className={`rounded-full border px-3 py-1.5 text-sm transition ${
                     selected
                       ? 'border-accent bg-accent-soft text-accent-strong dark:border-accent dark:bg-accent/10 dark:text-accent'
-                      : 'border-line text-fg hover:border-line dark:border-line dark:text-fg-muted dark:hover:border-line'
+                      : 'border-line text-fg hover:border-line dark:hover:border-line'
                   }`}
                 >
                   <span># {channel.name}</span>
@@ -309,7 +309,7 @@ export default function OnboardingSettingsPage() {
             })}
           </div>
           {filteredChannels.length === 0 ? (
-            <p className="mt-3 text-sm text-fg-muted dark:text-fg-muted">
+            <p className="mt-3 text-sm text-fg-subtle">
               {channelSearchQuery.trim()
                 ? t('community.onboardingChannelNoSearchResults')
                 : t('community.onboardingNoChannels')}
@@ -321,7 +321,7 @@ export default function OnboardingSettingsPage() {
         <button
           onClick={handleSave}
           disabled={saveMutation.isPending}
-          className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
+          className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
         >
           {saveMutation.isPending ? t('settings.saving') : t('common.save')}
         </button>

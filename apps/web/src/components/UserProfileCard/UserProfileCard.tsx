@@ -94,14 +94,14 @@ export function UserProfileCard({ userId, communityId, onClose, anchorRect }: Us
     <div
       ref={cardRef}
       style={style}
-      className="z-50 w-72 rounded-lg border border-line bg-white p-4 shadow-xl dark:border-line dark:bg-bg-subtle"
+      className="z-50 w-72 rounded-lg border border-line bg-white p-4 shadow-xl dark:bg-bg-subtle"
     >
       {isLoading ? (
-        <div className="py-4 text-center text-sm text-fg-muted dark:text-fg-muted">
+        <div className="py-4 text-center text-sm text-fg-subtle">
           {t('common.loading')}
         </div>
       ) : !user ? (
-        <div className="py-4 text-center text-sm text-fg-muted dark:text-fg-muted">
+        <div className="py-4 text-center text-sm text-fg-subtle">
           {t('misc.unknownUser')}
         </div>
       ) : (
@@ -113,7 +113,7 @@ export function UserProfileCard({ userId, communityId, onClose, anchorRect }: Us
               size="lg"
             />
             <div className="min-w-0 flex-1">
-              <h3 className="truncate text-base font-semibold text-fg dark:text-fg-muted">
+              <h3 className="truncate text-base font-semibold text-fg-muted">
                 {user.displayName}
               </h3>
               {roleLabel && (
@@ -125,8 +125,8 @@ export function UserProfileCard({ userId, communityId, onClose, anchorRect }: Us
           </div>
 
           {user.joinedAt && (
-            <div className="mt-3 border-t border-line pt-3 dark:border-line">
-              <p className="text-xs text-fg-muted dark:text-fg-muted">
+            <div className="mt-3 border-t border-line pt-3">
+              <p className="text-xs text-fg-subtle">
                 {t('members.joinedAt')}: {relativeTime(user.joinedAt)}
               </p>
             </div>

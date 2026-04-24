@@ -19,7 +19,7 @@ interface ToggleRowProps {
 function ToggleRow({ label, checked, onChange, disabled }: ToggleRowProps) {
   return (
     <label className="flex items-center justify-between gap-3 py-2">
-      <span className={`text-sm ${disabled ? 'text-fg-muted dark:text-fg' : 'text-fg dark:text-fg-muted'}`}>
+      <span className={`text-sm ${disabled ? 'text-fg-muted' : 'text-fg-muted'}`}>
         {label}
       </span>
       <button
@@ -29,7 +29,7 @@ function ToggleRow({ label, checked, onChange, disabled }: ToggleRowProps) {
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-          checked ? 'bg-accent' : 'bg-bg-hover dark:bg-bg-subtle'
+          checked ? 'bg-accent' : 'bg-bg-hover-subtle'
         }`}
       >
         <span
@@ -77,8 +77,8 @@ export function NotificationSettings() {
   const isEnabled = prefs.enabled && permissionState === 'granted';
 
   return (
-    <div className="w-full max-w-sm rounded-lg border border-line bg-white p-4 shadow-sm dark:border-line dark:bg-bg-subtle">
-      <h3 className="mb-3 text-sm font-semibold text-fg dark:text-fg-muted">
+    <div className="w-full max-w-sm rounded-lg border border-line bg-white p-4 shadow-sm dark:bg-bg-subtle">
+      <h3 className="mb-3 text-sm font-semibold text-fg-muted">
         {t('notification.settings')}
       </h3>
 

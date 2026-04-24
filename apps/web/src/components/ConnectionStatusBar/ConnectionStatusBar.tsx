@@ -24,7 +24,7 @@ export function ConnectionStatusBar({ className = '' }: ConnectionStatusBarProps
 
     if (socketStatus === 'reconnecting' || socketStatus === 'connecting') {
       return {
-        tone: 'bg-warning/95 text-slate-950 border-warning/60',
+        tone: 'bg-warning/95 text-fg border-warning/60',
         title: t('connection.reconnectingTitle'),
         body: t('connection.reconnectingBody'),
       };

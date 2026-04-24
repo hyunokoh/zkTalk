@@ -196,7 +196,7 @@ export function ContactSync() {
         <button
           onClick={handleContactPicker}
           disabled={syncMutation.isPending}
-          className="mb-3 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+          className="mb-3 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
         >
           {syncMutation.isPending ? t('contacts.syncing') : t('contacts.sync')}
         </button>
@@ -208,12 +208,12 @@ export function ContactSync() {
             onChange={(e) => setManualPhones(e.target.value)}
             placeholder="010-1234-5678&#10;+821098765432&#10;..."
             rows={3}
-            className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none"
+            className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none"
           />
           <button
             onClick={handleManualSync}
             disabled={!manualPhones.trim() || syncMutation.isPending}
-            className="rounded-md bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-bg-subtle disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {syncMutation.isPending ? t('contacts.syncing') : t('contacts.sync')}
           </button>
@@ -234,7 +234,7 @@ export function ContactSync() {
             {allSuggestions.length > 1 && (
               <button
                 onClick={handleAddAll}
-                className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent"
+                className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-[color:var(--on-accent)] hover:bg-accent-strong"
               >
                 {t('contacts.addAll')}
               </button>
@@ -263,7 +263,7 @@ export function ContactSync() {
                 <button
                   onClick={() => addFriendMutation.mutate(user.userId)}
                   disabled={addFriendMutation.isPending}
-                  className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent disabled:opacity-50"
+                  className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
                 >
                   {t('friend.add')}
                 </button>

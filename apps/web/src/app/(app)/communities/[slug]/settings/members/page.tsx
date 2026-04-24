@@ -29,9 +29,9 @@ interface Role {
 }
 
 const ROLE_BADGE_STYLES: Record<string, string> = {
-  owner: 'bg-agent/50 text-agent border-agent',
-  admin: 'bg-accent/50 text-accent border-accent',
-  moderator: 'bg-success/50 text-success border-success',
+  owner: 'bg-agent-soft text-agent border-agent/30',
+  admin: 'bg-accent-soft text-accent border-accent/30',
+  moderator: 'bg-success-soft text-success border-success/30',
   member: 'bg-bg-subtle text-fg-muted border-line',
   guest: 'bg-bg-subtle text-fg-muted border-line',
 };
@@ -153,7 +153,7 @@ export default function MembersPage() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t('members.search')}
           data-testid="community-members-search-input"
-          className="w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+          className="w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 

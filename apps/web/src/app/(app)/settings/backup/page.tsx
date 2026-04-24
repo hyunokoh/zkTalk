@@ -191,14 +191,14 @@ export default function BackupSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-6 text-2xl font-bold text-white">
+      <h1 className="mb-6 text-2xl font-bold text-fg">
         {t('backup.title')}
       </h1>
 
       <div className="space-y-6">
         {/* Export */}
         <div className="rounded-lg border border-line bg-bg-subtle p-5">
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-fg">
             {t('backup.export')}
           </h2>
           <p className="mt-1 text-sm text-fg-muted">
@@ -207,7 +207,7 @@ export default function BackupSettingsPage() {
           <button
             onClick={handleExport}
             disabled={isExporting}
-            className="mt-4 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-4 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isExporting ? t('backup.encrypting') : t('backup.export')}
           </button>
@@ -215,13 +215,13 @@ export default function BackupSettingsPage() {
 
         {/* Import */}
         <div className="rounded-lg border border-line bg-bg-subtle p-5">
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-fg">
             {t('backup.import')}
           </h2>
           <p className="mt-1 text-sm text-fg-muted">
             {t('backup.importDesc')}
           </p>
-          <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-bg-subtle px-4 py-2 text-sm font-medium text-white hover:bg-bg-subtle">
+          <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-bg-subtle px-4 py-2 text-sm font-medium text-fg hover:bg-bg-hover">
             {isImporting ? t('backup.decrypting') : t('backup.import')}
             <input
               ref={fileInputRef}

@@ -34,7 +34,7 @@ export default function DmLayout({ children }: { children: React.ReactNode }) {
         {hasActiveConversation && (
           <button
             onClick={() => setDmShowList(true)}
-            className="fixed left-14 top-2 z-30 flex h-10 w-10 items-center justify-center rounded-lg bg-bg-subtle text-fg-muted shadow-lg hover:bg-bg-subtle md:hidden"
+            className="fixed left-14 top-2 z-30 flex h-10 w-10 items-center justify-center rounded-lg bg-bg-subtle text-fg-muted shadow-lg hover:bg-bg-hover md:hidden"
             aria-label="Back to conversations"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

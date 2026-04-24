@@ -31,8 +31,8 @@ export function ConfirmDialog({
 
   const confirmButtonClassName =
     tone === 'danger'
-      ? 'bg-danger text-white hover:bg-danger'
-      : 'bg-accent text-white hover:bg-accent';
+      ? 'bg-danger text-white hover:bg-danger/85'
+      : 'bg-accent text-[color:var(--on-accent)] hover:bg-accent-strong';
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-bg-subtle px-4" onClick={onCancel}>
@@ -43,7 +43,7 @@ export function ConfirmDialog({
         className="w-full max-w-md rounded-2xl border border-line bg-bg-subtle p-6 shadow-[0_30px_70px_rgba(0,0,0,0.45)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 id="confirm-dialog-title" className="text-lg font-semibold text-white">
+        <h2 id="confirm-dialog-title" className="text-lg font-semibold text-fg">
           {title}
         </h2>
         {description ? (
@@ -54,7 +54,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="rounded-xl border border-line bg-bg-hover px-4 py-2 text-sm font-medium text-fg-muted transition hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl border border-line bg-bg-hover px-4 py-2 text-sm font-medium text-fg-muted transition hover:bg-line disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelLabel}
           </button>

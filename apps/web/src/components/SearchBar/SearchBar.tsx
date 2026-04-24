@@ -80,7 +80,7 @@ export function SearchBar({
         {value && (
           <button
             onClick={handleClear}
-            className="rounded p-1 text-fg-muted hover:text-fg-muted"
+            className="rounded p-1 text-fg-muted hover:text-fg"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />

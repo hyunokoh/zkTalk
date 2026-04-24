@@ -114,7 +114,7 @@ export function ReportCard({ report, communityId }: ReportCardProps) {
               onClick={() => updateReport.mutate('resolved')}
               disabled={updateReport.isPending}
               data-testid="report-resolve-button"
-              className="rounded-lg bg-success px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-success disabled:opacity-50"
+              className="rounded-lg bg-success px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-success/85 disabled:opacity-50"
             >
               Resolve
             </button>
@@ -122,7 +122,7 @@ export function ReportCard({ report, communityId }: ReportCardProps) {
               onClick={() => updateReport.mutate('dismissed')}
               disabled={updateReport.isPending}
               data-testid="report-dismiss-button"
-              className="rounded-lg bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted transition-colors hover:bg-bg-subtle disabled:opacity-50"
+              className="rounded-lg bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted transition-colors hover:bg-bg-hover disabled:opacity-50"
             >
               Dismiss
             </button>

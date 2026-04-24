@@ -250,7 +250,7 @@ export default function CommunityOverviewPage() {
       <div className="flex flex-1 flex-col items-center justify-center p-8">
         <div className="w-full max-w-3xl">
           <div className="mx-auto max-w-md text-center">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-accent text-3xl font-bold text-white">
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-accent text-3xl font-bold text-[color:var(--on-accent)]">
               {community.iconUrl ? (
                 <Image
                   src={communityIcon.src ?? community.iconUrl}

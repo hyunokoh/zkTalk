@@ -67,7 +67,7 @@ export function ReactionBar({ messageId, reactions, channelId }: ReactionBarProp
             className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors ${
               hasReacted
                 ? 'border-accent/50 bg-accent/20 text-accent'
-                : 'border-line bg-bg-subtle text-fg-muted hover:border-line hover:bg-bg-subtle'
+                : 'border-line bg-bg-subtle text-fg-muted hover:border-line hover:bg-bg-hover'
             }`}
           >
             <span>{reaction.emoji}</span>
@@ -79,7 +79,7 @@ export function ReactionBar({ messageId, reactions, channelId }: ReactionBarProp
       <div className="relative">
         <button
           onClick={() => setShowPicker((prev) => !prev)}
-          className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-line bg-bg-subtle text-xs text-fg-muted transition-colors hover:border-line hover:bg-bg-subtle hover:text-fg-muted"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-line bg-bg-subtle text-xs text-fg-muted transition-colors hover:border-line hover:bg-bg-hover hover:text-fg"
           title="Add reaction"
         >
           +

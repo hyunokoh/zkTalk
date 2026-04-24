@@ -13,6 +13,7 @@ function getInitialDesktopConfig() {
           typeof config.localAgentLanguagePreset === 'string'
             ? config.localAgentLanguagePreset
             : 'manual_only',
+        agentDeviceBridgeEnabled: config.agentDeviceBridgeEnabled === true,
       };
     }
   } catch (_) {
@@ -25,6 +26,7 @@ function getInitialDesktopConfig() {
     livekitUrl: process.env.ZKTALK_LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || '',
     appLocale: process.env.ZKTALK_APP_LOCALE || 'ko',
     localAgentLanguagePreset: process.env.ZKTALK_LOCAL_AGENT_LANGUAGE_PRESET || 'manual_only',
+    agentDeviceBridgeEnabled: process.env.ZKTALK_AGENT_BRIDGE === '1',
   };
 }
 

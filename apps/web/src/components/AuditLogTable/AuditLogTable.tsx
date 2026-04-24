@@ -110,7 +110,7 @@ export function AuditLogTable({ actions }: AuditLogTableProps) {
               <th className="px-4 py-3 font-medium">{t('mod.reason')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-800">
+          <tbody className="divide-y divide-line">
             {paginated.map((action) => (
               <tr
                 key={action.action.id}
@@ -159,14 +159,14 @@ export function AuditLogTable({ actions }: AuditLogTableProps) {
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="rounded-lg bg-bg-subtle px-3 py-1.5 text-xs text-fg-muted transition-colors hover:bg-bg-subtle disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg bg-bg-subtle px-3 py-1.5 text-xs text-fg-muted transition-colors hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               Previous
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="rounded-lg bg-bg-subtle px-3 py-1.5 text-xs text-fg-muted transition-colors hover:bg-bg-subtle disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg bg-bg-subtle px-3 py-1.5 text-xs text-fg-muted transition-colors hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
             </button>

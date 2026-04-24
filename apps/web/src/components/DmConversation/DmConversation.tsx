@@ -1614,7 +1614,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 />
               )}
               {isGroup && (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium text-white">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium text-[color:var(--on-accent)]">
                   {(conv?.name || 'G').charAt(0).toUpperCase()}
                 </div>
               )}
@@ -1622,7 +1622,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-subtle">
                   {t('dm.title')}
                 </p>
-                <h2 className="mt-1.5 truncate text-lg font-semibold text-white">
+                <h2 className="mt-1.5 truncate text-lg font-semibold text-fg">
                   {headerName}
                 </h2>
                 <p className="mt-1 text-sm text-fg-muted">
@@ -1704,7 +1704,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
             className="flex items-center gap-3 rounded-2xl border border-line bg-bg-subtle px-4 py-3"
             data-testid="dm-promoted-banner"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-white">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-[color:var(--on-accent)]">
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2a5 5 0 0 1 5 5v1h1a3 3 0 0 1 3 3v5a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6v-5a3 3 0 0 1 3-3h1V7a5 5 0 0 1 5-5Zm3 9H9a3 3 0 0 0-3 3v2a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-2a3 3 0 0 0-3-3Zm-3-6a2 2 0 0 0-2 2v1h4V7a2 2 0 0 0-2-2Z" />
               </svg>
@@ -1713,7 +1713,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
               <span className="mb-1 inline-flex rounded-full border border-line-strong bg-bg-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-fg">
                 {t('dm.historyBadge')}
               </span>
-              <p className="text-sm font-semibold text-white">
+              <p className="text-sm font-semibold text-fg">
                 {promotedTarget
                   ? t('dm.promotedBannerTitle', { community: promotedTarget.community.name })
                   : t('dm.promotedComposerTitle')}
@@ -1915,7 +1915,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                             data-testid="dm-message-ai-reply-button"
                             onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'reply-draft')}
                             disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
-                            className="rounded-pill border border-line bg-bg-hover px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-pill border border-line bg-bg-hover px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition disabled:cursor-not-allowed disabled:opacity-50"
                             title={aiRuntimePresentation?.description ?? t('ai.replyDraftFromMessage')}
                           >
                             {t('ai.replyDraftFromMessage')}
@@ -1925,7 +1925,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                             data-testid="dm-message-ai-rewrite-button"
                             onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'rewrite-draft')}
                             disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
-                            className="rounded-pill border border-line bg-bg-hover px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-pill border border-line bg-bg-hover px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition disabled:cursor-not-allowed disabled:opacity-50"
                             title={aiRuntimePresentation?.description ?? t('ai.rewriteDraftFromMessage')}
                           >
                             {t('ai.rewriteDraftFromMessage')}
@@ -1935,7 +1935,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                             data-testid="dm-message-ai-translate-button"
                             onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'translate-inline')}
                             disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
-                            className="rounded-pill border border-line bg-bg-hover px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-pill border border-line bg-bg-hover px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition disabled:cursor-not-allowed disabled:opacity-50"
                             title={aiRuntimePresentation?.description ?? t('translate.translate')}
                           >
                             {t('translate.translate')}
@@ -2017,7 +2017,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
               <span className="mb-1 inline-flex rounded-full border border-line-strong bg-bg-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-fg">
                 {t('dm.historyBadge')}
               </span>
-              <p className="text-sm font-semibold text-white">{t('dm.promotedComposerTitle')}</p>
+              <p className="text-sm font-semibold text-fg">{t('dm.promotedComposerTitle')}</p>
               <p className="mt-0.5 text-xs text-fg-muted">
                 {promotedTarget
                   ? t('dm.promotedComposerBody', { channel: promotedTarget.channel.name })
@@ -2157,7 +2157,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-[1.8rem] border-2 border-dashed border-accent bg-accent/10"
               >
                 <div className="rounded-lg border border-line bg-bg-elevated px-4 py-3 text-center shadow-[var(--shadow-2)]">
-                  <p className="text-sm font-semibold text-white">{t('attachment.dropPrompt')}</p>
+                  <p className="text-sm font-semibold text-fg">{t('attachment.dropPrompt')}</p>
                 </div>
               </div>
             ) : null}
@@ -2174,7 +2174,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 data-testid="dm-composer-attachment-button"
                 type="button"
                 onClick={handleAttachmentButtonClick}
-                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-line bg-bg-elevated text-fg-muted transition-colors hover:bg-bg-hover hover:text-white"
+                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-line bg-bg-elevated text-fg-muted transition-colors hover:bg-bg-hover hover:text-fg"
                 title={t('attachment.add')}
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
@@ -2205,7 +2205,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 data-testid="dm-composer-emoji-button"
                 type="button"
                 onClick={() => setShowEmojiPicker((prev) => !prev)}
-                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-line bg-bg-elevated text-xl text-fg-muted transition-colors hover:bg-bg-hover hover:text-white"
+                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-line bg-bg-elevated text-xl text-fg-muted transition-colors hover:bg-bg-hover hover:text-fg"
               >
                 {showEmojiPicker ? '⌨️' : '😊'}
               </button>
@@ -2213,7 +2213,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 data-testid="dm-send-button"
                 onClick={handleSend}
                 disabled={(!body.trim() && !hasPendingAttachments) || sendMessage.isPending || hasFailedAttachments}
-                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-accent-strong bg-accent text-white transition-colors hover:bg-accent-strong disabled:opacity-50"
+                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-accent-strong bg-accent text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong disabled:opacity-50"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />

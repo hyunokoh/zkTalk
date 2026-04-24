@@ -146,7 +146,7 @@ export function MemberActionMenu({
           setConfirmAction(null);
         }}
         data-testid="member-action-trigger"
-        className="flex h-7 w-7 items-center justify-center rounded text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg-muted"
+        className="flex h-7 w-7 items-center justify-center rounded text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg"
         title={t('memberAction.title')}
       >
         <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
@@ -258,7 +258,7 @@ export function MemberActionMenu({
                 setReason('');
               }}
               data-testid="member-action-cancel-button"
-              className="rounded-lg px-3 py-1.5 text-xs text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg-muted"
+              className="rounded-lg px-3 py-1.5 text-xs text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg"
             >
               {t('common.cancel')}
             </button>
@@ -266,12 +266,12 @@ export function MemberActionMenu({
               onClick={handleConfirm}
               disabled={modAction.isPending}
               data-testid="member-action-confirm-button"
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50 ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-50 ${
                 confirmAction === 'ban'
-                  ? 'bg-danger hover:bg-danger'
+                  ? 'bg-danger hover:bg-danger/85'
                   : confirmAction === 'kick'
-                    ? 'bg-warning hover:bg-warning'
-                    : 'bg-warning hover:bg-warning'
+                    ? 'bg-danger hover:bg-danger/85'
+                    : 'bg-warning hover:bg-warning/85'
               }`}
             >
               {modAction.isPending ? t('memberAction.processing') : t('common.confirm')}

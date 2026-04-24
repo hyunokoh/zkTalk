@@ -102,8 +102,8 @@ export default function ModerationLayout({
                 data-testid={`moderation-nav-${navKey}`}
                 className={`block rounded px-3 py-2 text-sm transition-colors ${
                   isActive
-                    ? 'bg-bg-subtle text-white'
-                    : 'text-fg-muted hover:bg-bg-subtle hover:text-fg-muted'
+                    ? 'bg-bg-subtle text-fg'
+                    : 'text-fg-muted hover:bg-bg-subtle hover:text-fg'
                 }`}
               >
                 {item.label}

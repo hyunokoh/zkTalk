@@ -135,7 +135,7 @@ export function FileUploadButton({
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
-      className="flex h-8 w-8 items-center justify-center rounded text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg-muted"
+      className="flex h-8 w-8 items-center justify-center rounded text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg"
       title="Attach file"
     >
       <svg
@@ -189,7 +189,7 @@ export function PendingFileList({
           )}
           <button
             onClick={() => onRemove(pf.id)}
-            className="text-fg-muted hover:text-fg-muted"
+            className="text-fg-muted hover:text-fg"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />

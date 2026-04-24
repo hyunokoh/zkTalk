@@ -68,6 +68,8 @@
     ],
     "files": [
       "main.js",
+      "agent-device-bridge.js",
+      "agent-ai-driver.js",
       "local-machine-bridge.js",
       "go-menu.js",
       "preload.js",

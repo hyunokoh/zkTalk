@@ -129,7 +129,7 @@ export function ProfileQR({ userId, className, hideHeading = false }: ProfileQRP
           size="lg"
         />
         <div>
-          <p className="text-sm font-semibold text-white">
+          <p className="text-sm font-semibold text-fg">
             {user?.displayName ?? t('settings.unknown')}
           </p>
           <p className="mt-1 text-xs text-fg-muted">
@@ -138,7 +138,7 @@ export function ProfileQR({ userId, className, hideHeading = false }: ProfileQRP
         </div>
       </div>
       {!hideHeading ? (
-        <h3 className="text-lg font-semibold text-white">
+        <h3 className="text-lg font-semibold text-fg">
           {t('qr.myCode')}
         </h3>
       ) : null}
@@ -179,14 +179,14 @@ export function ProfileQR({ userId, className, hideHeading = false }: ProfileQRP
           />
           <button
             onClick={() => void copyToClipboard(profileLink, 'link')}
-            className="shrink-0 rounded bg-accent px-2 py-1 text-xs text-white hover:bg-accent"
+            className="shrink-0 rounded bg-accent px-2 py-1 text-xs text-[color:var(--on-accent)] hover:bg-accent-strong"
           >
             {copiedMode === 'link' ? t('settings.copied') : t('qr.shareLink')}
           </button>
         </div>
         <button
           onClick={() => void copyToClipboard(shareText, 'text')}
-          className="mt-2 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-xs font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
+          className="mt-2 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-xs font-semibold text-fg-muted transition hover:border-line hover:bg-bg-hover"
         >
           {copiedMode === 'text' ? t('settings.copied') : t('qr.copyShareText')}
         </button>

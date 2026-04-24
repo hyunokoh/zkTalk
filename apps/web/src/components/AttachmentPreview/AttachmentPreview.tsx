@@ -163,13 +163,13 @@ function ImageAttachment({
         </div>
       )}
       <div className="pointer-events-none absolute inset-0 flex items-end justify-start p-3 opacity-0 transition-opacity group-hover:opacity-100">
-        <span className="rounded-full bg-bg-elevated/75 px-3 py-1 text-xs font-semibold text-white">
+        <span className="rounded-full bg-bg-elevated/75 px-3 py-1 text-xs font-semibold text-fg">
           Open preview
         </span>
       </div>
       {extraCount && extraCount > 0 ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-bg-elevated/45">
-          <span className="text-xl font-bold text-white">{`+${extraCount}`}</span>
+          <span className="text-xl font-bold text-fg">{`+${extraCount}`}</span>
         </div>
       ) : null}
       <button
@@ -179,7 +179,7 @@ function ImageAttachment({
           event.stopPropagation();
           onSave();
         }}
-        className="absolute right-3 top-3 rounded-full border border-line bg-bg-elevated/75 px-3 py-1 text-xs font-semibold text-white opacity-0 transition-opacity hover:bg-bg-elevated group-hover:opacity-100"
+        className="absolute right-3 top-3 rounded-full border border-line bg-bg-elevated/75 px-3 py-1 text-xs font-semibold text-fg opacity-0 transition-opacity hover:bg-bg-elevated group-hover:opacity-100"
       >
         {saveLabel}
       </button>
@@ -228,7 +228,7 @@ function FileAttachment({
           data-attachment-id={attachment.id}
           type="button"
           onClick={onSave}
-          className="rounded-full border border-line bg-bg-hover px-3 py-1 text-xs font-semibold text-fg transition-colors hover:bg-bg-hover"
+          className="rounded-full border border-line bg-bg-hover px-3 py-1 text-xs font-semibold text-fg transition-colors hover:bg-line"
         >
           {saveLabel}
         </button>
@@ -237,7 +237,7 @@ function FileAttachment({
           data-attachment-id={attachment.id}
           type="button"
           onClick={onOpen}
-          className="rounded-full border border-line bg-bg-hover px-3 py-1 text-xs font-semibold text-fg transition-colors hover:bg-bg-hover"
+          className="rounded-full border border-line bg-bg-hover px-3 py-1 text-xs font-semibold text-fg transition-colors hover:bg-line"
         >
           {openLabel}
         </button>

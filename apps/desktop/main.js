@@ -224,12 +224,11 @@ const desktopLocalMachineBridge = createDesktopLoopbackBridge({
 // Mac as an AgentDevice with the zkTalk API, heartbeats, and dispatches
 // queued commands (shell/finder/browser) submitted from the web UI.
 //
-// The bridge is disabled by default via env gate so the existing desktop
-// experience stays untouched for users who haven't opted in yet. Set
-// ZKTALK_AGENT_BRIDGE=1 to enable.
+// The bridge is disabled by default so the existing desktop experience stays
+// untouched for users who have not opted in yet. Set ZKTALK_AGENT_BRIDGE=1 or
+// `agentDeviceBridgeEnabled: true` in desktop.config.json to enable.
 let agentDeviceBridgeToken = null;
 let agentDeviceBridgeStarted = false;
-const agentDeviceBridgeEnabled = process.env.ZKTALK_AGENT_BRIDGE === '1';
 
 function readAgentBridgeStateFile() {
   const statePath = path.join(app.getPath('userData'), 'agent-device-bridge.json');
@@ -270,22 +269,26 @@ const agentDeviceBridgeConfigStore = {
   },
 };
 
-const agentDeviceBridge = agentDeviceBridgeEnabled
-  ? createAgentDeviceBridge({
-      apiBaseUrl: getConfiguredApiUrl(),
-      getSessionToken: () => agentDeviceBridgeToken,
-      configStore: agentDeviceBridgeConfigStore,
-      preferredName: require('os').hostname() || 'zkTalk Desktop',
-      logger: (level, message, meta) => {
-        appendDesktopLog(
-          `[agent-bridge:${level}] ${message}${meta ? ` ${JSON.stringify(meta)}` : ''}`,
-        );
-      },
-    })
-  : null;
+const agentDeviceBridge = createAgentDeviceBridge({
+  apiBaseUrl: getConfiguredApiUrl,
+  getSessionToken: () => agentDeviceBridgeToken,
+  configStore: agentDeviceBridgeConfigStore,
+  preferredName: require('os').hostname() || 'zkTalk Desktop',
+  logger: (level, message, meta) => {
+    appendDesktopLog(
+      `[agent-bridge:${level}] ${message}${meta ? ` ${JSON.stringify(meta)}` : ''}`,
+    );
+  },
+});
+
+function isAgentDeviceBridgeEnabled() {
+  return (
+    process.env.ZKTALK_AGENT_BRIDGE === '1' ||
+    getDesktopConfigSnapshot().agentDeviceBridgeEnabled === true
+  );
+}
 
 function agentDeviceBridgeStateSnapshot() {
-  if (!agentDeviceBridge) return null;
   return {
     deviceId: agentDeviceBridge.getDeviceId?.() ?? null,
     running: agentDeviceBridge.isRunning?.() ?? false,
@@ -294,7 +297,7 @@ function agentDeviceBridgeStateSnapshot() {
 }
 
 async function ensureAgentDeviceBridgeStarted() {
-  if (!agentDeviceBridge) return null;
+  if (!isAgentDeviceBridgeEnabled()) return null;
   if (agentDeviceBridgeStarted) return agentDeviceBridgeStateSnapshot();
   if (!agentDeviceBridgeToken) return null;
   try {
@@ -311,7 +314,7 @@ async function ensureAgentDeviceBridgeStarted() {
 }
 
 async function stopAgentDeviceBridge() {
-  if (!agentDeviceBridge || !agentDeviceBridgeStarted) return;
+  if (!agentDeviceBridgeStarted) return;
   try {
     await agentDeviceBridge.stop();
     appendDesktopLog('[agent-bridge] stopped');
@@ -1577,6 +1580,7 @@ function getDefaultDesktopConfig() {
     livekitUrl: 'ws://127.0.0.1:7880',
     webUrl: '',
     localAgentLanguagePreset: 'manual_only',
+    agentDeviceBridgeEnabled: false,
     appLocale: 'ko',
   };
 }
@@ -1606,6 +1610,7 @@ function getDesktopConfigSnapshot() {
       ...getDefaultDesktopConfig(),
       ...parsed,
       localAgentLanguagePreset: normalizeLocalAgentLanguagePreset(parsed.localAgentLanguagePreset),
+      agentDeviceBridgeEnabled: parsed.agentDeviceBridgeEnabled === true,
       appLocale: normalizeDesktopAppLocale(parsed.appLocale),
       path: configPath,
     };
@@ -1649,6 +1654,7 @@ function writeDesktopConfig(nextConfig) {
   const localAgentLanguagePreset = normalizeLocalAgentLanguagePreset(
     nextConfig.localAgentLanguagePreset,
   );
+  const agentDeviceBridgeEnabled = nextConfig.agentDeviceBridgeEnabled === true;
   const appLocale = normalizeDesktopAppLocale(nextConfig.appLocale ?? currentConfig.appLocale);
 
   const payload = {
@@ -1657,6 +1663,7 @@ function writeDesktopConfig(nextConfig) {
     livekitUrl,
     webUrl,
     localAgentLanguagePreset,
+    agentDeviceBridgeEnabled,
     appLocale,
   };
 
@@ -1710,6 +1717,8 @@ function loadDesktopConfig() {
       const localAgentLanguagePreset = normalizeLocalAgentLanguagePreset(
         config.localAgentLanguagePreset,
       );
+      const agentDeviceBridgeEnabled =
+        process.env.ZKTALK_AGENT_BRIDGE === '1' || config.agentDeviceBridgeEnabled === true;
       const appLocale = normalizeDesktopAppLocale(config.appLocale);
       const openRouterApiKey =
         typeof process.env.OPENROUTER_API_KEY === 'string'
@@ -1724,6 +1733,7 @@ function loadDesktopConfig() {
       setOptionalEnv('NEXT_PUBLIC_LIVEKIT_URL', livekitUrl);
       setOptionalEnv('ZKTALK_WEB_URL', webUrl);
       setOptionalEnv('ZKTALK_LOCAL_AGENT_LANGUAGE_PRESET', localAgentLanguagePreset);
+      setOptionalEnv('ZKTALK_AGENT_BRIDGE', agentDeviceBridgeEnabled ? '1' : '');
       setOptionalEnv('ZKTALK_APP_LOCALE', appLocale);
       setOptionalEnv('OPENROUTER_API_KEY', openRouterApiKey);
       appendDesktopLog(`Loaded desktop config from ${candidatePath}`);
@@ -1745,6 +1755,7 @@ function loadDesktopConfig() {
   setOptionalEnv('ZKTALK_LIVEKIT_URL', defaults.livekitUrl);
   setOptionalEnv('NEXT_PUBLIC_LIVEKIT_URL', defaults.livekitUrl);
   setOptionalEnv('ZKTALK_LOCAL_AGENT_LANGUAGE_PRESET', defaults.localAgentLanguagePreset);
+  setOptionalEnv('ZKTALK_AGENT_BRIDGE', defaults.agentDeviceBridgeEnabled ? '1' : '');
   setOptionalEnv('ZKTALK_APP_LOCALE', defaults.appLocale);
   if (typeof process.env.OPENROUTER_API_KEY === 'string') {
     setOptionalEnv('OPENROUTER_API_KEY', process.env.OPENROUTER_API_KEY.trim());
@@ -4820,6 +4831,11 @@ function renderStatusPage(title, body, options = {}) {
           </select>
         </div>
         <p class="hint">${menuLabels.localAgentLanguagePresetHint}</p>
+        <label class="checkbox-field" for="agentDeviceBridgeEnabled">
+          <input id="agentDeviceBridgeEnabled" name="agentDeviceBridgeEnabled" type="checkbox"${config.agentDeviceBridgeEnabled ? ' checked' : ''} />
+          <span>${menuLabels.agentDeviceBridgeEnabledLabel}</span>
+        </label>
+        <p class="hint">${menuLabels.agentDeviceBridgeEnabledHint}</p>
         <p class="hint">${menuLabels.desktopConfigPathHint.replace('{{path}}', escapeHtml(config.path || ''))}</p>
         <div class="actions">
           <button type="submit" class="button">${menuLabels.saveAndRetry}</button>
@@ -4929,6 +4945,17 @@ function renderStatusPage(title, body, options = {}) {
           padding: 12px 14px;
           font-size: 14px;
         }
+        .checkbox-field {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #cbd5e1;
+        }
+        .checkbox-field input {
+          width: auto;
+        }
         select {
           width: 100%;
           box-sizing: border-box;
@@ -5015,6 +5042,7 @@ function renderStatusPage(title, body, options = {}) {
                 livekitUrl: formData.get('livekitUrl'),
                 webUrl: formData.get('webUrl'),
                 localAgentLanguagePreset: formData.get('localAgentLanguagePreset'),
+                agentDeviceBridgeEnabled: formData.get('agentDeviceBridgeEnabled') === 'on',
               });
               setStatus(${JSON.stringify(menuLabels.savedConnectionSettings)}, 'success');
               await desktopApi.retryLoad();
@@ -5873,9 +5901,9 @@ ipcMain.handle('agent-device-bridge:set-token', async (_event, payload) => {
   if (typeof token !== 'string' || token.length === 0) {
     throw new Error('agent-device-bridge:set-token requires a non-empty token.');
   }
-  if (!agentDeviceBridge) {
+  if (!isAgentDeviceBridgeEnabled()) {
     appendDesktopLog(
-      '[agent-bridge] token received but bridge disabled (set ZKTALK_AGENT_BRIDGE=1 to enable).',
+      '[agent-bridge] token received but bridge disabled (enable Agent host in desktop config or set ZKTALK_AGENT_BRIDGE=1).',
     );
     return { enabled: false, running: false };
   }
@@ -5892,19 +5920,16 @@ ipcMain.handle('agent-device-bridge:set-token', async (_event, payload) => {
 ipcMain.handle('agent-device-bridge:clear-token', async () => {
   agentDeviceBridgeToken = null;
   await stopAgentDeviceBridge();
-  return { enabled: agentDeviceBridgeEnabled, running: false };
+  return { enabled: isAgentDeviceBridgeEnabled(), running: false };
 });
 ipcMain.handle('agent-device-bridge:get-state', () => {
-  if (!agentDeviceBridge) {
-    return { enabled: false, running: false, state: null };
-  }
   return {
-    enabled: true,
+    enabled: isAgentDeviceBridgeEnabled(),
     running: agentDeviceBridgeStarted,
     state: agentDeviceBridgeStateSnapshot(),
   };
 });
-ipcMain.handle('desktop-config:save', (_event, config) => {
+ipcMain.handle('desktop-config:save', async (_event, config) => {
   if (!config || typeof config !== 'object') {
     throw new Error('Desktop config payload is missing.');
   }
@@ -5912,6 +5937,11 @@ ipcMain.handle('desktop-config:save', (_event, config) => {
   const savedConfig = writeDesktopConfig(config);
   appendDesktopLog(`Saved desktop config to ${savedConfig.path}`);
   loadDesktopConfig();
+  if (!isAgentDeviceBridgeEnabled()) {
+    await stopAgentDeviceBridge();
+  } else if (agentDeviceBridgeToken) {
+    await ensureAgentDeviceBridgeStarted();
+  }
   installApplicationMenu();
   return savedConfig;
 });

@@ -76,7 +76,7 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <h3 className="text-sm font-semibold text-fg-muted">{t('poll.create')}</h3>
-          <button onClick={onClose} className="text-fg-muted hover:text-fg-muted">
+          <button onClick={onClose} className="text-fg-muted hover:text-fg">
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
@@ -93,7 +93,7 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder={t('poll.questionPlaceholder')}
-              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
@@ -107,7 +107,7 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
                   value={opt}
                   onChange={(e) => updateOption(i, e.target.value)}
                   placeholder={t('poll.option', { num: i + 1 })}
-                  className="flex-1 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  className="flex-1 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 />
                 {options.length > 2 && (
                   <button
@@ -174,7 +174,7 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
             <button
               data-testid="poll-creator-cancel-button"
               onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm text-fg-muted hover:text-fg-muted"
+              className="rounded-md px-4 py-2 text-sm text-fg-muted hover:text-fg"
             >
               {t('common.cancel')}
             </button>
@@ -182,7 +182,7 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
               data-testid="poll-creator-submit-button"
               onClick={() => createMutation.mutate()}
               disabled={!canSubmit || createMutation.isPending}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
             >
               {createMutation.isPending ? t('common.loading') : t('common.create')}
             </button>

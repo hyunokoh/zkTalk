@@ -88,7 +88,7 @@ function getButtonA11yToRender(expanded: boolean): string {
 
 function getButtonClassToRender(isAuthor: boolean): string {
   return isAuthor
-    ? 'mt-2 inline-flex w-fit items-center rounded-pill border border-line bg-bg-hover px-3 py-1 text-[11px] font-semibold text-[color:var(--on-accent)] transition hover:bg-bg-hover'
+    ? 'mt-2 inline-flex w-fit items-center rounded-pill border border-line bg-bg-hover px-3 py-1 text-[11px] font-semibold text-[color:var(--on-accent)] transition'
     : 'mt-2 inline-flex w-fit items-center rounded-pill border border-line bg-bg-hover px-3 py-1 text-[11px] font-semibold text-fg-muted transition hover:border-line-strong hover:text-fg';
 }
 
