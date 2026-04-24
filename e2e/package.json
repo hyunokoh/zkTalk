@@ -8,6 +8,7 @@
     "test:smoke": "pnpm run test:smoke:core",
     "test:smoke:core": "node ../scripts/run-core-smoke.mjs",
     "test:headed": "playwright test --config playwright.config.ts --headed",
+    "test:visual": "playwright test --config playwright.config.ts tests/visual-design-audit.spec.ts",
     "codegen": "playwright codegen http://127.0.0.1:3000/login"
   },
   "devDependencies": {
