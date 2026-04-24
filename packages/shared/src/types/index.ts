@@ -360,3 +360,121 @@ export interface LocalMachineCommandUpdate {
     | null;
   createdAt: string;
 }
+
+// ── Phase 9B: Agent Devices & Commands ─────────────────────────────
+
+export type DevicePlatform = 'macos' | 'linux' | 'windows' | 'mobile' | 'other';
+
+export type DeviceState = 'online' | 'busy' | 'degraded' | 'offline' | 'suspended';
+
+export type CommandExecutionStatus =
+  | 'queued'
+  | 'awaiting_approval'
+  | 'approved'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'rejected'
+  | 'timeout'
+  | 'cancelled';
+
+export interface AgentDevice {
+  id: string;
+  userId: string;
+  name: string;
+  slug: string;
+  platform: DevicePlatform;
+  state: DeviceState;
+  lastHeartbeatAt: string | null;
+  lastStateChangedAt: string;
+  sharedWithCommunityId: string | null;
+  sharedAllowedRoleIds: string[];
+  heartbeat: DeviceHeartbeatSummary | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeviceHeartbeatSummary {
+  at: string;
+  cpu: number;          // 0..1 normalised
+  ramUsed: number;      // bytes
+  ramTotal: number;     // bytes
+  runningCount: number;
+  agents: string[];     // slug@version list
+}
+
+export interface DeviceAgent {
+  id: string;
+  deviceId: string;
+  agentSlug: string;     // e.g., "shell", "claude-code"
+  displayName: string;
+  version: string | null;
+  defaultVerb: string;
+  scopes: string[];      // e.g., ["read:~/Documents", "exec:git"]
+  isEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommandApprovalPolicy {
+  kind: 'self' | 'owner' | 'n_of_m' | 'role';
+  n?: number;            // approvals required
+  m?: number;            // eligible pool size
+  roleIds?: string[];    // for 'role' or 'n_of_m' scoped to roles
+}
+
+export interface CommandApprovalDecision {
+  userId: string;
+  decision: 'approved' | 'rejected';
+  at: string;
+}
+
+export interface CommandExecution {
+  id: string;
+  requesterUserId: string;
+  deviceId: string;
+  agentSlug: string;
+  verb: string;
+  args: string;
+  rawCommand: string;    // original `/home-pc.shell find …` string
+  channelId: string | null;
+  channelMessageId: string | null;
+  dmConversationId: string | null;
+  status: CommandExecutionStatus;
+  approvalPolicy: CommandApprovalPolicy | null;
+  approvals: CommandApprovalDecision[];
+  stdoutTrunc: string | null;
+  stderrTrunc: string | null;
+  exitCode: number | null;
+  queuedAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+}
+
+export interface RegisterAgentDeviceInput {
+  name: string;
+  slug: string;
+  platform: DevicePlatform;
+  devicePublicKey?: string;
+}
+
+export interface RegisterDeviceAgentInput {
+  agentSlug: string;
+  displayName: string;
+  version?: string;
+  defaultVerb?: string;
+  scopes?: string[];
+}
+
+export interface QueueCommandInput {
+  // Supply either deviceSlug or deviceId. Validated at the schema layer.
+  deviceSlug?: string;
+  deviceId?: string;
+  agentSlug: string;
+  verb?: string;             // defaults to agent.defaultVerb
+  args?: string;
+  rawCommand: string;
+  channelId?: string | null;
+  dmConversationId?: string | null;
+}

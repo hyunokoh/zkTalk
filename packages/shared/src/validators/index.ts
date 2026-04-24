@@ -489,3 +489,102 @@ export const UpdateUserSettingsSchema = z
     translationDisplay: TranslationDisplayPreferenceSchema.optional(),
   })
   .strict();
+
+// ── Phase 9B: Agent Devices & Commands ─────────────────────────────
+
+export const DevicePlatformSchema = z.enum(['macos', 'linux', 'windows', 'mobile', 'other']);
+export const DeviceStateSchema = z.enum(['online', 'busy', 'degraded', 'offline', 'suspended']);
+export const CommandExecutionStatusSchema = z.enum([
+  'queued',
+  'awaiting_approval',
+  'approved',
+  'running',
+  'completed',
+  'failed',
+  'rejected',
+  'timeout',
+  'cancelled',
+]);
+
+// slug: lowercase, digits, dashes — used inside `/<device>.<agent>` grammar
+export const DeviceSlugSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9][a-z0-9-]*$/, 'slug must be kebab-case lowercase');
+
+export const AgentSlugSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9][a-z0-9-]*$/, 'agent slug must be kebab-case lowercase');
+
+export const RegisterAgentDeviceSchema = z
+  .object({
+    name: z.string().min(1).max(64),
+    slug: DeviceSlugSchema,
+    platform: DevicePlatformSchema,
+    devicePublicKey: z.string().min(1).max(2048).optional(),
+  })
+  .strict();
+
+export const UpdateAgentDeviceSchema = z
+  .object({
+    name: z.string().min(1).max(64).optional(),
+    sharedWithCommunityId: z.string().nullable().optional(),
+    sharedAllowedRoleIds: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const RegisterDeviceAgentSchema = z
+  .object({
+    agentSlug: AgentSlugSchema,
+    displayName: z.string().min(1).max(64),
+    version: z.string().max(32).optional(),
+    defaultVerb: z.string().min(1).max(32).default('exec'),
+    scopes: z.array(z.string().max(256)).max(32).optional(),
+  })
+  .strict();
+
+export const DeviceHeartbeatSchema = z
+  .object({
+    at: z.string().datetime(),
+    cpu: z.number().min(0).max(1),
+    ramUsed: z.number().int().nonnegative(),
+    ramTotal: z.number().int().positive(),
+    runningCount: z.number().int().nonnegative(),
+    agents: z.array(z.string().max(96)).max(64),
+  })
+  .strict();
+
+export const CommandApprovalPolicySchema = z
+  .object({
+    kind: z.enum(['self', 'owner', 'n_of_m', 'role']),
+    n: z.number().int().positive().optional(),
+    m: z.number().int().positive().optional(),
+    roleIds: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const QueueCommandSchema = z
+  .object({
+    deviceSlug: DeviceSlugSchema.optional(),
+    deviceId: z.string().optional(),
+    agentSlug: AgentSlugSchema,
+    verb: z.string().min(1).max(32).optional(),
+    args: z.string().max(4000).default(''),
+    rawCommand: z.string().min(1).max(4096),
+    channelId: z.string().nullable().optional(),
+    dmConversationId: z.string().nullable().optional(),
+  })
+  .strict()
+  .refine((v) => Boolean(v.deviceSlug ?? v.deviceId), {
+    message: 'deviceSlug or deviceId required',
+    path: ['deviceSlug'],
+  });
+
+export const ApproveCommandSchema = z
+  .object({
+    decision: z.enum(['approved', 'rejected']),
+  })
+  .strict();

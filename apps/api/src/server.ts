@@ -60,6 +60,7 @@ import translateRoutes from './modules/translate/translate.routes.js';
 import zkVotingRoutes from './modules/zk-voting/zk-voting.routes.js';
 import zkIdentityRoutes from './modules/zk-identity/zk-identity.routes.js';
 import pushTokenRoutes from './modules/push-token/push-token.routes.js';
+import agentsRoutes from './modules/agents/agents.routes.js';
 
 const app = Fastify({
   disableRequestLogging: true,
@@ -289,6 +290,7 @@ await app.register(translateRoutes);
 await app.register(zkVotingRoutes);
 await app.register(zkIdentityRoutes);
 await app.register(pushTokenRoutes);
+await app.register(agentsRoutes);
 
 const port = getServerPort();
 const host = process.env.HOST || '0.0.0.0';

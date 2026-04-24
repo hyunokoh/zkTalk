@@ -110,6 +110,22 @@ export const WebSocketEvent = {
   MACHINE_REGISTERED: 'machine.registered',
   MACHINE_PRESENCE_UPDATED: 'machine.presence.updated',
   MACHINE_COMMAND_UPDATED: 'machine.command.updated',
+  // Phase 9B: agent devices & command lifecycle
+  DEVICE_REGISTERED: 'device.registered',
+  DEVICE_UPDATED: 'device.updated',
+  DEVICE_STATE_CHANGED: 'device.state_changed',
+  DEVICE_HEARTBEAT: 'device.heartbeat',
+  DEVICE_REMOVED: 'device.removed',
+  COMMAND_QUEUED: 'command.queued',
+  COMMAND_AWAITING_APPROVAL: 'command.awaiting_approval',
+  COMMAND_APPROVED: 'command.approved',
+  COMMAND_REJECTED: 'command.rejected',
+  COMMAND_RUNNING: 'command.running',
+  COMMAND_CHUNK: 'command.chunk',
+  COMMAND_COMPLETED: 'command.completed',
+  COMMAND_FAILED: 'command.failed',
+  COMMAND_TIMEOUT: 'command.timeout',
+  COMMAND_CANCELLED: 'command.cancelled',
 } as const;
 export type WebSocketEvent = (typeof WebSocketEvent)[keyof typeof WebSocketEvent];
 

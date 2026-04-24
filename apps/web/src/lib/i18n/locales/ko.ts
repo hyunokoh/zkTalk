@@ -279,6 +279,8 @@ const ko: Record<string, string> = {
   'agents.empty.body':
     '다른 컴퓨터에 zkTalk을 설치하고 같은 계정으로 로그인하세요. 각 디바이스는 이 화면의 대화 상대가 되고, 여기에서 명령을 보낼 수 있습니다.',
   'agents.empty.cta': '디바이스 연결 방법',
+  'agents.empty.sidebar':
+    '아직 연결된 디바이스가 없습니다. 다른 컴퓨터에 zkTalk을 설치하면 여기에 표시됩니다.',
   'agents.comingSoonBadge': '9B에서 공개',
 
   // Moderation

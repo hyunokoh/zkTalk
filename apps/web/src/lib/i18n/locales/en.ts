@@ -278,6 +278,8 @@ const en = {
   'agents.empty.body':
     'Install zkTalk on another computer and sign in. Each device becomes a conversation here, and you can send commands to its agents from this screen.',
   'agents.empty.cta': 'How to connect a device',
+  'agents.empty.sidebar':
+    'No devices connected yet. Install zkTalk on another computer and it will appear here.',
   'agents.comingSoonBadge': 'Coming in 9B',
 
   // Moderation

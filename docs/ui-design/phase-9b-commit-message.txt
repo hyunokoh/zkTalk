@@ -1,0 +1,87 @@
+feat(agents): phase 9b multi-device agent foundation (schema, api, ws, web, desktop bridge stub)
+
+Phase 9B.1 — Data model
+- drizzle migration 0021_agent_devices.sql introduces enums
+  (device_state, device_platform, command_execution_status) and the three
+  baseline tables: agent_devices, device_agents, command_executions.
+- Added matching drizzle schema in apps/api/src/lib/db/schema.ts with cascade
+  delete on device_agents and FK wiring for command_executions → channels /
+  messages / agent_devices / users.
+
+Phase 9B.2 — API module (apps/api/src/modules/agents/)
+- Repository: listDevicesByUser / findDeviceByUserSlug / createDevice /
+  updateDevice / recordHeartbeat (auto-transitions state to online or busy) /
+  markDeviceState / deleteDevice; device-agent CRUD with upsertDeviceAgent;
+  command queue with listCommandsByRequester / createCommand /
+  updateCommandStatus.
+- Service: registerDevice (rejects duplicate slug → AppError.conflict),
+  queueCommand (verifies agent installed, auto-status queued for own device vs
+  awaiting_approval for shared device), recordCommandApproval
+  (device-owner-only in 9B; N-of-M deferred to 9C), recordCommandResult,
+  markCommandRunning. All mutations broadcast via realtimeService.sendToUser.
+- Routes: /api/devices (GET/POST), /api/devices/:id (PATCH/DELETE),
+  /api/devices/:id/heartbeat, /api/devices/:id/agents (GET/POST),
+  /api/commands (GET/POST), /api/commands/:id (GET),
+  /api/commands/:id/decision (POST). Registered in apps/api/src/server.ts.
+- Vitest coverage: registerDevice duplicate rejection + realtime notify,
+  queueCommand missing-agent + success paths, recordCommandApproval
+  non-owner rejection (APPROVAL_FORBIDDEN).
+
+Phase 9B.3 — WebSocket events
+- packages/shared: 15 new WebSocketEvent constants covering the device.* and
+  command.* lifecycle (registered / updated / state_changed / heartbeat /
+  removed + queued / awaiting_approval / approved / rejected / running /
+  chunk / completed / failed / timeout / cancelled).
+- WSIncoming/WSOutgoing/RedisPubSubMessage extended with subscribe_device,
+  subscribe_command, device_heartbeat, command_chunk, command_result, and an
+  optional deviceId fan-out key.
+
+Phase 9B.4 — Web UI (/agents)
+- Shared types + Zod schemas in @zktalk/shared: AgentDevice,
+  DeviceHeartbeatSummary, DeviceAgent, CommandApprovalPolicy,
+  CommandApprovalDecision, CommandExecution plus RegisterAgentDeviceInput,
+  RegisterDeviceAgentInput, QueueCommandInput (deviceSlug/deviceId both
+  optional, enforced at schema layer via .refine()).
+- apps/web/src/lib/api-agents.ts — typed wrappers for every route.
+- apps/web/src/components:
+  - AgentDeviceSidebar: TanStack Query powered device list with state dots,
+    skeletons, empty and error states.
+  - DeviceCard: heartbeat-driven dashboard card (CPU, RAM, agent pills).
+  - DeviceStatusStrip: 32px mono status bar for the Agent 1:1 DM.
+  - CommandComposer: /<deviceSlug>.<agentSlug>[.<verb>] <args> parser with
+    agent autocomplete popover, Enter-to-send, Shift+Enter newline, and
+    inline validation helper copy.
+  - CommandResultBubble: mono command header, status tone, exit-code chip,
+    collapsible stdout/stderr, and an inline approve/reject bar shown only
+    to the device owner when status === 'awaiting_approval'.
+- apps/web/src/app/(app)/agents/page.tsx rewritten to mount AgentDeviceSidebar
+  plus a responsive DeviceCard grid (empty-state preserved for first run).
+- apps/web/src/app/(app)/agents/[deviceId]/page.tsx — new route composing
+  sidebar + DeviceStatusStrip + chat-style command feed (flex-col-reverse,
+  5s polling via refetchInterval) + CommandComposer; approval bar gated by
+  useAuthStore ownership.
+- i18n: agents.empty.sidebar added to en/ko locales.
+
+Phase 9B.5 — Desktop Device Bridge daemon (stub)
+- apps/desktop/agent-device-bridge.js — lifecycle bridge that:
+  - ensureRegistered() — creates or reuses a device by slug via GET/POST
+    /api/devices.
+  - registerAgents() — seeds the three canonical drivers (shell, finder,
+    browser) via POST /api/devices/:id/agents; driver.execute() is a stub
+    pending 9C.
+  - sendHeartbeat() — POSTs sampled CPU/RAM/agent summary every 30s.
+- apps/desktop/agent-device-bridge.test.js — node:test coverage of
+  BUILTIN_AGENT_DRIVERS composition, buildDefaultDeviceSlug stability,
+  sampleHeartbeatSummary shape, start() register-new path and reuse-by-slug
+  path. All 5 tests pass.
+
+Typecheck:
+- apps/api tsc --noEmit: clean.
+- apps/web tsc --noEmit: no errors in new files; unchanged pre-existing test
+  errors in discover / settings/ai / desktop-harness remain (not introduced
+  by this change).
+
+Design references:
+  docs/ui-design/design-brief.md §9
+  docs/ui-design/agent-ux.md
+  docs/ui-design/design-system.md

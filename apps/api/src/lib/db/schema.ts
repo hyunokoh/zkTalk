@@ -16,6 +16,9 @@ export const autoModRuleTypeEnum = pgEnum('automod_rule_type', ['keyword_filter'
 export const autoModActionEnum = pgEnum('automod_action', ['block', 'flag', 'mute']);
 export const uploadTargetKindEnum = pgEnum('upload_target_kind', ['channel_message', 'thread_reply', 'dm_message', 'user_avatar', 'community_icon']);
 export const uploadSessionStatusEnum = pgEnum('upload_session_status', ['created', 'single_ready', 'multipart_ready', 'uploading', 'completed', 'aborted', 'expired']);
+export const devicePlatformEnum = pgEnum('device_platform', ['macos', 'linux', 'windows', 'mobile', 'other']);
+export const deviceStateEnum = pgEnum('device_state', ['online', 'busy', 'degraded', 'offline', 'suspended']);
+export const commandExecutionStatusEnum = pgEnum('command_execution_status', ['queued', 'awaiting_approval', 'approved', 'running', 'completed', 'failed', 'rejected', 'timeout', 'cancelled']);
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
@@ -633,4 +636,72 @@ export const pushTokens = pgTable('push_tokens', {
 }, (t) => [
   uniqueIndex('push_tokens_user_token_idx').on(t.userId, t.token),
   index('push_tokens_user_idx').on(t.userId),
+]);
+
+// ── Agent Devices (Phase 9B: multi-device AI agent) ─────────────────
+
+export const agentDevices = pgTable('agent_devices', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  name: text('name').notNull(),
+  slug: text('slug').notNull(),
+  platform: devicePlatformEnum('platform').notNull().default('other'),
+  state: deviceStateEnum('state').notNull().default('offline'),
+  lastHeartbeatAt: timestamp('last_heartbeat_at', { withTimezone: true }),
+  lastStateChangedAt: timestamp('last_state_changed_at', { withTimezone: true }).notNull().defaultNow(),
+  devicePublicKey: text('device_public_key'),
+  sharedWithCommunityId: text('shared_with_community_id').references(() => communities.id),
+  sharedAllowedRoleIds: text('shared_allowed_role_ids').notNull().default('[]'), // JSON string[]
+  heartbeatPayload: text('heartbeat_payload'), // JSON snapshot of latest heartbeat
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('agent_devices_user_slug_idx').on(t.userId, t.slug),
+  index('agent_devices_user_idx').on(t.userId),
+  index('agent_devices_shared_community_idx').on(t.sharedWithCommunityId),
+]);
+
+export const deviceAgents = pgTable('device_agents', {
+  id: text('id').primaryKey(),
+  deviceId: text('device_id').notNull().references(() => agentDevices.id, { onDelete: 'cascade' }),
+  agentSlug: text('agent_slug').notNull(),
+  displayName: text('display_name').notNull(),
+  version: text('version'),
+  defaultVerb: text('default_verb').notNull().default('exec'),
+  scopes: text('scopes').notNull().default('[]'), // JSON string[]
+  isEnabled: boolean('is_enabled').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('device_agents_device_slug_idx').on(t.deviceId, t.agentSlug),
+  index('device_agents_device_idx').on(t.deviceId),
+]);
+
+export const commandExecutions = pgTable('command_executions', {
+  id: text('id').primaryKey(),
+  requesterUserId: text('requester_user_id').notNull().references(() => users.id),
+  deviceId: text('device_id').notNull().references(() => agentDevices.id),
+  agentSlug: text('agent_slug').notNull(),
+  verb: text('verb').notNull(),
+  args: text('args').notNull().default(''),
+  rawCommand: text('raw_command').notNull(),
+  channelId: text('channel_id').references(() => channels.id),
+  channelMessageId: text('channel_message_id').references(() => messages.id),
+  dmConversationId: text('dm_conversation_id'),
+  status: commandExecutionStatusEnum('status').notNull().default('queued'),
+  approvalPolicy: text('approval_policy'), // JSON { kind, n, m, roleIds }
+  approvals: text('approvals').notNull().default('[]'), // JSON [{userId, decision, at}]
+  stdoutTrunc: text('stdout_trunc'),
+  stderrTrunc: text('stderr_trunc'),
+  exitCode: integer('exit_code'),
+  queuedAt: timestamp('queued_at', { withTimezone: true }).notNull().defaultNow(),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  finishedAt: timestamp('finished_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('command_executions_requester_idx').on(t.requesterUserId),
+  index('command_executions_device_idx').on(t.deviceId),
+  index('command_executions_channel_idx').on(t.channelId),
+  index('command_executions_status_idx').on(t.status),
+  index('command_executions_queued_at_idx').on(t.queuedAt),
 ]);
