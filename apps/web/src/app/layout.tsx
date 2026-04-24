@@ -9,8 +9,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
+    // Tokenized surface from `globals.css` — light is primary; `dark` class
+    // or `prefers-color-scheme: dark` swap the CSS variables.
     <html lang="en">
-      <body className="bg-gray-900 text-gray-100 antialiased">
+      <body className="bg-bg text-fg antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

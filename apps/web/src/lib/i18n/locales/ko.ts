@@ -269,7 +269,17 @@ const ko: Record<string, string> = {
   'nav.friends': '친구',
   'nav.bookmarks': '북마크',
   'nav.discover': '찾기',
+  'nav.agents': '에이전트',
   'nav.settings': '설정',
+
+  // Agents (9A 미리보기 — 9B에서 본격 확장)
+  'agents.title': '에이전트',
+  'agents.subtitle': '연결한 컴퓨터에서 실행 중인 AI 에이전트들이 여기 모입니다.',
+  'agents.empty.title': '아직 연결된 디바이스가 없습니다',
+  'agents.empty.body':
+    '다른 컴퓨터에 zkTalk을 설치하고 같은 계정으로 로그인하세요. 각 디바이스는 이 화면의 대화 상대가 되고, 여기에서 명령을 보낼 수 있습니다.',
+  'agents.empty.cta': '디바이스 연결 방법',
+  'agents.comingSoonBadge': '9B에서 공개',
 
   // Moderation
   'mod.title': '관리',

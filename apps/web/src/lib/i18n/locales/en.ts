@@ -268,7 +268,17 @@ const en = {
   'nav.friends': 'Friends',
   'nav.bookmarks': 'Bookmarks',
   'nav.discover': 'Discover',
+  'nav.agents': 'Agents',
   'nav.settings': 'Settings',
+
+  // Agents (Phase 9A preview — full UX lands in 9B)
+  'agents.title': 'Agents',
+  'agents.subtitle': 'AI agents on the computers you have connected.',
+  'agents.empty.title': 'No devices connected yet',
+  'agents.empty.body':
+    'Install zkTalk on another computer and sign in. Each device becomes a conversation here, and you can send commands to its agents from this screen.',
+  'agents.empty.cta': 'How to connect a device',
+  'agents.comingSoonBadge': 'Coming in 9B',
 
   // Moderation
   'mod.title': 'Moderation',

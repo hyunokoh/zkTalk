@@ -1,0 +1,52 @@
+feat(web): phase 9a telegram-minimal tokens + agents surface
+
+Kick off Phase 9A of the UI redesign (docs/ui-design/design-brief.md).
+Focus is foundation-laying: install the Telegram-minimal design tokens
+once, and prove them end-to-end on a single new surface (/agents).
+The large component rewrites (MessageItem, MessageComposer,
+DmConversation, ThreadPanel, ChannelSidebar) stay on the 9A.1/9A.2
+follow-up list so this commit is reviewable.
+
+Tokens
+- apps/web/src/styles/globals.css: define the full light/dark token
+  set from docs/ui-design/design-system.md (surfaces, text, accent,
+  agent, status, shadow, motion). Expose them through Tailwind 4's
+  @theme so utilities like bg-bg, text-fg, bg-accent-soft,
+  bg-agent-soft, rounded-bubble, rounded-pill are generated. Dark
+  mode switches on `.dark` / `[data-theme="dark"]` or
+  `prefers-color-scheme: dark`.
+- Add helper components: .agent-strip, .agent-pill, .dot-online /
+  .dot-busy / .dot-offline, .cmd-block.
+- apps/web/src/app/layout.tsx: use token-driven bg-bg / text-fg on
+  <body> instead of the old bg-gray-900 / text-gray-100.
+
+Agents surface (first token-native screen)
+- apps/web/src/app/(app)/agents/page.tsx: new /agents route with the
+  Telegram-minimal empty state, 280px sidebar placeholder, device
+  skeleton rows, and a 6-swatch palette self-demo. Full UX arrives
+  in 9B.
+- apps/web/src/components/CommunityRail/CommunityRail.tsx: add
+  'agents' top-level nav entry + AgentsIcon between friends and
+  bookmarks. No other nav restructure, so existing tests and routes
+  stay stable.
+- apps/web/src/lib/i18n/locales/{en,ko}.ts: add nav.agents plus
+  agents.title / subtitle / empty.* / comingSoonBadge.
+
+Docs
+- docs/ui-design/: full redesign package (README, design-system.md,
+  design-brief.md, agent-ux.md, mockups.html, diagrams.html) — the
+  source of truth that this commit starts implementing.
+
+Verification
+- `tsc --noEmit` for apps/web: 0 new errors (10 pre-existing errors
+  in discover/__tests__, settings/ai/__tests__, desktop-harness/
+  __tests__ — all unrelated to this change).
+- Locale-sync test (web/src/lib/i18n/__tests__/locales.test.ts)
+  stays green because en.ts and ko.ts got the identical new keys.
+
+Follow-ups (tracked as 9A.1 / 9A.2)
+- Bubble token refresh in MessageItem (~1,271 lines, high blast
+  radius; split into its own commit).
+- Composer, DM conversation, ThreadPanel, ChannelSidebar token
+  refresh.
+- AppLayout backdrop gradient replaced with tokens.

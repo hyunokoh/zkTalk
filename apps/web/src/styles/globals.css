@@ -1,1 +1,272 @@
 @import 'tailwindcss';
+
+/* ==========================================================================
+ * zkTalk Design Tokens — Telegram-Minimal (Phase 9A)
+ *
+ * Source of truth: docs/ui-design/design-system.md
+ *
+ * Usage from components:
+ *   bg-bg, bg-bg-subtle, bg-bg-hover, bg-bg-elevated
+ *   text-fg, text-fg-muted, text-fg-subtle
+ *   border-line, border-line-strong
+ *   bg-accent, text-accent, bg-accent-soft, hover:bg-accent-strong
+ *   bg-agent, text-agent, bg-agent-soft
+ *   bg-success / bg-warning / bg-danger (+ text variants)
+ *
+ *   radius-sm/md/lg/bubble/pill via rounded-sm etc. map below.
+ *
+ * Dark mode: toggled by `class="dark"` on <html> or <body>.
+ * A media-query fallback is also included for `prefers-color-scheme: dark`
+ * when the `dark` class has not been explicitly set.
+ * ========================================================================== */
+
+@layer base {
+  :root {
+    /* -- Surfaces --------------------------------------------------------- */
+    --bg: #ffffff;
+    --bg-subtle: #f4f6fa;
+    --bg-hover: #eef1f6;
+    --bg-elevated: #ffffff;
+
+    /* -- Borders --------------------------------------------------------- */
+    --line: #e5e9f0;
+    --line-strong: #d4dae3;
+
+    /* -- Text ------------------------------------------------------------- */
+    --fg: #17212b;
+    --fg-muted: #6b7785;
+    --fg-subtle: #97a3af;
+
+    /* -- Brand accent (single blue) -------------------------------------- */
+    --accent: #2a7fff;
+    --accent-strong: #1664e6;
+    --accent-soft: #e8f1ff;
+    --on-accent: #ffffff;
+
+    /* -- Agent accent (violet, AI-only) ---------------------------------- */
+    --agent: #8a5cf6;
+    --agent-strong: #6f3ef0;
+    --agent-soft: #f2ebff;
+    --on-agent: #ffffff;
+
+    /* -- Status ---------------------------------------------------------- */
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --mention: #fbbf24;
+
+    /* -- Elevation ------------------------------------------------------- */
+    --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-2: 0 6px 20px rgba(15, 23, 42, 0.08);
+    --shadow-3: 0 16px 40px rgba(15, 23, 42, 0.12);
+
+    /* -- Motion ---------------------------------------------------------- */
+    --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+    --dur-fast: 120ms;
+    --dur-base: 200ms;
+    --dur-slow: 320ms;
+  }
+
+  /* Explicit dark class wins over media query */
+  .dark,
+  [data-theme='dark'] {
+    --bg: #0e1621;
+    --bg-subtle: #17212b;
+    --bg-hover: #1e2a3a;
+    --bg-elevated: #212d3b;
+
+    --line: #232f3e;
+    --line-strong: #344253;
+
+    --fg: #e7eef5;
+    --fg-muted: #8a97a6;
+    --fg-subtle: #6d7a8a;
+
+    --accent: #5aa3ff;
+    --accent-strong: #3b87f0;
+    --accent-soft: rgba(90, 163, 255, 0.14);
+    --on-accent: #0b1220;
+
+    --agent: #b294ff;
+    --agent-strong: #9671ff;
+    --agent-soft: rgba(178, 148, 255, 0.14);
+    --on-agent: #17102b;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.45);
+    --shadow-3: 0 16px 40px rgba(0, 0, 0, 0.55);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light):not([data-theme='light']) {
+      --bg: #0e1621;
+      --bg-subtle: #17212b;
+      --bg-hover: #1e2a3a;
+      --bg-elevated: #212d3b;
+
+      --line: #232f3e;
+      --line-strong: #344253;
+
+      --fg: #e7eef5;
+      --fg-muted: #8a97a6;
+      --fg-subtle: #6d7a8a;
+
+      --accent: #5aa3ff;
+      --accent-strong: #3b87f0;
+      --accent-soft: rgba(90, 163, 255, 0.14);
+      --on-accent: #0b1220;
+
+      --agent: #b294ff;
+      --agent-strong: #9671ff;
+      --agent-soft: rgba(178, 148, 255, 0.14);
+      --on-agent: #17102b;
+    }
+  }
+}
+
+/* ==========================================================================
+ * Tailwind 4 @theme — expose tokens as utility classes
+ * ========================================================================== */
+@theme {
+  /* Colors — Tailwind 4 generates `bg-*`, `text-*`, `border-*`, etc.
+   * Use explicit CSS-var references so theme switches at runtime. */
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-elevated: var(--bg-elevated);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+
+  --color-agent: var(--agent);
+  --color-agent-strong: var(--agent-strong);
+  --color-agent-soft: var(--agent-soft);
+  --color-on-agent: var(--on-agent);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-mention: var(--mention);
+
+  /* Radii — match design-system.md 4. Radius table */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-bubble: 18px;
+  --radius-pill: 999px;
+
+  /* Spacing extras (base Tailwind covers 0..96; these are named aliases) */
+  --spacing-rail: 64px;
+  --spacing-sidebar: 280px;
+  --spacing-panel: 320px;
+  --spacing-bubble-max: 720px;
+
+  /* Typography — system stack per design-system.md 2. Typography */
+  --font-sans:
+    -apple-system, 'Inter', 'Pretendard', 'SF Pro Text', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, 'Menlo', monospace;
+}
+
+/* ==========================================================================
+ * Base element styles — keyed to tokens so light/dark both work
+ * ========================================================================== */
+@layer base {
+  html,
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Selection uses accent-soft for readable contrast in both themes */
+  ::selection {
+    background-color: var(--accent-soft);
+    color: var(--fg);
+  }
+
+  /* Focus ring — per design-system.md 10. Accessibility */
+  :where(a, button, [role='button'], input, select, textarea):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar polish (optional, non-destructive) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: var(--radius-pill);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ==========================================================================
+ * Utility helpers — AI-message strip, Agent badge, command mono
+ * ========================================================================== */
+@layer components {
+  /* Agent-colored vertical strip used by agent message bubbles */
+  .agent-strip {
+    border-left: 4px solid var(--agent);
+  }
+
+  /* Subtle AI / Agent pill: "◆ Agent" */
+  .agent-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+    color: var(--agent);
+    background-color: var(--agent-soft);
+    border-radius: var(--radius-pill);
+  }
+
+  /* Device status dot */
+  .dot-online {
+    background-color: var(--success);
+  }
+  .dot-busy {
+    background-color: var(--warning);
+  }
+  .dot-offline {
+    background-color: var(--fg-subtle);
+  }
+
+  /* Command bubble mono block */
+  .cmd-block {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 20px;
+    background-color: var(--bg-subtle);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    white-space: pre;
+    overflow-x: auto;
+  }
+}

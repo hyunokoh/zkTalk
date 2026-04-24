@@ -49,7 +49,14 @@ interface CommunityRailProps {
   onOpenAI?: () => void;
 }
 
-type TopLevelRoute = 'home' | 'inbox' | 'dm' | 'friends' | 'bookmarks' | 'settings';
+type TopLevelRoute =
+  | 'home'
+  | 'inbox'
+  | 'dm'
+  | 'friends'
+  | 'agents'
+  | 'bookmarks'
+  | 'settings';
 
 function HomeIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
@@ -85,6 +92,20 @@ function FriendsIcon({ className = 'h-5 w-5' }: { className?: string }) {
       <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 11a3 3 0 100-6 3 3 0 000 6z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M19.75 19v-1a3.25 3.25 0 00-3.25-3.25h-1" />
+    </svg>
+  );
+}
+
+function AgentsIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  // Diamond + sparkle mark, echoes the ◆ marker used in AgentMessageBubble.
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 3.5l3.25 5.25 5.25 3.25-5.25 3.25L12 20.5l-3.25-5.25L3.5 12l5.25-3.25L12 3.5z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18.25 4.25l.9 1.5 1.5.9-1.5.9-.9 1.5-.9-1.5-1.5-.9 1.5-.9.9-1.5z" />
     </svg>
   );
 }
@@ -226,6 +247,13 @@ export function CommunityRail({
       count: friendCount,
       isActive: pathname.startsWith('/friends'),
       icon: <FriendsIcon />,
+    },
+    {
+      key: 'agents',
+      href: '/agents',
+      title: t('nav.agents'),
+      isActive: pathname.startsWith('/agents'),
+      icon: <AgentsIcon />,
     },
     {
       key: 'bookmarks',

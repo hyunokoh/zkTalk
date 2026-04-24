@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>zkTalk · UI Mockups 2026</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-subtle: #f4f6fa;
+    --bg-hover: #eef1f6;
+    --bg-elevated: #ffffff;
+    --border: #e5e9f0;
+    --border-strong: #d4dae3;
+    --text: #17212b;
+    --text-muted: #6b7785;
+    --text-subtle: #97a3af;
+    --accent: #2a7fff;
+    --accent-strong: #1664e6;
+    --accent-soft: #e8f1ff;
+    --agent: #8a5cf6;
+    --agent-soft: #f2ebff;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-bubble: 18px;
+    --radius-pill: 999px;
+    --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-2: 0 6px 20px rgba(15, 23, 42, 0.08);
+    --shadow-3: 0 16px 40px rgba(15, 23, 42, 0.12);
+  }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 15px/1.55 -apple-system, "Inter", "Pretendard", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    background: #f0f3f8;
+    -webkit-font-smoothing: antialiased;
+  }
+  * { box-sizing: border-box; }
+  a { color: var(--accent); text-decoration: none; }
+
+  /* ─────────── Page chrome ─────────── */
+  .page {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+  }
+  .hero {
+    padding: 48px 40px;
+    background: radial-gradient(1200px 400px at 20% -10%, rgba(42, 127, 255, 0.14), transparent 60%),
+                radial-gradient(1000px 500px at 110% 10%, rgba(138, 92, 246, 0.12), transparent 60%),
+                #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    box-shadow: var(--shadow-1);
+    margin-bottom: 40px;
+  }
+  .hero h1 { font-size: 34px; line-height: 1.15; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .hero p { font-size: 16px; color: var(--text-muted); margin: 0 0 18px; max-width: 720px; }
+  .hero .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600;
+    background: var(--bg-subtle); color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 5px 10px;
+  }
+  .badge-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .badge-pill.agent .dot { background: var(--agent); }
+
+  nav.toc {
+    position: sticky; top: 12px;
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 8px;
+    margin-bottom: 40px;
+    display: flex; gap: 4px; flex-wrap: wrap;
+    box-shadow: var(--shadow-1);
+    z-index: 50;
+  }
+  nav.toc a {
+    padding: 8px 14px;
+    font-size: 13px; font-weight: 600;
+    color: var(--text-muted);
+    border-radius: var(--radius-pill);
+    transition: background 120ms, color 120ms;
+  }
+  nav.toc a:hover { background: var(--bg-hover); color: var(--text); }
+
+  section {
+    margin-bottom: 56px;
+  }
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .section-head h2 { font-size: 22px; margin: 0; letter-spacing: -0.005em; }
+  .section-head .kicker { font-size: 13px; color: var(--text-muted); }
+  .section-body p { color: var(--text-muted); max-width: 820px; margin: 0 0 16px; }
+
+  /* ─────────── Device frame ─────────── */
+  .frame {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-2);
+  }
+  .frame-head {
+    height: 38px;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 14px;
+    gap: 8px;
+  }
+  .frame-head .dot-tl { width: 10px; height: 10px; border-radius: 50%; background: #ff5f57; }
+  .frame-head .dot-tl.y { background: #febc2e; }
+  .frame-head .dot-tl.g { background: #28c840; }
+  .frame-head .addr {
+    flex: 1; text-align: center;
+    font-size: 12px; color: var(--text-subtle);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  /* ─────────── App layout (inside frame) ─────────── */
+  .app {
+    display: grid;
+    grid-template-columns: 64px 280px 1fr;
+    height: 680px;
+  }
+  .app.with-right {
+    grid-template-columns: 64px 280px 1fr 320px;
+  }
+
+  /* Rail */
+  .rail {
+    background: var(--bg-subtle);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px 0;
+  }
+  .rail .logo {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--agent) 100%);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; letter-spacing: -0.02em;
+    margin-bottom: 12px;
+    font-size: 15px;
+  }
+  .rail-div { width: 24px; height: 1px; background: var(--border); margin: 6px 0; }
+  .rail-tab {
+    width: 48px; height: 56px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; margin: 2px 0; border-radius: 12px;
+    color: var(--text-muted); cursor: pointer;
+    position: relative;
+  }
+  .rail-tab:hover { background: var(--bg-hover); color: var(--text); }
+  .rail-tab.active { background: var(--accent-soft); color: var(--accent); }
+  .rail-tab.active::before {
+    content: ''; position: absolute; left: -8px; top: 16px;
+    width: 3px; height: 24px; border-radius: 0 3px 3px 0;
+    background: var(--accent);
+  }
+  .rail-tab.agent.active { background: var(--agent-soft); color: var(--agent); }
+  .rail-tab.agent.active::before { background: var(--agent); }
+  .rail-tab .ico { font-size: 18px; line-height: 1; }
+  .rail-tab .lab { font-size: 10px; font-weight: 600; }
+  .rail-tab .dot-badge {
+    position: absolute; top: 8px; right: 8px;
+    min-width: 14px; height: 14px; border-radius: 7px;
+    background: var(--danger); color: white;
+    font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 4px;
+  }
+  .rail .spacer { flex: 1; }
+  .rail .avatar-slot {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #ffa56a, #ff5f8a);
+    color: white; font-weight: 700; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 6px 0;
+  }
+  /* Community icons under tabs */
+  .rail-community {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: white; margin: 4px 0; cursor: pointer;
+    position: relative; font-size: 14px;
+    transition: border-radius 120ms;
+  }
+  .rail-community:hover { border-radius: 10px; }
+  .rail-community.c1 { background: #0e8f70; }
+  .rail-community.c2 { background: #6554ff; }
+  .rail-community.c3 { background: #d97706; }
+  .rail-community.c4 { background: #db2777; }
+  .rail-community.active::before {
+    content: ''; position: absolute; left: -12px; top: 8px;
+    width: 3px; height: 24px; border-radius: 0 3px 3px 0;
+    background: var(--text);
+  }
+
+  /* Sidebar */
+  .side {
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  .side-head {
+    padding: 16px 16px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+  }
+  .side-head h2 { font-size: 17px; margin: 0; font-weight: 600; }
+  .side-head .icon-btn {
+    width: 28px; height: 28px; border-radius: 8px;
+    color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .side-head .icon-btn:hover { background: var(--bg-hover); color: var(--text); }
+  .search {
+    margin: 0 12px 10px;
+    background: var(--bg-subtle);
+    border-radius: var(--radius-pill);
+    padding: 8px 14px;
+    display: flex; align-items: center; gap: 8px;
+    color: var(--text-subtle); font-size: 13px;
+  }
+
+  .side-section-title {
+    padding: 14px 16px 4px;
+    font-size: 11px; font-weight: 700; color: var(--text-subtle);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .side-section-title .count { font-weight: 600; }
+
+  .conv-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 12px; margin: 1px 8px; border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+  .conv-row:hover { background: var(--bg-hover); }
+  .conv-row.active { background: var(--accent-soft); }
+  .conv-row.active .name { color: var(--accent); }
+  .av {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 13px; flex-shrink: 0;
+    position: relative;
+  }
+  .av.square { border-radius: 10px; }
+  .av .presence {
+    position: absolute; bottom: -1px; right: -1px;
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid var(--bg);
+    background: var(--success);
+  }
+  .av .presence.busy { background: var(--warning); }
+  .av .presence.off { background: var(--text-subtle); }
+  .conv-main { flex: 1; min-width: 0; }
+  .conv-row .name { font-size: 14px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+  .conv-row .preview {
+    font-size: 13px; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .conv-meta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .conv-meta .time { font-size: 11px; color: var(--text-subtle); }
+  .conv-meta .badge {
+    background: var(--accent); color: white;
+    font-size: 11px; font-weight: 700;
+    padding: 1px 7px; border-radius: var(--radius-pill);
+    min-width: 20px; text-align: center;
+  }
+  .conv-meta .badge.mute { background: var(--text-subtle); }
+
+  .tag {
+    font-size: 10px; font-weight: 700;
+    padding: 1px 6px; border-radius: var(--radius-pill);
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .tag.agent { background: var(--agent-soft); color: var(--agent); }
+  .tag.bot { background: var(--accent-soft); color: var(--accent); }
+
+  /* Channel list */
+  .cat-row {
+    padding: 16px 16px 6px 16px;
+    font-size: 11px; font-weight: 700; color: var(--text-subtle);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px;
+    cursor: pointer;
+  }
+  .ch-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 12px; margin: 1px 8px; border-radius: var(--radius-md);
+    cursor: pointer; color: var(--text-muted); font-size: 14px;
+  }
+  .ch-row:hover { background: var(--bg-hover); color: var(--text); }
+  .ch-row.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .ch-row .ch-ico { width: 18px; text-align: center; font-size: 14px; }
+  .ch-row .hash { color: var(--text-subtle); }
+  .ch-row.active .hash { color: var(--accent); }
+  .ch-row .mini-badge {
+    margin-left: auto; font-size: 10px; padding: 1px 6px; border-radius: 999px;
+    background: var(--agent-soft); color: var(--agent); font-weight: 700;
+  }
+
+  /* Content */
+  .content {
+    display: flex; flex-direction: column;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  .content-head {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .content-head .title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .content-head .title .hash { color: var(--text-subtle); font-weight: 400; }
+  .content-head .sub { font-size: 12px; color: var(--text-muted); }
+  .content-head .spacer { flex: 1; }
+  .content-head .head-actions { display: flex; gap: 4px; color: var(--text-muted); }
+  .head-actions .icon-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .head-actions .icon-btn:hover { background: var(--bg-hover); color: var(--text); }
+
+  .msg-feed {
+    flex: 1; overflow: auto;
+    padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  .day-sep {
+    display: flex; align-items: center; gap: 12px;
+    margin: 8px 0;
+  }
+  .day-sep::before, .day-sep::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .day-sep span {
+    background: var(--bg-subtle); border-radius: var(--radius-pill);
+    padding: 3px 10px;
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+  }
+
+  .msg {
+    display: flex; gap: 10px; align-items: flex-start; max-width: 720px;
+  }
+  .msg.me { margin-left: auto; flex-direction: row-reverse; }
+  .msg .body {
+    background: var(--bg-subtle);
+    padding: 9px 14px; border-radius: var(--radius-bubble);
+    border-top-left-radius: 6px;
+    font-size: 15px; line-height: 1.5;
+    max-width: 520px;
+  }
+  .msg.me .body {
+    background: var(--accent); color: white;
+    border-radius: var(--radius-bubble);
+    border-top-right-radius: 6px;
+  }
+  .msg .meta {
+    font-size: 11px; color: var(--text-subtle); margin-top: 4px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .msg.me .meta { justify-content: flex-end; }
+  .msg .name { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: var(--text); }
+  .msg .col { display: flex; flex-direction: column; }
+
+  /* Agent message */
+  .msg.agent .body {
+    background: var(--agent-soft);
+    color: var(--text);
+    border-left: 3px solid var(--agent);
+    border-top-left-radius: 6px;
+  }
+  .msg.agent .name { color: var(--agent); display: flex; align-items: center; gap: 6px; }
+  .msg.agent .name::before { content: '◆'; font-size: 10px; }
+  .msg.agent .device {
+    font-size: 11px; font-weight: 500; color: var(--text-muted);
+    background: white; border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: var(--radius-pill);
+    margin-left: 4px;
+  }
+
+  .cmd-bubble {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 13px;
+    max-width: 640px;
+  }
+  .cmd-bubble .cmd-head {
+    background: var(--bg-subtle);
+    padding: 6px 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .cmd-bubble .cmd-head .ok { color: var(--success); font-weight: 700; }
+  .cmd-bubble pre {
+    margin: 0; padding: 10px 14px;
+    white-space: pre-wrap; color: var(--text);
+    max-height: 160px; overflow: auto;
+  }
+  .cmd-bubble .cmd-input {
+    padding: 8px 14px; border-bottom: 1px solid var(--border);
+    background: #fbfcfe;
+  }
+  .cmd-bubble .cmd-input .prompt { color: var(--agent); font-weight: 700; }
+
+  /* Composer */
+  .composer {
+    padding: 12px 20px 16px; border-top: 1px solid var(--border);
+  }
+  .compose-box {
+    display: flex; align-items: flex-end; gap: 8px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 8px 10px;
+  }
+  .compose-box .text {
+    flex: 1;
+    padding: 6px 6px;
+    color: var(--text-muted);
+    font-size: 15px;
+  }
+  .compose-box .icon-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+  }
+  .compose-box .icon-btn:hover { background: var(--bg-hover); color: var(--text); }
+  .compose-box .send {
+    background: var(--accent); color: white;
+    width: 34px; height: 34px;
+  }
+  .compose-box .send:hover { background: var(--accent-strong); color: white; }
+
+  /* Autocomplete (for Agent command) */
+  .ac {
+    position: relative;
+  }
+  .ac-pop {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-3);
+    padding: 6px;
+    margin-bottom: 8px;
+  }
+  .ac-pop .ac-hint {
+    padding: 4px 10px; font-size: 11px; color: var(--text-subtle);
+    letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600;
+  }
+  .ac-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  }
+  .ac-item:hover, .ac-item.sel { background: var(--agent-soft); }
+  .ac-item .cmd { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 13px; color: var(--agent); font-weight: 700; }
+  .ac-item .desc { font-size: 12px; color: var(--text-muted); }
+  .ac-item .device-tag {
+    font-size: 10px; padding: 1px 6px; border-radius: 999px;
+    background: var(--bg-subtle); color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  /* Right panel */
+  .right {
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  .right-head {
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .right-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .right-body { flex: 1; overflow: auto; padding: 16px; }
+  .dev-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .dev-card .dev-name {
+    display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px;
+  }
+  .dev-card .dev-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+  .dev-card .bar {
+    height: 4px; background: var(--bg-subtle); border-radius: 4px; margin-top: 4px;
+    overflow: hidden; position: relative;
+  }
+  .dev-card .bar > span { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+  .dev-card .bar > span.agent { background: var(--agent); }
+  .dev-card .bar > span.warn { background: var(--warning); }
+
+  /* ─────────── Design tokens gallery ─────────── */
+  .token-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .swatch {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    background: var(--bg);
+    display: flex; gap: 10px; align-items: center;
+  }
+  .swatch .chip {
+    width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);
+  }
+  .swatch .meta .nm { font-size: 13px; font-weight: 600; }
+  .swatch .meta .val { font-size: 11px; color: var(--text-muted); font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+  /* Dark preview */
+  .dark-card {
+    background: #0e1621; color: #e7eef5;
+    border-radius: var(--radius-lg); padding: 18px;
+    border: 1px solid #232f3e;
+  }
+  .dark-card .chip-row { display: flex; gap: 8px; margin-top: 10px; }
+  .dark-card .chip {
+    height: 28px; padding: 0 10px; border-radius: 8px;
+    display: flex; align-items: center; font-size: 12px; font-weight: 600;
+  }
+
+  /* Anchor offset */
+  section { scroll-margin-top: 80px; }
+
+  .note {
+    font-size: 12px; color: var(--text-muted);
+    background: var(--bg-subtle);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    margin-top: 10px;
+  }
+  .tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* Empty-ish channel row showing agent avatar */
+  .agent-ch-ico {
+    color: var(--agent); font-weight: 700;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hero">
+    <div class="badges">
+      <span class="badge-pill"><span class="dot"></span>zkTalk</span>
+      <span class="badge-pill"><span class="dot"></span>UI Redesign 2026</span>
+      <span class="badge-pill agent"><span class="dot"></span>Multi-device Agents</span>
+    </div>
+    <h1 style="margin-top: 20px;">Community · DM · AI Agent — 하나의 미니멀한 메신저로.</h1>
+    <p>
+      Discord의 공동체 구조와 Telegram의 깔끔한 대화 경험, 그리고 zkTalk이 새로 제안하는
+      <b>멀티 디바이스 AI Agent</b>를 한 레이아웃에서 자연스럽게 엮는 재설계안입니다.
+      아래 다이어그램은 실제 pixel mockup으로, 개발자가 그대로 CSS로 옮겨도 되도록 수치와 토큰이 일관됩니다.
+    </p>
+    <div class="tag-row">
+      <span class="badge-pill">Telegram-minimal 톤</span>
+      <span class="badge-pill">Neutral + single accent</span>
+      <span class="badge-pill agent">Agent 1급 시민</span>
+      <span class="badge-pill">Dark/Light 지원</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <a href="#tokens">1. Tokens</a>
+    <a href="#ia">2. IA</a>
+    <a href="#community">3. Community Chat</a>
+    <a href="#dm">4. DM (Personal)</a>
+    <a href="#agent-dm">5. Agent 1:1 DM</a>
+    <a href="#agent-channel">6. Agent Channel</a>
+    <a href="#devices">7. Device Dashboard</a>
+    <a href="#dark">8. Dark Theme</a>
+  </nav>
+
+  <!-- ====== 1. TOKENS ====== -->
+  <section id="tokens">
+    <div class="section-head">
+      <h2>1 · Design Tokens</h2>
+      <span class="kicker">전체 재설계의 기반</span>
+    </div>
+    <div class="section-body">
+      <p>Telegram-minimal 톤의 핵심은 <b>뉴트럴 배경</b>과 <b>단일 블루 액센트</b>입니다. AI/Agent에 한해 바이올렛을 보조 액센트로 사용합니다. 사람의 메시지엔 바이올렛이 닿지 않아 시각적으로 사람-기계 경계가 분명해집니다.</p>
+      <div class="token-grid">
+        <div class="swatch"><div class="chip" style="background:#ffffff; border:1px solid var(--border)"></div><div class="meta"><div class="nm">bg</div><div class="val">#FFFFFF</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#f4f6fa"></div><div class="meta"><div class="nm">bg-subtle</div><div class="val">#F4F6FA</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#eef1f6"></div><div class="meta"><div class="nm">bg-hover</div><div class="val">#EEF1F6</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#e5e9f0"></div><div class="meta"><div class="nm">border</div><div class="val">#E5E9F0</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#17212b"></div><div class="meta"><div class="nm">text</div><div class="val">#17212B</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#6b7785"></div><div class="meta"><div class="nm">text-muted</div><div class="val">#6B7785</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#2a7fff"></div><div class="meta"><div class="nm">accent</div><div class="val">#2A7FFF</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#e8f1ff"></div><div class="meta"><div class="nm">accent-soft</div><div class="val">#E8F1FF</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#8a5cf6"></div><div class="meta"><div class="nm">agent</div><div class="val">#8A5CF6</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#f2ebff"></div><div class="meta"><div class="nm">agent-soft</div><div class="val">#F2EBFF</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#22c55e"></div><div class="meta"><div class="nm">success</div><div class="val">#22C55E</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#ef4444"></div><div class="meta"><div class="nm">danger</div><div class="val">#EF4444</div></div></div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px;">
+        <div class="frame" style="padding: 16px 20px;">
+          <div style="font-size: 28px; font-weight: 600;">display — 28/34</div>
+          <div style="font-size: 22px; font-weight: 600; margin-top: 6px;">h1 — 22/28</div>
+          <div style="font-size: 17px; font-weight: 600; margin-top: 6px;">h2 — 17/24</div>
+          <div style="font-size: 15px;">body — 15/22 regular</div>
+          <div style="font-size: 13px; color: var(--text-muted);">body-sm — 13/20</div>
+          <div style="font-size: 12px; color: var(--text-subtle);">caption — 12/16</div>
+          <div style="font: 13px/1.5 'JetBrains Mono', ui-monospace, monospace; margin-top: 4px;">mono · /home-pc.shell "ls"</div>
+        </div>
+        <div class="dark-card">
+          <div style="font-size: 17px; font-weight: 600;">Dark 테마 미리보기</div>
+          <div style="font-size: 13px; color: #8a97a6; margin-top: 4px;">같은 구조, bg만 #0E1621 — #17212B로 전환</div>
+          <div class="chip-row">
+            <div class="chip" style="background: rgba(90,163,255,0.14); color: #5AA3FF;">accent</div>
+            <div class="chip" style="background: rgba(178,148,255,0.14); color: #B294FF;">agent</div>
+            <div class="chip" style="background: #1E2A3A; color: #E7EEF5;">surface</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 2. IA ====== -->
+  <section id="ia">
+    <div class="section-head">
+      <h2>2 · Information Architecture</h2>
+      <span class="kicker">좌측 Rail의 5 탭 체계</span>
+    </div>
+    <div class="section-body">
+      <p>좌측 Rail은 <b>Chats · Communities · Agents · Inbox · Discover</b> 5 탭으로 재편합니다. 기존 `ui-nav-redesign-plan.md`가 제안한 Kakao 스타일 탭을 이어받되, <b>Agents 탭을 신설하여 1급 시민</b>으로 올립니다. 커뮤니티 서버 아이콘은 그 아래에 붙어 Discord 친숙함을 유지합니다.</p>
+      <div class="frame">
+        <div class="frame-head">
+          <div class="dot-tl"></div><div class="dot-tl y"></div><div class="dot-tl g"></div>
+          <div class="addr">zktalk.app — information architecture</div>
+        </div>
+        <svg viewBox="0 0 1200 460" xmlns="http://www.w3.org/2000/svg" style="display:block; width:100%; height:auto; background:#fff;">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#97A3AF"/>
+            </marker>
+          </defs>
+          <!-- Rail block -->
+          <g>
+            <rect x="40" y="40" width="90" height="380" rx="14" fill="#F4F6FA" stroke="#E5E9F0"/>
+            <text x="85" y="64" text-anchor="middle" font-size="11" font-weight="700" fill="#6B7785" letter-spacing="0.6">RAIL · 64</text>
+            <g font-size="12" font-weight="600" fill="#17212B" text-anchor="middle">
+              <rect x="55" y="80" width="60" height="44" rx="10" fill="#E8F1FF"/>
+              <text x="85" y="106">Chats</text>
+              <rect x="55" y="130" width="60" height="44" rx="10" fill="#FFFFFF" stroke="#E5E9F0"/>
+              <text x="85" y="156" fill="#6B7785">Communi.</text>
+              <rect x="55" y="180" width="60" height="44" rx="10" fill="#F2EBFF"/>
+              <text x="85" y="206" fill="#8A5CF6">Agents</text>
+              <rect x="55" y="230" width="60" height="44" rx="10" fill="#FFFFFF" stroke="#E5E9F0"/>
+              <text x="85" y="256" fill="#6B7785">Inbox</text>
+              <rect x="55" y="280" width="60" height="44" rx="10" fill="#FFFFFF" stroke="#E5E9F0"/>
+              <text x="85" y="306" fill="#6B7785">Discover</text>
+            </g>
+            <line x1="50" y1="334" x2="120" y2="334" stroke="#E5E9F0"/>
+            <g font-size="10" fill="#6B7785">
+              <circle cx="85" cy="352" r="14" fill="#0e8f70"/><text x="85" y="356" text-anchor="middle" fill="white" font-weight="700">K</text>
+              <circle cx="85" cy="382" r="14" fill="#6554ff"/><text x="85" y="386" text-anchor="middle" fill="white" font-weight="700">A</text>
+              <circle cx="85" cy="412" r="14" fill="#d97706"/><text x="85" y="416" text-anchor="middle" fill="white" font-weight="700">B</text>
+            </g>
+          </g>
+
+          <!-- Middle column descriptions -->
+          <g font-size="12" fill="#17212B">
+            <!-- Chats -->
+            <rect x="180" y="70" width="260" height="62" rx="12" fill="#FFFFFF" stroke="#E5E9F0"/>
+            <text x="196" y="94" font-weight="700">Chats</text>
+            <text x="196" y="114" fill="#6B7785">DM · 그룹 대화 · pinned</text>
+
+            <!-- Communities -->
+            <rect x="180" y="142" width="260" height="62" rx="12" fill="#FFFFFF" stroke="#E5E9F0"/>
+            <text x="196" y="166" font-weight="700">Communities</text>
+            <text x="196" y="186" fill="#6B7785">Category → Channel → Thread</text>
+
+            <!-- Agents (highlighted) -->
+            <rect x="180" y="214" width="260" height="84" rx="12" fill="#F2EBFF" stroke="#8A5CF6" stroke-width="1.5"/>
+            <text x="196" y="238" font-weight="700" fill="#8A5CF6">Agents (NEW)</text>
+            <text x="196" y="258" fill="#6B7785">Device → Agent 1:1 DM</text>
+            <text x="196" y="278" fill="#6B7785">Device Dashboard · 실행 이력</text>
+
+            <!-- Inbox -->
+            <rect x="180" y="308" width="260" height="48" rx="12" fill="#FFFFFF" stroke="#E5E9F0"/>
+            <text x="196" y="338" font-weight="700">Inbox</text>
+
+            <!-- Discover -->
+            <rect x="180" y="366" width="260" height="48" rx="12" fill="#FFFFFF" stroke="#E5E9F0"/>
+            <text x="196" y="396" font-weight="700">Discover</text>
+          </g>
+
+          <!-- Right: what sidebar shows -->
+          <g font-size="11" fill="#17212B">
+            <rect x="490" y="70" width="330" height="344" rx="14" fill="#F8FAFC" stroke="#E5E9F0" stroke-dasharray="4 3"/>
+            <text x="505" y="90" font-weight="700" fill="#6B7785">SIDEBAR · 280</text>
+
+            <rect x="505" y="104" width="300" height="46" rx="10" fill="#fff" stroke="#E5E9F0"/>
+            <text x="518" y="124" font-weight="600">🔍  Search</text>
+            <text x="518" y="140" fill="#6B7785">conversations / agents / messages</text>
+
+            <rect x="505" y="160" width="300" height="72" rx="10" fill="#fff" stroke="#E5E9F0"/>
+            <text x="518" y="180" font-weight="700" fill="#97A3AF">PINNED</text>
+            <text x="518" y="200" font-weight="600">#announcements · kim · 3</text>
+            <text x="518" y="220" font-weight="600" fill="#8A5CF6">◆ home-pc · claude-code</text>
+
+            <rect x="505" y="242" width="300" height="84" rx="10" fill="#fff" stroke="#E5E9F0"/>
+            <text x="518" y="262" font-weight="700" fill="#97A3AF">CHANNELS</text>
+            <text x="518" y="282" font-weight="600"># general · 2</text>
+            <text x="518" y="302" font-weight="600"># product</text>
+            <text x="518" y="322" fill="#8A5CF6">◆ agent-ops-bot</text>
+
+            <rect x="505" y="336" width="300" height="62" rx="10" fill="#fff" stroke="#E5E9F0"/>
+            <text x="518" y="356" font-weight="700" fill="#97A3AF">DIRECT</text>
+            <text x="518" y="376" font-weight="600">Jiyeon · 어제 2시</text>
+            <text x="518" y="396" font-weight="600">Sam Lee · 3일 전</text>
+          </g>
+
+          <!-- Right: content description -->
+          <g font-size="12" fill="#17212B">
+            <rect x="860" y="70" width="300" height="344" rx="14" fill="#FFFFFF" stroke="#E5E9F0"/>
+            <text x="875" y="90" font-weight="700" fill="#6B7785">CONTENT · flex</text>
+            <text x="875" y="120" font-weight="700">메시지 / Forum / Thread /</text>
+            <text x="875" y="140" font-weight="700">Agent 대화 / Device dashboard</text>
+            <rect x="875" y="160" width="270" height="1" fill="#E5E9F0"/>
+            <text x="875" y="186" fill="#6B7785">· 컨텍스트에 따라 내용만 교체</text>
+            <text x="875" y="206" fill="#6B7785">· 우측 패널(옵션): 스레드, 멤버,</text>
+            <text x="875" y="226" fill="#6B7785">  디바이스 상태</text>
+            <text x="875" y="266" fill="#8A5CF6" font-weight="700">Agent 전용 영역</text>
+            <text x="875" y="286" fill="#6B7785">· 메시지 스타일(바이올렛 스트립)</text>
+            <text x="875" y="306" fill="#6B7785">· /device.agent 자동완성</text>
+            <text x="875" y="326" fill="#6B7785">· 실행 상태 · 결과 버블</text>
+          </g>
+
+          <!-- Arrows -->
+          <line x1="130" y1="102" x2="180" y2="102" stroke="#97A3AF" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="130" y1="173" x2="180" y2="173" stroke="#97A3AF" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="130" y1="256" x2="180" y2="256" stroke="#8A5CF6" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="130" y1="332" x2="180" y2="332" stroke="#97A3AF" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="130" y1="390" x2="180" y2="390" stroke="#97A3AF" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <line x1="440" y1="256" x2="490" y2="256" stroke="#8A5CF6" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="820" y1="242" x2="860" y2="242" stroke="#97A3AF" stroke-width="1.5" marker-end="url(#arr)"/>
+        </svg>
+      </div>
+      <div class="note">
+        구조적으로 달라진 점은 <b>Agents 탭의 신설</b>과, 모든 컨텍스트(Chats/Communities/Agents)에서 <b>동일한 3-col 레이아웃</b>을 유지한다는 것입니다.
+        사용자는 "파란 액센트 = 사람/커뮤니티, 바이올렛 = Agent/AI"라는 색 규칙 하나만 기억하면 됩니다.
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 3. Community Chat ====== -->
+  <section id="community">
+    <div class="section-head">
+      <h2>3 · Community Channel</h2>
+      <span class="kicker">Discord 친숙함 + Telegram 가벼움</span>
+    </div>
+    <div class="section-body">
+      <p>커뮤니티 채널은 Rail의 Communities 탭을 선택하고 특정 서버 아이콘을 클릭하면 열립니다. 사이드바는 카테고리 접힘·채널 리스트를, 메인 컨텐트는 메시지 피드를, 우측 패널은 필요 시 스레드/멤버를 엽니다.</p>
+
+      <div class="frame">
+        <div class="frame-head">
+          <div class="dot-tl"></div><div class="dot-tl y"></div><div class="dot-tl g"></div>
+          <div class="addr">zktalk://communities/kaizen-lab/channels/general</div>
+        </div>
+        <div class="app with-right">
+          <!-- Rail -->
+          <div class="rail">
+            <div class="logo">z</div>
+            <div class="rail-tab"><div class="ico">💬</div><div class="lab">Chats</div></div>
+            <div class="rail-tab active"><div class="ico">🏛</div><div class="lab">Comm.</div></div>
+            <div class="rail-tab agent"><div class="ico">◆</div><div class="lab">Agents</div><div class="dot-badge">2</div></div>
+            <div class="rail-tab"><div class="ico">🔔</div><div class="lab">Inbox</div></div>
+            <div class="rail-tab"><div class="ico">🧭</div><div class="lab">Disc.</div></div>
+            <div class="rail-div"></div>
+            <div class="rail-community c1 active">K</div>
+            <div class="rail-community c2">A</div>
+            <div class="rail-community c3">B</div>
+            <div class="rail-community c4">P</div>
+            <div class="spacer"></div>
+            <div class="rail-tab"><div class="ico">⚙</div></div>
+            <div class="avatar-slot">An</div>
+          </div>
+          <!-- Sidebar -->
+          <div class="side">
+            <div class="side-head">
+              <h2>Kaizen Lab</h2>
+              <div class="icon-btn">⋯</div>
+            </div>
+            <div class="search">🔍  채널·멤버 검색</div>
+
+            <div class="cat-row">▾ GENERAL</div>
+            <div class="ch-row"><span class="hash">#</span> general <span class="mini-badge" style="background:#E8F1FF;color:#2A7FFF;">2</span></div>
+            <div class="ch-row active"><span class="hash">#</span> product <span style="margin-left:auto;font-size:11px;color:var(--text-subtle)">12</span></div>
+            <div class="ch-row"><span class="hash">#</span> random</div>
+
+            <div class="cat-row">▾ ANNOUNCEMENTS</div>
+            <div class="ch-row"><span class="hash">📢</span> releases</div>
+
+            <div class="cat-row">▾ AGENT OPS <span style="margin-left:auto;color:var(--agent);font-weight:700">◆</span></div>
+            <div class="ch-row"><span class="agent-ch-ico">◆</span> ops-bot <span class="mini-badge">LIVE</span></div>
+            <div class="ch-row"><span class="agent-ch-ico">◆</span> deploy-runner</div>
+            <div class="ch-row"><span class="agent-ch-ico">◆</span> pr-reviewer</div>
+
+            <div class="cat-row">▾ FORUM</div>
+            <div class="ch-row"><span class="hash">🗂</span> decisions</div>
+            <div class="ch-row"><span class="hash">🗂</span> retrospectives</div>
+          </div>
+
+          <!-- Content -->
+          <div class="content">
+            <div class="content-head">
+              <div class="title"><span class="hash">#</span> product</div>
+              <div class="sub">· 24 members online</div>
+              <div class="spacer"></div>
+              <div class="head-actions">
+                <div class="icon-btn">🧵</div>
+                <div class="icon-btn">📌</div>
+                <div class="icon-btn">🔍</div>
+                <div class="icon-btn">👥</div>
+              </div>
+            </div>
+            <div class="msg-feed">
+              <div class="day-sep"><span>오늘 · 4월 23일</span></div>
+
+              <div class="msg">
+                <div class="av" style="background:#6554ff;">JY</div>
+                <div class="col">
+                  <div class="name">Jiyeon Park <span style="color:var(--text-subtle); font-size:11px; font-weight:400;">14:02</span></div>
+                  <div class="body">다음 스프린트 시작 전에 Agent 채널 UX 리뷰 돌리면 좋겠어요. 지금 초안은 product 쪽에 파일 공유해뒀습니다.</div>
+                  <div class="meta">👍 3 · 💬 replies 2</div>
+                </div>
+              </div>
+
+              <div class="msg">
+                <div class="av" style="background:#0e8f70;">SL</div>
+                <div class="col">
+                  <div class="name">Sam Lee <span style="color:var(--text-subtle); font-size:11px; font-weight:400;">14:07</span></div>
+                  <div class="body">좋아요. 제가 ops-bot 돌려서 지난 주 PR 요약 가져와볼게요.</div>
+                </div>
+              </div>
+
+              <div class="msg me">
+                <div class="col">
+                  <div class="name" style="text-align:right;">나 <span style="color:var(--text-subtle); font-size:11px; font-weight:400;">14:08</span></div>
+                  <div class="body">오 좋아요. @ops-bot 지난 주 머지된 PR TOP 5 뽑아줄래요?</div>
+                </div>
+              </div>
+
+              <!-- Agent running status -->
+              <div class="msg agent">
+                <div class="av" style="background:#8A5CF6;">◆</div>
+                <div class="col">
+                  <div class="name">ops-bot <span class="device">on&nbsp;home-server</span></div>
+                  <div class="body" style="display:flex;align-items:center;gap:10px;">
+                    <span style="width:10px;height:10px;border-radius:50%;background:var(--warning);display:inline-block; animation:pulse 1.4s infinite ease-in-out;"></span>
+                    명령 실행 중 · <span style="font-family:'JetBrains Mono';font-size:13px;">github.list_merged_prs</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="msg agent">
+                <div class="av" style="background:#8A5CF6;">◆</div>
+                <div class="col">
+                  <div class="name">ops-bot <span class="device">on&nbsp;home-server</span></div>
+                  <div class="cmd-bubble">
+                    <div class="cmd-head">
+                      <span>github.list_merged_prs&nbsp;·&nbsp;since=7d&nbsp;·&nbsp;top=5</span>
+                      <span class="ok">✓ 1.2s · exit 0</span>
+                    </div>
+                    <pre>#482  feat(agent): device heartbeat stream         +312 / -48
+#478  feat(ui): telegram-minimal tokens            +1,204 / -892
+#475  fix(thread): reply count off-by-one           +12 / -14
+#471  refactor(ws): dedupe subscriptions            +203 / -311
+#468  feat(moderation): automod rules ui            +420 / -12</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="composer">
+              <div class="compose-box">
+                <div class="icon-btn">＋</div>
+                <div class="text">#product에 메시지 보내기 · <span style="color:var(--agent);">/agent</span>로 에이전트 호출</div>
+                <div class="icon-btn">😊</div>
+                <div class="icon-btn">🧵</div>
+                <div class="icon-btn send">➤</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right panel -->
+          <div class="right">
+            <div class="right-head"><h3>이 채널의 Agents</h3><div>⋯</div></div>
+            <div class="right-body">
+              <div class="dev-card">
+                <div class="dev-name"><span style="color:var(--agent);">◆</span> ops-bot <span class="tag agent">LIVE</span></div>
+                <div class="dev-row"><span>home-server</span><span>3 commands · today</span></div>
+                <div class="bar"><span class="agent" style="width:62%;"></span></div>
+              </div>
+              <div class="dev-card">
+                <div class="dev-name"><span style="color:var(--agent);">◆</span> deploy-runner</div>
+                <div class="dev-row"><span>ci-machine · idle</span><span>last 2h ago</span></div>
+                <div class="bar"><span class="agent" style="width:12%;"></span></div>
+              </div>
+              <div class="dev-card">
+                <div class="dev-name"><span style="color:var(--text-subtle);">◆</span> pr-reviewer <span class="tag" style="background:#FFE4E6;color:#EF4444;">OFFLINE</span></div>
+                <div class="dev-row"><span>mac-studio · asleep</span><span>last 1d ago</span></div>
+                <div class="bar"><span style="width:4%; background:var(--text-subtle);"></span></div>
+              </div>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:12px;">
+                채널에 등록된 Agent는 멤버처럼 취급됩니다. 각 Agent는 특정 디바이스에서 실행되며, 명령은 Agent의 권한 스코프 안에서만 동작합니다.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 4. DM Personal ====== -->
+  <section id="dm">
+    <div class="section-head">
+      <h2>4 · DM (Personal)</h2>
+      <span class="kicker">Telegram-like 1:1/그룹 대화</span>
+    </div>
+    <div class="section-body">
+      <p>Chats 탭은 DM과 그룹 대화를 하나로 모읍니다. Agent와의 대화도 이 리스트에 자연스럽게 섞이며, <b>바이올렛 ◆ 아이콘</b>과 디바이스 라벨로 구분됩니다.</p>
+
+      <div class="frame">
+        <div class="frame-head">
+          <div class="dot-tl"></div><div class="dot-tl y"></div><div class="dot-tl g"></div>
+          <div class="addr">zktalk://chats/jiyeon</div>
+        </div>
+        <div class="app">
+          <div class="rail">
+            <div class="logo">z</div>
+            <div class="rail-tab active"><div class="ico">💬</div><div class="lab">Chats</div><div class="dot-badge">4</div></div>
+            <div class="rail-tab"><div class="ico">🏛</div><div class="lab">Comm.</div></div>
+            <div class="rail-tab agent"><div class="ico">◆</div><div class="lab">Agents</div></div>
+            <div class="rail-tab"><div class="ico">🔔</div><div class="lab">Inbox</div></div>
+            <div class="rail-tab"><div class="ico">🧭</div><div class="lab">Disc.</div></div>
+            <div class="rail-div"></div>
+            <div class="rail-community c1">K</div>
+            <div class="rail-community c2">A</div>
+            <div class="spacer"></div>
+            <div class="rail-tab"><div class="ico">⚙</div></div>
+            <div class="avatar-slot">An</div>
+          </div>
+
+          <div class="side">
+            <div class="side-head"><h2>Chats</h2><div class="icon-btn">✎</div></div>
+            <div class="search">🔍  대화·사람 검색</div>
+
+            <div class="side-section-title">PINNED</div>
+            <div class="conv-row active">
+              <div class="av" style="background:#6554ff;">JY<span class="presence"></span></div>
+              <div class="conv-main">
+                <div class="name">Jiyeon Park</div>
+                <div class="preview">그러니까 Agent 초안은 이번 주 목요일까지 돌리면…</div>
+              </div>
+              <div class="conv-meta"><span class="time">14:02</span><span class="badge">2</span></div>
+            </div>
+            <div class="conv-row">
+              <div class="av" style="background:#8A5CF6; border-radius:10px;">◆<span class="presence busy"></span></div>
+              <div class="conv-main">
+                <div class="name">home-pc <span class="tag agent">AGENT</span></div>
+                <div class="preview">◆ `shell`이 3개 파일을 생성했습니다.</div>
+              </div>
+              <div class="conv-meta"><span class="time">13:40</span></div>
+            </div>
+
+            <div class="side-section-title">RECENT</div>
+            <div class="conv-row">
+              <div class="av" style="background:#0e8f70;">SL<span class="presence"></span></div>
+              <div class="conv-main">
+                <div class="name">Sam Lee</div>
+                <div class="preview">PR 리뷰 맡았어요 👍</div>
+              </div>
+              <div class="conv-meta"><span class="time">어제</span></div>
+            </div>
+            <div class="conv-row">
+              <div class="av" style="background:#d97706; border-radius:10px;">DS</div>
+              <div class="conv-main">
+                <div class="name">Design Studio · 4명</div>
+                <div class="preview">수현: 내일 리뷰 시간 변경 가능할까요?</div>
+              </div>
+              <div class="conv-meta"><span class="time">어제</span><span class="badge mute">3</span></div>
+            </div>
+            <div class="conv-row">
+              <div class="av" style="background:#8A5CF6; border-radius:10px;">◆<span class="presence off"></span></div>
+              <div class="conv-main">
+                <div class="name">mac-studio <span class="tag agent">AGENT</span></div>
+                <div class="preview">offline · 마지막 실행 1일 전</div>
+              </div>
+              <div class="conv-meta"><span class="time">1일</span></div>
+            </div>
+            <div class="conv-row">
+              <div class="av" style="background:#db2777;">EH</div>
+              <div class="conv-main"><div class="name">Eunhye</div><div class="preview">고마워요! 도움 많이 됐어요</div></div>
+              <div class="conv-meta"><span class="time">2일</span></div>
+            </div>
+          </div>
+
+          <div class="content">
+            <div class="content-head">
+              <div class="av" style="background:#6554ff; width:32px;height:32px;font-size:12px;">JY</div>
+              <div>
+                <div class="title">Jiyeon Park</div>
+                <div class="sub">● online · 두 사람의 대화 · 🔒 E2E 암호화</div>
+              </div>
+              <div class="spacer"></div>
+              <div class="head-actions">
+                <div class="icon-btn">📞</div><div class="icon-btn">🎥</div><div class="icon-btn">🔍</div><div class="icon-btn">⋯</div>
+              </div>
+            </div>
+            <div class="msg-feed">
+              <div class="day-sep"><span>어제</span></div>
+              <div class="msg"><div class="av" style="background:#6554ff; width:32px;height:32px;font-size:12px;">JY</div>
+                <div class="col">
+                  <div class="body">Agent UI 어떻게 가는 게 좋을까? DM처럼 넣는 거 괜찮아 보이는데.</div>
+                  <div class="meta">어제 22:30</div>
+                </div></div>
+              <div class="msg me">
+                <div class="col">
+                  <div class="body">응 Chats에 같이 섞여있게. 대신 바이올렛 색이랑 ◆ 아이콘으로 구분</div>
+                  <div class="meta">어제 22:34</div>
+                </div>
+              </div>
+              <div class="day-sep"><span>오늘 · 4월 24일</span></div>
+              <div class="msg"><div class="av" style="background:#6554ff; width:32px;height:32px;font-size:12px;">JY</div>
+                <div class="col">
+                  <div class="body">그러니까 Agent 초안은 이번 주 목요일까지 돌리면 리뷰 시간 확보 가능하겠지? 다음주에 사용자 테스트 잡으려고.</div>
+                  <div class="meta">14:02</div>
+                </div>
+              </div>
+              <div class="msg me">
+                <div class="col">
+                  <div class="body">충분해. 오늘 mockup 마무리하고 내일 프로토 붙일게.</div>
+                  <div class="meta">14:08 ✓✓</div>
+                </div>
+              </div>
+            </div>
+            <div class="composer">
+              <div class="compose-box">
+                <div class="icon-btn">＋</div>
+                <div class="text">메시지를 입력하세요</div>
+                <div class="icon-btn">🎤</div>
+                <div class="icon-btn">😊</div>
+                <div class="icon-btn send">➤</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 5. Agent 1:1 DM ====== -->
+  <section id="agent-dm">
+    <div class="section-head">
+      <h2>5 · Agent 1:1 DM</h2>
+      <span class="kicker">디바이스당 하나씩, DM처럼 취급</span>
+    </div>
+    <div class="section-body">
+      <p>Agents 탭을 열면 <b>내가 zkTalk을 설치한 모든 컴퓨터</b>가 DM 상대로 나열됩니다. 각 디바이스 이름은 직접 설정할 수 있고(예: `home-pc`, `mac-studio`, `home-server`), 클릭하면 그 디바이스에서 동작하는 Agent와 1:1 대화가 열립니다. 대화창 상단에는 항상 <b>디바이스 상태 카드</b>가 얇게 붙어 있어 CPU·RAM·실행 중 작업을 볼 수 있습니다.</p>
+
+      <div class="frame">
+        <div class="frame-head">
+          <div class="dot-tl"></div><div class="dot-tl y"></div><div class="dot-tl g"></div>
+          <div class="addr">zktalk://agents/home-pc</div>
+        </div>
+        <div class="app with-right">
+          <div class="rail">
+            <div class="logo">z</div>
+            <div class="rail-tab"><div class="ico">💬</div><div class="lab">Chats</div></div>
+            <div class="rail-tab"><div class="ico">🏛</div><div class="lab">Comm.</div></div>
+            <div class="rail-tab agent active"><div class="ico">◆</div><div class="lab">Agents</div><div class="dot-badge">3</div></div>
+            <div class="rail-tab"><div class="ico">🔔</div><div class="lab">Inbox</div></div>
+            <div class="rail-tab"><div class="ico">🧭</div><div class="lab">Disc.</div></div>
+            <div class="rail-div"></div>
+            <div class="rail-community c1">K</div>
+            <div class="rail-community c2">A</div>
+            <div class="spacer"></div>
+            <div class="rail-tab"><div class="ico">⚙</div></div>
+            <div class="avatar-slot">An</div>
+          </div>
+
+          <div class="side">
+            <div class="side-head"><h2>Agents</h2><div class="icon-btn">＋</div></div>
+            <div class="search">🔍  디바이스·명령어 검색</div>
+
+            <div class="side-section-title"><span>MY DEVICES</span><span class="count">3</span></div>
+
+            <div class="conv-row active">
+              <div class="av" style="background:#8A5CF6; border-radius:10px;">◆<span class="presence"></span></div>
+              <div class="conv-main">
+                <div class="name">home-pc <span class="tag agent">ONLINE</span></div>
+                <div class="preview">◆ 3 agents · shell · claude-code · browser</div>
+              </div>
+              <div class="conv-meta"><span class="time">now</span></div>
+            </div>
+
+            <div class="conv-row">
+              <div class="av" style="background:#8A5CF6; border-radius:10px;">◆<span class="presence busy"></span></div>
+              <div class="conv-main">
+                <div class="name">home-server <span class="tag agent">BUSY</span></div>
+                <div class="preview">◆ 5 agents · running `ops-bot.github.sync`</div>
+              </div>
+              <div class="conv-meta"><span class="time">now</span></div>
+            </div>
+
+            <div class="conv-row">
+              <div class="av" style="background:#8A5CF6; border-radius:10px;">◆<span class="presence off"></span></div>
+              <div class="conv-main">
+                <div class="name">mac-studio <span class="tag" style="background:#FFE4E6; color:#EF4444;">OFFLINE</span></div>
+                <div class="preview">last seen · 1d ago · asleep</div>
+              </div>
+              <div class="conv-meta"><span class="time">1d</span></div>
+            </div>
+
+            <div class="side-section-title"><span>SHARED (TEAM)</span><span class="count">2</span></div>
+
+            <div class="conv-row">
+              <div class="av" style="background:#22c55e; border-radius:10px;">◆<span class="presence"></span></div>
+              <div class="conv-main">
+                <div class="name">ci-machine <span class="tag bot">SHARED</span></div>
+                <div class="preview">by Sam Lee · 2 agents</div>
+              </div>
+              <div class="conv-meta"><span class="time">3h</span></div>
+            </div>
+            <div class="conv-row">
+              <div class="av" style="background:#22c55e; border-radius:10px;">◆<span class="presence busy"></span></div>
+              <div class="conv-main">
+                <div class="name">gpu-box <span class="tag bot">SHARED</span></div>
+                <div class="preview">by Jiyeon · running `train.finetune`</div>
+              </div>
+              <div class="conv-meta"><span class="time">1h</span></div>
+            </div>
+          </div>
+
+          <div class="content">
+            <div class="content-head">
+              <div class="av" style="background:#8A5CF6; width:36px; height:36px; border-radius:10px;">◆</div>
+              <div>
+                <div class="title">home-pc <span class="tag agent" style="margin-left:6px;">ONLINE</span></div>
+                <div class="sub">3 agents · macOS 15.4 · 16GB · ✓ E2E signed</div>
+              </div>
+              <div class="spacer"></div>
+              <div class="head-actions">
+                <div class="icon-btn">📊</div>
+                <div class="icon-btn">🧰</div>
+                <div class="icon-btn">⏻</div>
+                <div class="icon-btn">⋯</div>
+              </div>
+            </div>
+
+            <!-- Device status strip -->
+            <div style="padding:10px 20px; background:var(--bg-subtle); border-bottom:1px solid var(--border); display:flex; gap:16px; font-size:12px; color:var(--text-muted);">
+              <span><b style="color:var(--text);">CPU</b> 18%</span>
+              <span><b style="color:var(--text);">RAM</b> 6.2 / 16GB</span>
+              <span><b style="color:var(--text);">실행 중</b> 0</span>
+              <span style="margin-left:auto; color:var(--success);">● 응답 12ms</span>
+            </div>
+
+            <div class="msg-feed">
+              <div class="day-sep"><span>오늘 · 4월 24일</span></div>
+
+              <div class="msg me">
+                <div class="col">
+                  <div class="body">현재 열려있는 프로젝트 목록 정리해서 마크다운으로 남겨줘. 최근 한 달 안에 수정한 것만.</div>
+                  <div class="meta">10:12 ✓✓</div>
+                </div>
+              </div>
+
+              <div class="msg agent">
+                <div class="av" style="background:#8A5CF6; width:32px;height:32px;font-size:12px;">◆</div>
+                <div class="col">
+                  <div class="name">claude-code <span class="device">home-pc</span></div>
+                  <div class="body">해석: <i>최근 30일 이내 수정된 ~/Documents/Projects 하위 폴더 나열</i>.
+                  아래 명령으로 진행할게요. 결과는 `~/Documents/projects-summary.md`에 저장.</div>
+                </div>
+              </div>
+
+              <div class="msg agent">
+                <div class="av" style="background:#8A5CF6; width:32px;height:32px;font-size:12px;">◆</div>
+                <div class="col">
+                  <div class="cmd-bubble">
+                    <div class="cmd-input">
+                      <span class="prompt">/home-pc.shell</span> <span>find ~/Documents/Projects -maxdepth 2 -type d -mtime -30</span>
+                    </div>
+                    <div class="cmd-head">
+                      <span>shell · home-pc</span>
+                      <span class="ok">✓ 0.3s · exit 0</span>
+                    </div>
+                    <pre>/Users/anna/Documents/Projects/zkTalk
+/Users/anna/Documents/Projects/zkTalk/apps/web
+/Users/anna/Documents/Projects/zkTalk/apps/api
+/Users/anna/Documents/Projects/Projects/agent-lab
+/Users/anna/Documents/Projects/design-system</pre>
+                  </div>
+                </div>
+              </div>
+
+              <div class="msg agent">
+                <div class="av" style="background:#8A5CF6; width:32px;height:32px;font-size:12px;">◆</div>
+                <div class="col">
+                  <div class="name">claude-code <span class="device">home-pc</span></div>
+                  <div class="body">3개 프로젝트를 정리해서 요약 파일을 만들었습니다. 저장한 위치: <code style="background:#fff;padding:2px 6px;border-radius:6px;border:1px solid var(--border);">~/Documents/projects-summary.md</code><br><br>
+                  <span style="color:var(--text-muted);">원하시면 바로 에디터로 열어드릴까요?</span></div>
+                  <div class="meta">
+                    <span style="display:inline-flex; gap:6px;">
+                      <span style="background:var(--agent-soft); color:var(--agent); padding:2px 10px; border-radius:999px; font-weight:600;">에디터로 열기</span>
+                      <span style="background:var(--bg-subtle); color:var(--text-muted); padding:2px 10px; border-radius:999px;">파일 탐색기</span>
+                      <span style="background:var(--bg-subtle); color:var(--text-muted); padding:2px 10px; border-radius:999px;">#product에 공유</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="composer">
+              <!-- Autocomplete popover mock -->
+              <div class="ac">
+                <div class="ac-pop">
+                  <div class="ac-hint">HOME-PC의 명령어 · ↑↓ 로 선택</div>
+                  <div class="ac-item sel">
+                    <span class="cmd">/home-pc.shell</span>
+                    <span class="desc">쉘 명령 실행 (화이트리스트 명령만)</span>
+                    <span class="device-tag" style="margin-left:auto;">claude-code</span>
+                  </div>
+                  <div class="ac-item">
+                    <span class="cmd">/home-pc.browser.open</span>
+                    <span class="desc">Chrome으로 URL 열기</span>
+                    <span class="device-tag" style="margin-left:auto;">browser</span>
+                  </div>
+                  <div class="ac-item">
+                    <span class="cmd">/home-pc.finder.find</span>
+                    <span class="desc">파일 탐색 / 검색</span>
+                    <span class="device-tag" style="margin-left:auto;">finder</span>
+                  </div>
+                </div>
+              </div>
+              <div class="compose-box">
+                <div class="icon-btn">＋</div>
+                <div class="text"><span style="color:var(--agent); font-family:'JetBrains Mono'; font-weight:700;">/home-pc.</span><span style="color:var(--text-muted)">shell_</span></div>
+                <div class="icon-btn">🎤</div>
+                <div class="icon-btn">😊</div>
+                <div class="icon-btn send" style="background:var(--agent);">➤</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right panel: Agent / Device state -->
+          <div class="right">
+            <div class="right-head"><h3>디바이스 상태</h3><div>⋯</div></div>
+            <div class="right-body">
+              <div class="dev-card">
+                <div class="dev-name"><span style="color:var(--success);">●</span> home-pc</div>
+                <div class="dev-row"><span>CPU</span><span>18%</span></div>
+                <div class="bar"><span style="width:18%"></span></div>
+                <div class="dev-row"><span>RAM</span><span>6.2 / 16 GB</span></div>
+                <div class="bar"><span class="warn" style="width:39%"></span></div>
+                <div class="dev-row"><span>네트워크</span><span>12 ms</span></div>
+              </div>
+              <div style="font-size:12px; font-weight:700; color:var(--text-subtle); letter-spacing:0.06em; margin:14px 2px 6px;">INSTALLED AGENTS</div>
+              <div class="dev-card">
+                <div class="dev-name"><span style="color:var(--agent);">◆</span> claude-code <span class="tag agent">대기</span></div>
+                <div class="dev-row"><span>scope: shell, fs</span><span>v0.9.2</span></div>
+              </div>
+              <div class="dev-card">
+                <div class="dev-name"><span style="color:var(--agent);">◆</span> browser <span class="tag agent">대기</span></div>
+                <div class="dev-row"><span>scope: chrome</span><span>v0.4.1</span></div>
+              </div>
+              <div class="dev-card">
+                <div class="dev-name"><span style="color:var(--agent);">◆</span> finder</div>
+                <div class="dev-row"><span>scope: ~/Documents</span><span>v0.3.0</span></div>
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); padding:10px; background:var(--bg-subtle); border-radius:var(--radius-md);">
+                ⓘ 각 Agent는 권한 스코프 안에서만 동작합니다. 예: <b>shell</b>은 사용자가 명시한 명령 패턴 화이트리스트 내에서만 실행됩니다. 스코프는 ⚙ 설정에서 변경할 수 있습니다.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <b>왜 DM 리스트가 아니라 별도 탭인가?</b> DM에도 Agent를 섞을 수 있지만, 디바이스는 <i>사람이 아니라 컴퓨터</i>이기 때문에 설정/상태/리소스 메타가 많습니다. 별도 탭에서 “디바이스 대시보드 + 대화”를 한 세트로 다루는 편이 인지 부하가 낮습니다. 단 Chats 리스트에는 <b>pin한 Agent</b>만 섞여 나타납니다.
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 6. Agent-dedicated Channel ====== -->
+  <section id="agent-channel">
+    <div class="section-head">
+      <h2>6 · Agent 전용 채널</h2>
+      <span class="kicker">커뮤니티 안의 "에이전트가 주인인 방"</span>
+    </div>
+    <div class="section-body">
+      <p>커뮤니티 구성원들이 함께 하나의 Agent를 호출·관찰·승인하는 공간입니다. 예를 들어 <code>◆ ops-bot</code> 채널은 <b>ops-bot 자체가 주인</b>이고, 사람들은 그 옆에서 명령·리뷰·승인만 합니다. 이 채널의 메시지는 기본이 Agent 스타일(바이올렛 스트립)이고, 사람 메시지는 오히려 짧은 지시/승인 중심입니다.</p>
+
+      <div class="frame">
+        <div class="frame-head">
+          <div class="dot-tl"></div><div class="dot-tl y"></div><div class="dot-tl g"></div>
+          <div class="addr">zktalk://communities/kaizen-lab/agents/ops-bot</div>
+        </div>
+        <div class="app">
+          <div class="rail">
+            <div class="logo">z</div>
+            <div class="rail-tab"><div class="ico">💬</div><div class="lab">Chats</div></div>
+            <div class="rail-tab active"><div class="ico">🏛</div><div class="lab">Comm.</div></div>
+            <div class="rail-tab agent"><div class="ico">◆</div><div class="lab">Agents</div></div>
+            <div class="rail-tab"><div class="ico">🔔</div><div class="lab">Inbox</div></div>
+            <div class="rail-tab"><div class="ico">🧭</div><div class="lab">Disc.</div></div>
+            <div class="rail-div"></div>
+            <div class="rail-community c1 active">K</div>
+            <div class="rail-community c2">A</div>
+            <div class="spacer"></div>
+            <div class="rail-tab"><div class="ico">⚙</div></div>
+            <div class="avatar-slot">An</div>
+          </div>
+
+          <div class="side">
+            <div class="side-head"><h2>Kaizen Lab</h2><div class="icon-btn">⋯</div></div>
+            <div class="search">🔍  채널 검색</div>
+
+            <div class="cat-row">▾ GENERAL</div>
+            <div class="ch-row"><span class="hash">#</span> general</div>
+            <div class="ch-row"><span class="hash">#</span> product</div>
+
+            <div class="cat-row">▾ AGENT OPS <span style="margin-left:auto;color:var(--agent);font-weight:700">◆</span></div>
+            <div class="ch-row active" style="background:var(--agent-soft); color:var(--agent);">
+              <span class="agent-ch-ico">◆</span> ops-bot <span class="mini-badge">LIVE</span>
+            </div>
+            <div class="ch-row"><span class="agent-ch-ico">◆</span> deploy-runner</div>
+            <div class="ch-row"><span class="agent-ch-ico">◆</span> pr-reviewer</div>
+
+            <div class="cat-row">▾ FORUM</div>
+            <div class="ch-row"><span class="hash">🗂</span> decisions</div>
+          </div>
+
+          <div class="content">
+            <div class="content-head" style="background:linear-gradient(180deg, var(--agent-soft), transparent);">
+              <div class="av" style="background:#8A5CF6; width:32px; height:32px; font-size:12px; border-radius:10px;">◆</div>
+              <div>
+                <div class="title" style="color:var(--agent);">◆ ops-bot</div>
+                <div class="sub">runs on <b>home-server</b> · members: Anna, Jiyeon, Sam · 승인 정책: 2-of-3</div>
+              </div>
+              <div class="spacer"></div>
+              <div class="head-actions">
+                <div class="icon-btn">📜</div>
+                <div class="icon-btn">🧰</div>
+                <div class="icon-btn">👥</div>
+                <div class="icon-btn">⋯</div>
+              </div>
+            </div>
+
+            <div class="msg-feed">
+              <div class="day-sep"><span>오늘 · 4월 24일</span></div>
+
+              <div class="msg">
+                <div class="av" style="background:#ffa56a;">An</div>
+                <div class="col">
+                  <div class="name">Anna <span style="color:var(--text-subtle);font-size:11px;font-weight:400">09:10</span></div>
+                  <div class="body">@ops-bot 스테이징에 어제 커밋한 브랜치 배포해볼래? 실제 트리거는 승인 받고.</div>
+                </div>
+              </div>
+
+              <div class="msg agent">
+                <div class="av" style="background:#8A5CF6;">◆</div>
+                <div class="col">
+                  <div class="name">ops-bot <span class="device">home-server</span></div>
+                  <div class="body">
+                    계획:
+                    <ol style="margin:6px 0 0; padding-left:18px;">
+                      <li>브랜치 <code>feat/agent-ui</code> 체크아웃</li>
+                      <li><code>pnpm turbo build</code></li>
+                      <li><code>staging.deploy --target=staging.zktalk.app</code></li>
+                    </ol>
+                    <div style="margin-top:10px; padding:10px; background:#fff; border:1px solid var(--border); border-radius:10px;">
+                      <b>승인 필요</b> · 2-of-3<br>
+                      <span style="color:var(--text-muted); font-size:12px;">staging.deploy 는 쓰기 권한이 필요합니다. 승인해주세요.</span>
+                      <div style="margin-top:8px; display:flex; gap:6px;">
+                        <span style="background:var(--agent); color:white; padding:4px 12px; border-radius:999px; font-weight:600; font-size:12px;">승인 (Anna)</span>
+                        <span style="background:var(--bg-subtle); color:var(--text); padding:4px 12px; border-radius:999px; font-size:12px;">거절</span>
+                        <span style="margin-left:auto; color:var(--text-subtle); font-size:11px;">0 / 2 approved</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="msg">
+                <div class="av" style="background:#6554ff;">JY</div>
+                <div class="col">
+                  <div class="name">Jiyeon Park <span style="color:var(--text-subtle);font-size:11px;font-weight:400">09:12</span></div>
+                  <div class="body">✅ 승인. 빌드 로그 이 채널로 밀어줘.</div>
+                </div>
+              </div>
+
+              <div class="msg">
+                <div class="av" style="background:#0e8f70;">SL</div>
+                <div class="col">
+                  <div class="name">Sam Lee <span style="color:var(--text-subtle);font-size:11px;font-weight:400">09:13</span></div>
+                  <div class="body">✅ 승인</div>
+                </div>
+              </div>
+
+              <div class="msg agent">
+                <div class="av" style="background:#8A5CF6;">◆</div>
+                <div class="col">
+                  <div class="name">ops-bot <span class="device">home-server</span></div>
+                  <div class="cmd-bubble">
+                    <div class="cmd-head">
+                      <span>deploy · target=staging · by Anna, approved by 2/3</span>
+                      <span class="ok">● running · 00:42</span>
+                    </div>
+                    <pre>[build] pnpm turbo build ........................ ok (38s)
+[test]  pnpm turbo test  ........................ ok (12s)
+[push]  rsync → staging.zktalk.app:/srv/web ..... in progress</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="composer">
+              <div class="compose-box">
+                <div class="icon-btn">＋</div>
+                <div class="text">ops-bot에게 지시하거나 @mention으로 팀원 호출</div>
+                <div class="icon-btn">📋</div>
+                <div class="icon-btn send" style="background:var(--agent);">➤</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        Agent 전용 채널의 핵심 포인트: ① <b>Agent가 멤버</b>로서 권한을 가짐 ② <b>승인 정책</b>(1-of-1, 2-of-3, 역할별 등)을 채널 단위로 설정 ③ <b>감사로그가 자동 생성</b>되어 누가/언제/어떤 명령을 승인했는지 추적됩니다.
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 7. Device Dashboard ====== -->
+  <section id="devices">
+    <div class="section-head">
+      <h2>7 · Device Dashboard</h2>
+      <span class="kicker">Agents 탭 내 개요 화면</span>
+    </div>
+    <div class="section-body">
+      <p>Agents 탭의 기본 랜딩입니다. 사용자가 <b>"오늘 내 컴퓨터들이 뭐했지?"</b>를 한눈에 확인하고, 실행 중인 Agent를 중단하거나 실행 이력을 재실행할 수 있습니다.</p>
+      <div class="frame">
+        <div class="frame-head">
+          <div class="dot-tl"></div><div class="dot-tl y"></div><div class="dot-tl g"></div>
+          <div class="addr">zktalk://agents</div>
+        </div>
+        <div class="app">
+          <div class="rail">
+            <div class="logo">z</div>
+            <div class="rail-tab"><div class="ico">💬</div><div class="lab">Chats</div></div>
+            <div class="rail-tab"><div class="ico">🏛</div><div class="lab">Comm.</div></div>
+            <div class="rail-tab agent active"><div class="ico">◆</div><div class="lab">Agents</div></div>
+            <div class="rail-tab"><div class="ico">🔔</div><div class="lab">Inbox</div></div>
+            <div class="rail-tab"><div class="ico">🧭</div><div class="lab">Disc.</div></div>
+            <div class="rail-div"></div>
+            <div class="rail-community c1">K</div>
+            <div class="rail-community c2">A</div>
+            <div class="spacer"></div>
+            <div class="rail-tab"><div class="ico">⚙</div></div>
+            <div class="avatar-slot">An</div>
+          </div>
+
+          <div class="side">
+            <div class="side-head"><h2>Agents</h2><div class="icon-btn">＋</div></div>
+            <div class="search">🔍  디바이스·명령어 검색</div>
+            <div class="side-section-title">MY DEVICES</div>
+            <div class="conv-row active"><div class="av" style="background:#8A5CF6;border-radius:10px;">◆</div>
+              <div class="conv-main"><div class="name">Overview</div><div class="preview">모든 디바이스 한눈에</div></div></div>
+            <div class="conv-row"><div class="av" style="background:#8A5CF6;border-radius:10px;">◆<span class="presence"></span></div>
+              <div class="conv-main"><div class="name">home-pc</div><div class="preview">online · 3 agents</div></div></div>
+            <div class="conv-row"><div class="av" style="background:#8A5CF6;border-radius:10px;">◆<span class="presence busy"></span></div>
+              <div class="conv-main"><div class="name">home-server</div><div class="preview">busy · 5 agents</div></div></div>
+            <div class="conv-row"><div class="av" style="background:#8A5CF6;border-radius:10px;">◆<span class="presence off"></span></div>
+              <div class="conv-main"><div class="name">mac-studio</div><div class="preview">offline</div></div></div>
+          </div>
+
+          <div class="content" style="padding:0; overflow:auto;">
+            <div class="content-head">
+              <div class="title">◆ 내 디바이스</div>
+              <div class="sub">· 3 devices · 12 agents · 오늘 실행 24회</div>
+              <div class="spacer"></div>
+              <div class="head-actions">
+                <div class="icon-btn">🧰</div>
+                <div class="icon-btn">＋ 디바이스 추가</div>
+              </div>
+            </div>
+            <div style="padding:20px; display:grid; grid-template-columns: repeat(3, 1fr); gap:14px;">
+              <!-- Device card 1 -->
+              <div class="frame" style="box-shadow:none;">
+                <div style="padding:16px;">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="av" style="background:#8A5CF6; border-radius:10px;">◆<span class="presence"></span></div>
+                    <div>
+                      <div style="font-weight:600;">home-pc</div>
+                      <div style="font-size:11px; color:var(--text-muted);">macOS · 16GB · 응답 12ms</div>
+                    </div>
+                    <div style="margin-left:auto;"><span class="tag agent">ONLINE</span></div>
+                  </div>
+                  <div style="font-size:12px; color:var(--text-muted); margin:10px 0 4px;">CPU 18% · RAM 6.2/16GB</div>
+                  <div class="bar" style="height:4px; background:var(--bg-subtle); border-radius:4px;"><span style="display:block; width:18%; height:100%; background:var(--agent); border-radius:4px;"></span></div>
+                  <div style="font-size:12px; color:var(--text-muted); margin:8px 0 6px;">agents</div>
+                  <div class="tag-row">
+                    <span class="tag agent">◆ claude-code</span>
+                    <span class="tag agent">◆ browser</span>
+                    <span class="tag agent">◆ finder</span>
+                  </div>
+                </div>
+                <div style="border-top:1px solid var(--border); padding:10px 16px; display:flex; gap:6px; font-size:12px;">
+                  <span style="color:var(--accent); font-weight:600;">대화 열기</span>
+                  <span style="margin-left:auto; color:var(--text-muted);">실행 이력 →</span>
+                </div>
+              </div>
+              <!-- Device card 2 -->
+              <div class="frame" style="box-shadow:none; border-color:var(--agent);">
+                <div style="padding:16px;">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="av" style="background:#8A5CF6; border-radius:10px;">◆<span class="presence busy"></span></div>
+                    <div>
+                      <div style="font-weight:600;">home-server</div>
+                      <div style="font-size:11px; color:var(--text-muted);">Linux · 64GB · 응답 8ms</div>
+                    </div>
+                    <div style="margin-left:auto;"><span class="tag" style="background:#FFF7ED; color:var(--warning);">BUSY</span></div>
+                  </div>
+                  <div style="font-size:12px; color:var(--text-muted); margin:10px 0 4px;">CPU 72% · RAM 22/64GB · GPU 94%</div>
+                  <div class="bar" style="height:4px; background:var(--bg-subtle); border-radius:4px;"><span style="display:block; width:72%; height:100%; background:var(--warning); border-radius:4px;"></span></div>
+                  <div style="font-size:12px; color:var(--text); margin-top:10px;">
+                    <span class="tag agent" style="margin-right:4px;">◆ ops-bot</span>
+                    실행 중 · <span style="font-family:'JetBrains Mono';">github.list_merged_prs</span>
+                  </div>
+                </div>
+                <div style="border-top:1px solid var(--border); padding:10px 16px; display:flex; gap:6px; font-size:12px;">
+                  <span style="color:var(--danger); font-weight:600;">중단</span>
+                  <span style="color:var(--accent); font-weight:600; margin-left:10px;">대화 열기</span>
+                </div>
+              </div>
+              <!-- Device card 3 -->
+              <div class="frame" style="box-shadow:none; opacity:0.65;">
+                <div style="padding:16px;">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="av" style="background:#8A5CF6; border-radius:10px;">◆<span class="presence off"></span></div>
+                    <div>
+                      <div style="font-weight:600;">mac-studio</div>
+                      <div style="font-size:11px; color:var(--text-muted);">macOS · asleep · 1일 전</div>
+                    </div>
+                    <div style="margin-left:auto;"><span class="tag" style="background:#FFE4E6; color:var(--danger);">OFFLINE</span></div>
+                  </div>
+                  <div style="font-size:12px; color:var(--text-muted); margin:10px 0;">마지막 실행: <b>train.finetune</b> · 4월 23일 21:40</div>
+                </div>
+                <div style="border-top:1px solid var(--border); padding:10px 16px; display:flex; gap:6px; font-size:12px;">
+                  <span style="color:var(--accent); font-weight:600;">Wake-on-LAN 보내기</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent activity -->
+            <div style="padding:4px 20px 24px;">
+              <div style="font-size:13px; font-weight:700; color:var(--text-subtle); letter-spacing:0.06em; margin:10px 0;">최근 실행</div>
+              <div class="frame" style="box-shadow:none;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                  <thead>
+                    <tr style="background:var(--bg-subtle); color:var(--text-muted);">
+                      <th style="text-align:left; padding:10px 14px; font-weight:600;">시각</th>
+                      <th style="text-align:left; padding:10px 14px; font-weight:600;">디바이스</th>
+                      <th style="text-align:left; padding:10px 14px; font-weight:600;">Agent · 명령</th>
+                      <th style="text-align:left; padding:10px 14px; font-weight:600;">요청자</th>
+                      <th style="text-align:right; padding:10px 14px; font-weight:600;">결과</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style="border-top:1px solid var(--border);">
+                      <td style="padding:10px 14px;">14:02</td>
+                      <td style="padding:10px 14px;">home-server</td>
+                      <td style="padding:10px 14px;"><code style="color:var(--agent);">ops-bot.github.list_merged_prs</code></td>
+                      <td style="padding:10px 14px;">#product / Anna</td>
+                      <td style="padding:10px 14px; text-align:right; color:var(--success); font-weight:600;">✓ 1.2s</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border);">
+                      <td style="padding:10px 14px;">10:12</td>
+                      <td style="padding:10px 14px;">home-pc</td>
+                      <td style="padding:10px 14px;"><code style="color:var(--agent);">claude-code.shell</code></td>
+                      <td style="padding:10px 14px;">DM / Anna</td>
+                      <td style="padding:10px 14px; text-align:right; color:var(--success); font-weight:600;">✓ 0.3s</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border);">
+                      <td style="padding:10px 14px;">09:13</td>
+                      <td style="padding:10px 14px;">home-server</td>
+                      <td style="padding:10px 14px;"><code style="color:var(--agent);">ops-bot.deploy</code> · approved 2/3</td>
+                      <td style="padding:10px 14px;">#ops-bot / Anna</td>
+                      <td style="padding:10px 14px; text-align:right; color:var(--warning); font-weight:600;">⏳ 00:42</td>
+                    </tr>
+                    <tr style="border-top:1px solid var(--border);">
+                      <td style="padding:10px 14px;">어제 21:40</td>
+                      <td style="padding:10px 14px;">mac-studio</td>
+                      <td style="padding:10px 14px;"><code style="color:var(--agent);">train.finetune</code></td>
+                      <td style="padding:10px 14px;">DM / Anna</td>
+                      <td style="padding:10px 14px; text-align:right; color:var(--danger); font-weight:600;">✗ timeout</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== 8. Dark ====== -->
+  <section id="dark">
+    <div class="section-head">
+      <h2>8 · Dark Theme Preview</h2>
+      <span class="kicker">같은 레이아웃, 반전된 팔레트</span>
+    </div>
+    <div class="section-body">
+      <div class="frame" style="background:#0e1621; border-color:#232f3e;">
+        <div class="frame-head" style="background:#17212b; border-color:#232f3e;">
+          <div class="dot-tl"></div><div class="dot-tl y"></div><div class="dot-tl g"></div>
+          <div class="addr" style="color:#6D7A8A;">zktalk://agents/home-pc · dark</div>
+        </div>
+        <div class="app" style="background:#0e1621;">
+          <div class="rail" style="background:#17212b; border-color:#232f3e;">
+            <div class="logo">z</div>
+            <div class="rail-tab" style="color:#8A97A6;"><div class="ico">💬</div><div class="lab">Chats</div></div>
+            <div class="rail-tab" style="color:#8A97A6;"><div class="ico">🏛</div><div class="lab">Comm.</div></div>
+            <div class="rail-tab agent active" style="background:rgba(178,148,255,0.14); color:#B294FF;"><div class="ico">◆</div><div class="lab">Agents</div></div>
+            <div class="rail-tab" style="color:#8A97A6;"><div class="ico">🔔</div><div class="lab">Inbox</div></div>
+            <div class="rail-tab" style="color:#8A97A6;"><div class="ico">🧭</div><div class="lab">Disc.</div></div>
+            <div class="rail-div" style="background:#232f3e;"></div>
+            <div class="rail-community c1">K</div>
+            <div class="rail-community c2">A</div>
+            <div class="spacer"></div>
+            <div class="avatar-slot" style="background:linear-gradient(135deg,#ffa56a,#ff5f8a);">An</div>
+          </div>
+
+          <div class="side" style="background:#0e1621; border-color:#232f3e;">
+            <div class="side-head"><h2 style="color:#E7EEF5;">Agents</h2><div class="icon-btn" style="color:#8A97A6;">＋</div></div>
+            <div class="search" style="background:#17212b; color:#8A97A6;">🔍  디바이스 검색</div>
+            <div class="side-section-title" style="color:#6D7A8A;">MY DEVICES</div>
+            <div class="conv-row active" style="background:rgba(90,163,255,0.14);">
+              <div class="av" style="background:#8A5CF6; border-radius:10px;">◆<span class="presence" style="border-color:#0e1621;"></span></div>
+              <div class="conv-main">
+                <div class="name" style="color:#5AA3FF;">home-pc</div>
+                <div class="preview" style="color:#8A97A6;">◆ 3 agents · online</div>
+              </div>
+              <div class="conv-meta"><span class="time" style="color:#6D7A8A;">now</span></div>
+            </div>
+            <div class="conv-row">
+              <div class="av" style="background:#8A5CF6; border-radius:10px;">◆<span class="presence busy" style="border-color:#0e1621;"></span></div>
+              <div class="conv-main">
+                <div class="name" style="color:#E7EEF5;">home-server</div>
+                <div class="preview" style="color:#8A97A6;">busy · ops-bot 실행 중</div>
+              </div>
+              <div class="conv-meta"><span class="time" style="color:#6D7A8A;">now</span></div>
+            </div>
+          </div>
+
+          <div class="content" style="background:#0e1621;">
+            <div class="content-head" style="border-color:#232f3e;">
+              <div class="av" style="background:#8A5CF6; width:36px; height:36px; border-radius:10px;">◆</div>
+              <div>
+                <div class="title" style="color:#E7EEF5;">home-pc</div>
+                <div class="sub" style="color:#8A97A6;">3 agents · ✓ E2E signed</div>
+              </div>
+            </div>
+            <div class="msg-feed">
+              <div class="day-sep"><span style="background:#17212b; color:#8A97A6;">오늘</span></div>
+              <div class="msg me">
+                <div class="col">
+                  <div class="body" style="background:#3B87F0;">다크 테마 잘 나와요?</div>
+                  <div class="meta" style="color:#6D7A8A;">10:20 ✓✓</div>
+                </div>
+              </div>
+              <div class="msg agent">
+                <div class="av" style="background:#8A5CF6; width:32px;height:32px;font-size:12px;">◆</div>
+                <div class="col">
+                  <div class="name" style="color:#B294FF;">claude-code <span class="device" style="background:#17212b; border-color:#232f3e; color:#8A97A6;">home-pc</span></div>
+                  <div class="body" style="background:rgba(178,148,255,0.14); color:#E7EEF5; border-left-color:#B294FF;">
+                    네. 뉴트럴 그레이 배경에 블루/바이올렛 액센트가 선명하게 구분됩니다. 시스템 다크 모드에 따라 자동 전환해도 좋아요.
+                  </div>
+                  <div class="meta" style="color:#6D7A8A;">10:20</div>
+                </div>
+              </div>
+            </div>
+            <div class="composer" style="border-color:#232f3e;">
+              <div class="compose-box" style="background:#17212b; border-color:#232f3e;">
+                <div class="icon-btn" style="color:#8A97A6;">＋</div>
+                <div class="text" style="color:#6D7A8A;"><span style="color:#B294FF; font-family:'JetBrains Mono';">/home-pc.</span>shell_</div>
+                <div class="icon-btn send" style="background:#8A5CF6;">➤</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<style>
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.9); }
+}
+</style>
+
+</body>
+</html>
