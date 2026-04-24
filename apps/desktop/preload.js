@@ -47,6 +47,15 @@ contextBridge.exposeInMainWorld('zkTalkDesktop', {
     ipcRenderer.invoke('local-machine-bridge:disconnect', payload),
   dispatchLocalMachineCommand: (payload) =>
     ipcRenderer.invoke('local-machine-bridge:dispatch-command', payload),
+  // Agent device bridge (Phase 9B) — the renderer forwards the current
+  // session token whenever auth changes so the main-process bridge can
+  // authenticate its API calls.
+  setAgentBridgeToken: (token) =>
+    ipcRenderer.invoke('agent-device-bridge:set-token', { token }),
+  clearAgentBridgeToken: () =>
+    ipcRenderer.invoke('agent-device-bridge:clear-token'),
+  getAgentBridgeState: () =>
+    ipcRenderer.invoke('agent-device-bridge:get-state'),
   pickFiles: (options) => ipcRenderer.invoke('desktop-files:pick', options),
   readFileChunk: (payload) => ipcRenderer.invoke('desktop-files:read-chunk', payload),
   openFile: (payload) => ipcRenderer.invoke('desktop-files:open', payload),

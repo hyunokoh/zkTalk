@@ -6,6 +6,7 @@ import {
   QueueCommandSchema,
   RegisterAgentDeviceSchema,
   RegisterDeviceAgentSchema,
+  SubmitCommandResultSchema,
   UpdateAgentDeviceSchema,
 } from '@zktalk/shared';
 import * as agentsService from './agents.service.js';
@@ -144,6 +145,34 @@ export default async function agentsRoutes(app: FastifyInstance) {
         request.user.id,
         request.params.commandId,
         body.decision,
+      );
+      return reply.send({ command });
+    },
+  );
+
+  // ── Bridge-facing command lifecycle ────────────────────────────────
+
+  app.post<{ Params: { commandId: string } }>(
+    '/api/commands/:commandId/claim',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const command = await agentsService.claimCommand(
+        request.user.id,
+        request.params.commandId,
+      );
+      return reply.send({ command });
+    },
+  );
+
+  app.post<{ Params: { commandId: string } }>(
+    '/api/commands/:commandId/result',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const body = SubmitCommandResultSchema.parse(request.body);
+      const command = await agentsService.submitCommandResult(
+        request.user.id,
+        request.params.commandId,
+        body,
       );
       return reply.send({ command });
     },

@@ -268,6 +268,69 @@ export async function markCommandRunning(commandId: string): Promise<CommandExec
   return updated;
 }
 
+/**
+ * Bridge-facing: atomically flips queued/approved → running. Only the device
+ * owner (whose auth is what the bridge daemon holds) may claim. Idempotent if
+ * the command is already running for the same device.
+ */
+export async function claimCommand(
+  userId: string,
+  commandId: string,
+): Promise<CommandExecution> {
+  const command = await repo.findCommandById(commandId);
+  if (!command) {
+    throw AppError.notFound('Command not found', 'COMMAND_NOT_FOUND');
+  }
+  const device = await repo.findDeviceById(command.deviceId);
+  if (!device || device.userId !== userId) {
+    throw AppError.forbidden('Not allowed to claim this command', 'CLAIM_FORBIDDEN');
+  }
+  if (command.status === 'running') {
+    return command;
+  }
+  if (command.status !== 'queued' && command.status !== 'approved') {
+    throw AppError.conflict(
+      `Command in status ${command.status} cannot be claimed`,
+      'CLAIM_INVALID_STATUS',
+    );
+  }
+  return markCommandRunning(commandId);
+}
+
+/**
+ * Bridge-facing: report a finished command. Only the device owner may submit
+ * results. Rejects submissions for commands already in a terminal state.
+ */
+export async function submitCommandResult(
+  userId: string,
+  commandId: string,
+  payload: {
+    exitCode: number;
+    stdoutTrunc?: string | null;
+    stderrTrunc?: string | null;
+  },
+): Promise<CommandExecution> {
+  const command = await repo.findCommandById(commandId);
+  if (!command) {
+    throw AppError.notFound('Command not found', 'COMMAND_NOT_FOUND');
+  }
+  const device = await repo.findDeviceById(command.deviceId);
+  if (!device || device.userId !== userId) {
+    throw AppError.forbidden(
+      'Not allowed to submit a result for this command',
+      'RESULT_FORBIDDEN',
+    );
+  }
+  const terminal = ['completed', 'failed', 'rejected', 'timeout', 'cancelled'] as const;
+  if ((terminal as readonly string[]).includes(command.status)) {
+    throw AppError.conflict(
+      `Command already in terminal status ${command.status}`,
+      'RESULT_ALREADY_FINAL',
+    );
+  }
+  return recordCommandResult(commandId, payload);
+}
+
 export async function recordCommandApproval(
   userId: string,
   commandId: string,

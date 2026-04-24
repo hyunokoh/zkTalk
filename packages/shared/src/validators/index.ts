@@ -588,3 +588,15 @@ export const ApproveCommandSchema = z
     decision: z.enum(['approved', 'rejected']),
   })
   .strict();
+
+/**
+ * Submitted by the desktop bridge after executing a claimed command. The API
+ * derives `status` (`completed` | `failed`) from `exitCode`.
+ */
+export const SubmitCommandResultSchema = z
+  .object({
+    exitCode: z.number().int(),
+    stdoutTrunc: z.string().max(32_000).nullable().optional(),
+    stderrTrunc: z.string().max(32_000).nullable().optional(),
+  })
+  .strict();

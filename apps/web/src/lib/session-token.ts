@@ -16,6 +16,26 @@ function emitSessionTokenChanged(token: string | null) {
     return;
   }
 
+  // Forward the auth token to the Electron main-process agent-device-bridge
+  // so the daemon can authenticate its API calls. No-op outside Electron.
+  try {
+    const desktop = (window as unknown as {
+      zkTalkDesktop?: {
+        setAgentBridgeToken?: (token: string) => Promise<unknown>;
+        clearAgentBridgeToken?: () => Promise<unknown>;
+      };
+    }).zkTalkDesktop;
+    if (desktop) {
+      if (typeof token === 'string' && token.length > 0) {
+        desktop.setAgentBridgeToken?.(token)?.catch(() => {});
+      } else {
+        desktop.clearAgentBridgeToken?.()?.catch(() => {});
+      }
+    }
+  } catch {
+    // Desktop bridge is optional — ignore forwarding failures.
+  }
+
   window.dispatchEvent(
     new CustomEvent(SESSION_TOKEN_CHANGED_EVENT, {
       detail: { token },

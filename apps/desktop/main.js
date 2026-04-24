@@ -98,6 +98,7 @@ try {
 }
 const { normalizeWindowState } = require('./window-state');
 const { createDesktopLoopbackBridge } = require('./local-machine-bridge');
+const { createAgentDeviceBridge } = require('./agent-device-bridge');
 try {
   fs.appendFileSync(
     EARLY_BOOT_DEBUG_LOG_PATH,
@@ -217,6 +218,111 @@ let isRecoveringWindow = false;
 const desktopLocalMachineBridge = createDesktopLoopbackBridge({
   statePath: path.join(app.getPath('userData'), 'local-machine-bridge.json'),
 });
+
+// ── Agent Device Bridge (Phase 9B) ──────────────────────────────────
+// The agent-device-bridge is the desktop daemon that registers this
+// Mac as an AgentDevice with the zkTalk API, heartbeats, and dispatches
+// queued commands (shell/finder/browser) submitted from the web UI.
+//
+// The bridge is disabled by default via env gate so the existing desktop
+// experience stays untouched for users who haven't opted in yet. Set
+// ZKTALK_AGENT_BRIDGE=1 to enable.
+let agentDeviceBridgeToken = null;
+let agentDeviceBridgeStarted = false;
+const agentDeviceBridgeEnabled = process.env.ZKTALK_AGENT_BRIDGE === '1';
+
+function readAgentBridgeStateFile() {
+  const statePath = path.join(app.getPath('userData'), 'agent-device-bridge.json');
+  try {
+    if (!fs.existsSync(statePath)) return {};
+    const raw = fs.readFileSync(statePath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    appendDesktopLog(
+      `[agent-bridge] failed to read state: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return {};
+  }
+}
+
+function writeAgentBridgeStateFile(state) {
+  const statePath = path.join(app.getPath('userData'), 'agent-device-bridge.json');
+  try {
+    fs.mkdirSync(path.dirname(statePath), { recursive: true });
+    fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
+  } catch (error) {
+    appendDesktopLog(
+      `[agent-bridge] failed to write state: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+const agentDeviceBridgeConfigStore = {
+  get(key) {
+    const state = readAgentBridgeStateFile();
+    return Object.prototype.hasOwnProperty.call(state, key) ? state[key] : null;
+  },
+  set(key, value) {
+    const state = readAgentBridgeStateFile();
+    state[key] = value;
+    writeAgentBridgeStateFile(state);
+  },
+};
+
+const agentDeviceBridge = agentDeviceBridgeEnabled
+  ? createAgentDeviceBridge({
+      apiBaseUrl: getConfiguredApiUrl(),
+      getSessionToken: () => agentDeviceBridgeToken,
+      configStore: agentDeviceBridgeConfigStore,
+      preferredName: require('os').hostname() || 'zkTalk Desktop',
+      logger: (level, message, meta) => {
+        appendDesktopLog(
+          `[agent-bridge:${level}] ${message}${meta ? ` ${JSON.stringify(meta)}` : ''}`,
+        );
+      },
+    })
+  : null;
+
+function agentDeviceBridgeStateSnapshot() {
+  if (!agentDeviceBridge) return null;
+  return {
+    deviceId: agentDeviceBridge.getDeviceId?.() ?? null,
+    running: agentDeviceBridge.isRunning?.() ?? false,
+    agents: agentDeviceBridge.listAgents?.() ?? [],
+  };
+}
+
+async function ensureAgentDeviceBridgeStarted() {
+  if (!agentDeviceBridge) return null;
+  if (agentDeviceBridgeStarted) return agentDeviceBridgeStateSnapshot();
+  if (!agentDeviceBridgeToken) return null;
+  try {
+    const deviceId = await agentDeviceBridge.start();
+    agentDeviceBridgeStarted = true;
+    appendDesktopLog(`[agent-bridge] started deviceId=${deviceId}`);
+    return agentDeviceBridgeStateSnapshot();
+  } catch (error) {
+    appendDesktopLog(
+      `[agent-bridge] start failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return null;
+  }
+}
+
+async function stopAgentDeviceBridge() {
+  if (!agentDeviceBridge || !agentDeviceBridgeStarted) return;
+  try {
+    await agentDeviceBridge.stop();
+    appendDesktopLog('[agent-bridge] stopped');
+  } catch (error) {
+    appendDesktopLog(
+      `[agent-bridge] stop failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  } finally {
+    agentDeviceBridgeStarted = false;
+  }
+}
 
 const DESKTOP_ROUTE_PREFIXES = [
   '/home',
@@ -5761,6 +5867,43 @@ ipcMain.handle('local-machine-bridge:dispatch-command', async (_event, payload) 
   );
   return result;
 });
+// ── Agent Device Bridge IPC ────────────────────────────────────────
+ipcMain.handle('agent-device-bridge:set-token', async (_event, payload) => {
+  const token = payload && typeof payload === 'object' ? payload.token : null;
+  if (typeof token !== 'string' || token.length === 0) {
+    throw new Error('agent-device-bridge:set-token requires a non-empty token.');
+  }
+  if (!agentDeviceBridge) {
+    appendDesktopLog(
+      '[agent-bridge] token received but bridge disabled (set ZKTALK_AGENT_BRIDGE=1 to enable).',
+    );
+    return { enabled: false, running: false };
+  }
+  const tokenChanged = agentDeviceBridgeToken !== token;
+  agentDeviceBridgeToken = token;
+  if (tokenChanged && agentDeviceBridgeStarted) {
+    // Token rotated while bridge is active — restart so the in-flight
+    // fetches pick up the new credential.
+    await stopAgentDeviceBridge();
+  }
+  const state = await ensureAgentDeviceBridgeStarted();
+  return { enabled: true, running: agentDeviceBridgeStarted, state };
+});
+ipcMain.handle('agent-device-bridge:clear-token', async () => {
+  agentDeviceBridgeToken = null;
+  await stopAgentDeviceBridge();
+  return { enabled: agentDeviceBridgeEnabled, running: false };
+});
+ipcMain.handle('agent-device-bridge:get-state', () => {
+  if (!agentDeviceBridge) {
+    return { enabled: false, running: false, state: null };
+  }
+  return {
+    enabled: true,
+    running: agentDeviceBridgeStarted,
+    state: agentDeviceBridgeStateSnapshot(),
+  };
+});
 ipcMain.handle('desktop-config:save', (_event, config) => {
   if (!config || typeof config !== 'object') {
     throw new Error('Desktop config payload is missing.');
@@ -5948,6 +6091,9 @@ app.on('before-quit', () => {
   isQuitting = true;
   stopWindowRecoveryMonitor();
   desktopLocalMachineBridge.stopAutoHeartbeat();
+  // Fire-and-forget — best-effort stop of the agent-device-bridge so we
+  // don't hang quit on an outstanding heartbeat/dispatch fetch.
+  void stopAgentDeviceBridge();
   stopBundledServer();
 });
 
