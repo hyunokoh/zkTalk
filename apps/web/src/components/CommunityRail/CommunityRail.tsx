@@ -14,6 +14,7 @@ import {
   getCachedCommunityOrder,
 } from '@/lib/user-settings';
 import { UserAvatar } from '@/components/UserAvatar';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 // Muted pastel palette — used as a subtle differentiator between community
 // tiles when no icon has been uploaded. These are intentionally low-chroma
@@ -422,6 +423,13 @@ export function CommunityRail({
         <PlusIcon />
         <span className="sr-only">{t('community.createCommunity')}</span>
       </Link>
+
+      {/* Theme toggle lives at the very bottom of the rail — sun/moon icon,
+          uses the same 44×44 tile sizing as the nav items so it sits in line
+          visually. */}
+      <div className="mt-1 flex w-full items-center justify-center">
+        <ThemeToggle />
+      </div>
     </nav>
   );
 }
