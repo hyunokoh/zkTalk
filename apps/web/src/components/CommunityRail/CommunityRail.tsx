@@ -15,26 +15,28 @@ import {
 } from '@/lib/user-settings';
 import { UserAvatar } from '@/components/UserAvatar';
 
-const COLORS = [
-  'bg-indigo-600',
-  'bg-emerald-600',
-  'bg-rose-600',
-  'bg-amber-600',
-  'bg-cyan-600',
-  'bg-purple-600',
-  'bg-pink-600',
-  'bg-teal-600',
+// Muted pastel palette — used as a subtle differentiator between community
+// tiles when no icon has been uploaded. These are intentionally low-chroma
+// so the rail stays inside the Telegram-minimal neutral + single-accent
+// language; pick per id via a stable hash.
+const COMMUNITY_TILE_PALETTE = [
+  'bg-[color-mix(in_oklab,var(--accent)_18%,var(--bg-subtle))]',
+  'bg-[color-mix(in_oklab,var(--agent)_18%,var(--bg-subtle))]',
+  'bg-[color-mix(in_oklab,var(--success)_18%,var(--bg-subtle))]',
+  'bg-[color-mix(in_oklab,var(--warning)_18%,var(--bg-subtle))]',
+  'bg-[color-mix(in_oklab,var(--danger)_14%,var(--bg-subtle))]',
+  'bg-bg-subtle',
 ];
 const AVATAR_VERSION_STORAGE_KEY = 'zktalk-avatar-version';
 const AVATAR_VERSION_EVENT = 'zktalk-avatar-version-updated';
 
-function getCommunityColor(id: string): string {
+function getCommunityTileTint(id: string): string {
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = (hash << 5) - hash + id.charCodeAt(i);
     hash |= 0;
   }
-  return COLORS[Math.abs(hash) % COLORS.length];
+  return COMMUNITY_TILE_PALETTE[Math.abs(hash) % COMMUNITY_TILE_PALETTE.length];
 }
 
 interface CommunityRailProps {
@@ -137,10 +139,30 @@ function PlusIcon({ className = 'h-5 w-5' }: { className?: string }) {
   );
 }
 
+function SparkleIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+      />
+    </svg>
+  );
+}
+
 function formatBadgeCount(count: number): string {
   if (count > 99) return '99+';
   return String(count);
 }
+
+// Tailwind class tokens for Rail Tab states (design-system.md §7.2).
+//   active   — bg-accent-soft, text-accent, 3px bg-accent left indicator
+//   inactive — text-fg-muted, hover:bg-bg-hover
+const NAV_TILE_BASE =
+  'relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-150';
+const NAV_TILE_ACTIVE = 'bg-accent-soft text-accent';
+const NAV_TILE_INACTIVE = 'text-fg-muted hover:bg-bg-hover hover:text-fg';
 
 export function CommunityRail({
   communities: communitiesProp,
@@ -272,8 +294,8 @@ export function CommunityRail({
   ];
 
   return (
-    <nav className="flex h-screen w-full flex-col items-center gap-3 border-r border-white/8 bg-[linear-gradient(180deg,#091321_0%,#0c1828_48%,#0b1523_100%)] px-3 py-4 shadow-[18px_0_48px_rgba(2,8,23,0.34)]">
-      <div className="mb-1 flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-[11px] font-semibold tracking-[0.28em] text-white/72 shadow-[0_14px_30px_rgba(2,8,23,0.25)]">
+    <nav className="flex h-screen w-full flex-col items-center gap-2 border-r border-line bg-bg px-2 py-3">
+      <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-xl bg-bg-subtle text-[10px] font-semibold tracking-[0.28em] text-fg-muted">
         ZT
       </div>
       <Link
@@ -281,17 +303,14 @@ export function CommunityRail({
         title={currentUser?.displayName ?? t('profile.edit')}
         aria-label={t('profile.edit')}
         data-testid="community-rail-profile-link"
-        className="group relative flex w-full items-center justify-center"
+        className="group relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-150 hover:bg-bg-hover"
       >
-        <span className="absolute left-[-0.75rem] h-6 w-[3px] rounded-r-full bg-sky-300 opacity-0 transition group-hover:opacity-100" />
-        <span className="flex h-12 w-12 items-center justify-center rounded-[1.15rem] border border-white/10 bg-white/[0.04] shadow-[0_16px_35px_rgba(2,8,23,0.28)] transition duration-150 group-hover:-translate-y-0.5 group-hover:bg-white/[0.09]">
-          <UserAvatar
-            key={`${currentUser?.displayName ?? 'profile'}:${profileAvatarUrl ?? ''}`}
-            displayName={currentUser?.displayName ?? t('profile.edit')}
-            avatarUrl={profileAvatarUrl}
-            size="md"
-          />
-        </span>
+        <UserAvatar
+          key={`${currentUser?.displayName ?? 'profile'}:${profileAvatarUrl ?? ''}`}
+          displayName={currentUser?.displayName ?? t('profile.edit')}
+          avatarUrl={profileAvatarUrl}
+          size="md"
+        />
         <span className="sr-only">{t('profile.edit')}</span>
       </Link>
 
@@ -301,61 +320,50 @@ export function CommunityRail({
           title="AI Assistant"
           aria-label="AI Assistant"
           data-testid="community-rail-ai-button"
-          className="group relative flex h-12 w-12 items-center justify-center rounded-[1.15rem] border border-white/10 bg-white/[0.04] text-indigo-400 shadow-[0_16px_35px_rgba(2,8,23,0.28)] transition duration-150 hover:-translate-y-0.5 hover:bg-white/[0.09] hover:text-indigo-300"
+          className="group relative flex h-11 w-11 items-center justify-center rounded-xl text-agent transition-colors duration-150 hover:bg-agent-soft"
         >
-          <span className="absolute left-[-0.75rem] h-6 w-[3px] rounded-r-full bg-indigo-400 opacity-0 transition group-hover:opacity-100" />
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-          </svg>
+          <SparkleIcon />
         </button>
       )}
 
-      <div className="flex w-full flex-col items-center gap-2">
-        {topLevelNavItems.map((item) => (
-          <div key={item.key} className="group relative">
-            {(() => {
-              const badgeCount = item.count ?? 0;
-              return (
-                <>
-                  <span
-                    className={`absolute -left-3 top-1/2 -translate-y-1/2 rounded-r-full bg-sky-300 transition-all ${
-                      item.isActive
-                        ? 'h-11 w-[3px] opacity-100'
-                        : 'h-5 w-[3px] opacity-0 group-hover:opacity-100'
-                    }`}
-                  />
-                  <Link
-                    href={item.href}
-                    title={item.title}
-                    aria-label={item.title}
-                    data-testid={`community-rail-nav-${item.key}`}
-                    className={`relative flex h-12 w-12 items-center justify-center border text-white transition duration-150 ${
-                      item.isActive
-                        ? 'rounded-[1.15rem] border-sky-300/40 bg-[linear-gradient(180deg,rgba(79,109,255,0.95),rgba(58,81,204,0.95))] shadow-[0_18px_35px_rgba(52,84,208,0.35)]'
-                        : 'rounded-[1.55rem] border-white/8 bg-white/[0.03] text-white/68 hover:-translate-y-0.5 hover:rounded-[1.15rem] hover:bg-white/[0.08] hover:text-white'
-                    }`}
-                  >
-                    {item.icon}
-                    <span className="sr-only">{item.title}</span>
-                  </Link>
-                  {badgeCount > 0 && (
-                    <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full border-4 border-[#091321] bg-rose-500 px-1 text-[10px] font-semibold leading-none text-white">
-                      {formatBadgeCount(badgeCount)}
-                    </span>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        ))}
+      <div className="flex w-full flex-col items-center gap-1">
+        {topLevelNavItems.map((item) => {
+          const badgeCount = item.count ?? 0;
+          return (
+            <div key={item.key} className="group relative">
+              <span
+                className={`absolute -left-2 top-1/2 -translate-y-1/2 rounded-r-full bg-accent transition-all ${
+                  item.isActive
+                    ? 'h-6 w-[3px] opacity-100'
+                    : 'h-4 w-[3px] opacity-0 group-hover:opacity-60'
+                }`}
+              />
+              <Link
+                href={item.href}
+                title={item.title}
+                aria-label={item.title}
+                data-testid={`community-rail-nav-${item.key}`}
+                className={`${NAV_TILE_BASE} ${item.isActive ? NAV_TILE_ACTIVE : NAV_TILE_INACTIVE}`}
+              >
+                {item.icon}
+                <span className="sr-only">{item.title}</span>
+              </Link>
+              {badgeCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-bg bg-danger px-1 text-[10px] font-semibold leading-none text-white">
+                  {formatBadgeCount(badgeCount)}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      <div className="mx-auto h-px w-9 bg-white/10" />
+      <div className="mx-auto my-1 h-px w-8 bg-line" />
 
-      <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-y-auto py-1">
+      <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto py-1">
         {applyCommunityOrder(communities, communityOrder).map((community) => {
           const isActive = activeSlug === community.slug;
-          const color = getCommunityColor(community.id);
+          const tile = getCommunityTileTint(community.id);
           const hasUnread = hasCommunityUnread(community.id);
           const communityIcon = resolveImageRenderProps(
             community.iconUrl,
@@ -365,10 +373,10 @@ export function CommunityRail({
           return (
             <div key={community.id} className="group relative">
               <span
-                className={`absolute -left-3 top-1/2 -translate-y-1/2 rounded-r-full bg-sky-300 transition-all ${
+                className={`absolute -left-2 top-1/2 -translate-y-1/2 rounded-r-full bg-accent transition-all ${
                   isActive
-                    ? 'h-11 w-[3px] opacity-100'
-                    : 'h-5 w-[3px] opacity-0 group-hover:opacity-100'
+                    ? 'h-6 w-[3px] opacity-100'
+                    : 'h-4 w-[3px] opacity-0 group-hover:opacity-60'
                 }`}
               />
               <Link
@@ -376,30 +384,28 @@ export function CommunityRail({
                 title={community.name}
                 aria-label={community.name}
                 data-testid={`community-rail-community-${community.slug}`}
-                className={`flex h-12 w-12 items-center justify-center border text-sm font-semibold text-white transition duration-150 ${
+                className={`relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl text-sm font-semibold transition-colors duration-150 ${
                   isActive
-                    ? `${color} rounded-[1.15rem] border-white/16 shadow-[0_18px_32px_rgba(2,8,23,0.32)]`
-                    : `${color} rounded-[1.55rem] border-white/8 opacity-90 hover:-translate-y-0.5 hover:rounded-[1.15rem] hover:opacity-100`
-                }`}
+                    ? 'text-accent ring-2 ring-accent'
+                    : 'text-fg hover:ring-1 hover:ring-line-strong'
+                } ${tile}`}
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-[inherit]">
-                  {community.iconUrl ? (
-                    <Image
-                      src={communityIcon.src ?? community.iconUrl}
-                      alt={community.name}
-                      width={48}
-                      height={48}
-                      unoptimized={communityIcon.unoptimized}
-                      className="h-full w-full rounded-[inherit] object-cover"
-                    />
-                  ) : (
-                    community.name.charAt(0).toUpperCase()
-                  )}
-                </span>
+                {community.iconUrl ? (
+                  <Image
+                    src={communityIcon.src ?? community.iconUrl}
+                    alt={community.name}
+                    width={44}
+                    height={44}
+                    unoptimized={communityIcon.unoptimized}
+                    className="h-full w-full rounded-xl object-cover"
+                  />
+                ) : (
+                  community.name.charAt(0).toUpperCase()
+                )}
                 <span className="sr-only">{community.name}</span>
               </Link>
               {hasUnread && !isActive && (
-                <span className="absolute -right-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 border-[#091321] bg-sky-200" />
+                <span className="absolute -right-0.5 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border-2 border-bg bg-accent" />
               )}
             </div>
           );
@@ -411,9 +417,8 @@ export function CommunityRail({
         title={t('community.createCommunity')}
         aria-label={t('community.createCommunity')}
         data-testid="community-rail-create-community"
-        className="group relative flex h-12 w-12 items-center justify-center rounded-[1.55rem] border border-emerald-400/20 bg-emerald-500/10 text-emerald-300 transition duration-150 hover:-translate-y-0.5 hover:rounded-[1.15rem] hover:bg-emerald-500 hover:text-white"
+        className="group relative flex h-11 w-11 items-center justify-center rounded-xl text-fg-muted transition-colors duration-150 hover:bg-bg-hover hover:text-accent"
       >
-        <span className="absolute -left-3 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-emerald-300 opacity-0 transition group-hover:opacity-100" />
         <PlusIcon />
         <span className="sr-only">{t('community.createCommunity')}</span>
       </Link>
