@@ -12,7 +12,7 @@ export function ThemeToggle() {
     <button
       onClick={toggleTheme}
       title={t('theme.toggle')}
-      className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+      className="flex h-8 w-8 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-bg-hover hover:text-fg dark:hover:bg-bg-subtle dark:hover:text-fg-muted"
     >
       {theme === 'dark' ? (
         /* Sun icon for switching to light */

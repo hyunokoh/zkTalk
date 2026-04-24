@@ -138,17 +138,17 @@ export function BookmarkList() {
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-baseline gap-2">
-                        <span className="text-sm font-semibold text-gray-200">
+                        <span className="text-sm font-semibold text-fg-muted">
                           {bm.author?.displayName ?? t('misc.unknownUser')}
                         </span>
                         {bm.channelName && (
-                          <span className="text-xs text-gray-500">#{bm.channelName}</span>
+                          <span className="text-xs text-fg-muted">#{bm.channelName}</span>
                         )}
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-fg-muted">
                           {relativeTime(bm.message.createdAt)}
                         </span>
                       </div>
-                      <div className="mt-2 text-sm text-gray-300">
+                      <div className="mt-2 text-sm text-fg-muted">
                         <MarkdownRenderer content={bm.message.bodyMarkdown} />
                       </div>
                     </div>
@@ -157,7 +157,7 @@ export function BookmarkList() {
                         event.stopPropagation();
                         removeMutation.mutate(bm.message.id ?? bm.messageId);
                       }}
-                      className="shrink-0 rounded-xl p-2 text-gray-500 transition hover:bg-white/10 hover:text-red-400"
+                      className="shrink-0 rounded-xl p-2 text-fg-muted transition hover:bg-white/10 hover:text-danger"
                       title={t('bookmark.remove')}
                     >
                       <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">

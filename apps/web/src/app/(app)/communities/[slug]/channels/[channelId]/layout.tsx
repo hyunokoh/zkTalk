@@ -151,7 +151,7 @@ export default function ChannelLayout({
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="text-sm text-gray-400">{t('channel.loadingChannel')}</div>
+        <div className="text-sm text-fg-muted">{t('channel.loadingChannel')}</div>
       </div>
     );
   }
@@ -161,13 +161,13 @@ export default function ChannelLayout({
       <div className="flex min-h-0 flex-1 items-center justify-center p-6">
         <div
           data-testid="channel-layout-locked-prompt"
-          className="w-full max-w-lg rounded-[1.75rem] border border-amber-300/20 bg-amber-400/10 px-6 py-6 text-amber-50 shadow-[0_24px_48px_rgba(2,8,23,0.28)]"
+          className="w-full max-w-lg rounded-[1.75rem] border border-warning/20 bg-warning/10 px-6 py-6 text-warning shadow-[0_24px_48px_rgba(2,8,23,0.28)]"
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100/70">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-warning/70">
             {t('channel.lockedPromptTitle')}
           </p>
           <h2 className="mt-2 text-lg font-semibold text-white">{lockedBrowseChannel.name}</h2>
-          <p className="mt-3 text-sm leading-6 text-amber-100/90">
+          <p className="mt-3 text-sm leading-6 text-warning/90">
             {t(lockedBrowsePresentation?.lockedPromptBodyKey ?? 'channel.lockedPromptJoinBody')}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -176,7 +176,7 @@ export default function ChannelLayout({
                 type="button"
                 data-testid="channel-layout-open-invite"
                 onClick={() => router.push('/')}
-                className="rounded-xl bg-amber-200 px-3 py-2 text-sm font-semibold text-amber-950 transition hover:bg-white"
+                className="rounded-xl bg-warning px-3 py-2 text-sm font-semibold text-warning transition hover:bg-white"
               >
                 {t('channel.lockedPromptInviteAction')}
               </button>
@@ -186,7 +186,7 @@ export default function ChannelLayout({
                 data-testid="channel-layout-join-community"
                 onClick={() => joinCommunityMutation.mutate()}
                 disabled={joinCommunityMutation.isPending}
-                className="rounded-xl bg-amber-200 px-3 py-2 text-sm font-semibold text-amber-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-warning px-3 py-2 text-sm font-semibold text-warning transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {joinCommunityMutation.isPending
                   ? t('channel.lockedPromptJoining')
@@ -195,13 +195,13 @@ export default function ChannelLayout({
             )}
             <Link
               href={`/communities/${slug}`}
-              className="rounded-xl border border-amber-100/20 px-3 py-2 text-sm font-medium text-amber-100/85 transition hover:bg-white/10 hover:text-white"
+              className="rounded-xl border border-warning/20 px-3 py-2 text-sm font-medium text-warning/85 transition hover:bg-white/10 hover:text-white"
             >
               {t('common.back')}
             </Link>
           </div>
           {joinCommunityMutation.isError && lockedBrowseChannel.lockedReason !== 'invite_required' && (
-            <p className="mt-3 text-xs text-amber-100/90">{t('channel.lockedPromptJoinFailed')}</p>
+            <p className="mt-3 text-xs text-warning/90">{t('channel.lockedPromptJoinFailed')}</p>
           )}
         </div>
       </div>
@@ -211,7 +211,7 @@ export default function ChannelLayout({
   if (!channel) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="text-sm text-gray-400">{t('channel.notFound')}</div>
+        <div className="text-sm text-fg-muted">{t('channel.notFound')}</div>
       </div>
     );
   }
@@ -219,11 +219,11 @@ export default function ChannelLayout({
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
       {/* Channel header — Discord-style simple bar */}
-      <div className="relative flex h-12 shrink-0 items-center gap-3 border-b border-[#202225] bg-[#313338] px-4 pl-14 md:pl-4">
+      <div className="relative flex h-12 shrink-0 items-center gap-3 border-b border-line bg-bg-subtle px-4 pl-14 md:pl-4">
         {/* Mobile: channel sidebar toggle — positioned right of the app hamburger */}
         <button
           onClick={toggleChannelSidebar}
-          className="absolute left-[50px] top-1 flex h-10 w-10 items-center justify-center rounded-md text-[#96989d] hover:bg-white/10 hover:text-white md:hidden"
+          className="absolute left-[50px] top-1 flex h-10 w-10 items-center justify-center rounded-md text-fg-muted hover:bg-white/10 hover:text-white md:hidden"
           aria-label="Toggle channels"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -233,7 +233,7 @@ export default function ChannelLayout({
 
         {/* Channel icon + name */}
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="shrink-0 text-[#72767d]">
+          <span className="shrink-0 text-fg-subtle">
             {channel.type === 'forum' ? (
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
@@ -259,9 +259,9 @@ export default function ChannelLayout({
         </div>
 
         {/* Action buttons */}
-        <div className="flex shrink-0 items-center gap-1 border-l border-[#202225] pl-3">
+        <div className="flex shrink-0 items-center gap-1 border-l border-line pl-3">
           {channel.disappearingDuration && channel.disappearingDuration > 0 && (
-            <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">
+            <span className="rounded bg-warning/20 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
               {t('disappearing.active')}
             </span>
           )}
@@ -274,7 +274,7 @@ export default function ChannelLayout({
             <Link
               href={channelSearchHref}
               data-testid="channel-header-search-link"
-              className="rounded-md p-1.5 text-[#72767d] hover:bg-white/10 hover:text-[#dcddde]"
+              className="rounded-md p-1.5 text-fg-subtle hover:bg-white/10 hover:text-fg"
               title={t('search.title')}
             >
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -290,7 +290,7 @@ export default function ChannelLayout({
             <button
               data-testid="channel-header-pins-button"
               onClick={() => setShowPinned(!showPinned)}
-              className={`rounded-md p-1.5 hover:bg-white/10 ${showPinned ? 'text-white' : 'text-[#72767d] hover:text-[#dcddde]'}`}
+              className={`rounded-md p-1.5 hover:bg-white/10 ${showPinned ? 'text-white' : 'text-fg-subtle hover:text-fg'}`}
               title={t('pin.pinned')}
             >
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -304,7 +304,7 @@ export default function ChannelLayout({
                 type="button"
                 data-testid="channel-header-overflow-button"
                 onClick={() => setShowHeaderOverflow((prev) => !prev)}
-                className={`rounded-md p-1.5 hover:bg-white/10 ${showHeaderOverflow ? 'text-white' : 'text-[#72767d] hover:text-[#dcddde]'}`}
+                className={`rounded-md p-1.5 hover:bg-white/10 ${showHeaderOverflow ? 'text-white' : 'text-fg-subtle hover:text-fg'}`}
                 title={t('message.moreActions')}
                 aria-expanded={showHeaderOverflow}
               >
@@ -315,17 +315,17 @@ export default function ChannelLayout({
               {showHeaderOverflow && (
                 <div
                   data-testid="channel-header-overflow-menu"
-                  className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl border border-white/10 bg-[#1f2225] p-1.5 shadow-[0_20px_45px_rgba(0,0,0,0.35)]"
+                  className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl border border-white/10 bg-bg-subtle p-1.5 shadow-[0_20px_45px_rgba(0,0,0,0.35)]"
                 >
                   {channelActionOrder.overflow.includes('source_dm') && sourceDmConversationId && (
                     <Link
                       href={`/dm/${sourceDmConversationId}`}
                       data-testid="channel-source-dm-link"
                       onClick={() => setShowHeaderOverflow(false)}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#dcddde] transition hover:bg-white/10"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-fg transition hover:bg-white/10"
                       title={sourceDmFullLabel}
                     >
-                      <svg className="h-4 w-4 shrink-0 text-[#72767d]" viewBox="0 0 20 20" fill="currentColor">
+                      <svg className="h-4 w-4 shrink-0 text-fg-subtle" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5zm12 0v4a4 4 0 01-4 4h-.5l-.718.737A2 2 0 0012 15h2l3 3v-3h1a2 2 0 002-2V7a2 2 0 00-2-2h-4z" />
                       </svg>
                       <span className="truncate">{sourceDmFullLabel}</span>
@@ -336,10 +336,10 @@ export default function ChannelLayout({
                       href={`/communities/${slug}/settings`}
                       data-testid="channel-header-settings-link"
                       onClick={() => setShowHeaderOverflow(false)}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#dcddde] transition hover:bg-white/10"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-fg transition hover:bg-white/10"
                       title={t('nav.settings')}
                     >
-                      <svg className="h-4 w-4 shrink-0 text-[#72767d]" viewBox="0 0 20 20" fill="currentColor">
+                      <svg className="h-4 w-4 shrink-0 text-fg-subtle" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
                       </svg>
                       <span>{t('nav.settings')}</span>

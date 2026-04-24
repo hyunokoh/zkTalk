@@ -45,51 +45,51 @@ export function DesktopProfileQuickActions({
         <button
           type="button"
           onClick={() => void handlePasteProfile()}
-          className="rounded-full border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-800"
+          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
         >
           {t('app.desktopPasteProfile')}
         </button>
         <Link
           href="/settings#profile-share"
-          className="rounded-full border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-800"
+          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
         >
           {t('app.desktopShareProfile')}
         </Link>
-        {feedback ? <p className="max-w-56 text-xs text-amber-300">{feedback}</p> : null}
+        {feedback ? <p className="max-w-56 text-xs text-warning">{feedback}</p> : null}
       </div>
     );
   }
 
   return (
-    <div className="rounded-3xl border border-gray-800 bg-gray-900/80 p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+    <div className="rounded-3xl border border-line bg-bg-subtle/80 p-5">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-fg-muted">
         {t('app.desktopPasteProfile')}
       </p>
-      <p className="mt-2 text-sm leading-6 text-gray-400">
+      <p className="mt-2 text-sm leading-6 text-fg-muted">
         {t('app.desktopPasteProfileHint')}
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
         <button
           type="button"
           onClick={() => void handlePasteProfile()}
-          className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+          className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent"
         >
           {t('friend.sharedProfilePaste')}
         </button>
         <Link
           href="/friends"
-          className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-750"
+          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
         >
           {t('settings.openFriends')}
         </Link>
         <Link
           href="/settings#profile-share"
-          className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-750"
+          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
         >
           {t('app.desktopShareProfile')}
         </Link>
       </div>
-      {feedback ? <p className="mt-3 text-xs text-amber-300">{feedback}</p> : null}
+      {feedback ? <p className="mt-3 text-xs text-warning">{feedback}</p> : null}
     </div>
   );
 }

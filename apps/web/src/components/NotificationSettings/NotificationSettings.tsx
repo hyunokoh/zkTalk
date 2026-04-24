@@ -19,7 +19,7 @@ interface ToggleRowProps {
 function ToggleRow({ label, checked, onChange, disabled }: ToggleRowProps) {
   return (
     <label className="flex items-center justify-between gap-3 py-2">
-      <span className={`text-sm ${disabled ? 'text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300'}`}>
+      <span className={`text-sm ${disabled ? 'text-fg-muted dark:text-fg' : 'text-fg dark:text-fg-muted'}`}>
         {label}
       </span>
       <button
@@ -28,8 +28,8 @@ function ToggleRow({ label, checked, onChange, disabled }: ToggleRowProps) {
         aria-checked={checked}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-          checked ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+          checked ? 'bg-accent' : 'bg-bg-hover dark:bg-bg-subtle'
         }`}
       >
         <span
@@ -77,8 +77,8 @@ export function NotificationSettings() {
   const isEnabled = prefs.enabled && permissionState === 'granted';
 
   return (
-    <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
+    <div className="w-full max-w-sm rounded-lg border border-line bg-white p-4 shadow-sm dark:border-line dark:bg-bg-subtle">
+      <h3 className="mb-3 text-sm font-semibold text-fg dark:text-fg-muted">
         {t('notification.settings')}
       </h3>
 
@@ -91,7 +91,7 @@ export function NotificationSettings() {
         />
 
         {permissionState === 'denied' && (
-          <p className="text-xs text-red-500">
+          <p className="text-xs text-danger">
             {t('notification.blocked')}
           </p>
         )}

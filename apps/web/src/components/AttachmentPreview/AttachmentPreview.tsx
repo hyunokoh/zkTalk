@@ -82,7 +82,7 @@ function getImageGridClassName(count: number): string {
 
 function getImageCardClassName(count: number, index: number): string {
   const base =
-    'group relative overflow-hidden rounded-[1rem] border border-[#4f545c] bg-[#1e1f22]';
+    'group relative overflow-hidden rounded-[1rem] border border-line bg-bg-subtle';
 
   if (count <= 1) {
     return `${base} aspect-[4/3] min-h-[12rem] w-full max-w-sm`;
@@ -98,7 +98,7 @@ function getImageCardClassName(count: number, index: number): string {
 function FileIcon() {
   return (
     <svg
-      className="h-8 w-8 text-[#6c8397]"
+      className="h-8 w-8 text-fg-muted"
       fill="none"
       viewBox="0 0 24 24"
       strokeWidth={1.5}
@@ -158,17 +158,17 @@ function ImageAttachment({
           className="pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity group-hover:opacity-90"
         />
       ) : (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#2b2d31] px-4 text-center text-xs font-semibold text-[#b5bac1]">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-bg-subtle px-4 text-center text-xs font-semibold text-fg-muted">
           {previewFailed ? previewUnavailableLabel : 'Loading preview...'}
         </div>
       )}
       <div className="pointer-events-none absolute inset-0 flex items-end justify-start p-3 opacity-0 transition-opacity group-hover:opacity-100">
-        <span className="rounded-full bg-[#203040]/75 px-3 py-1 text-xs font-semibold text-white">
+        <span className="rounded-full bg-bg-elevated/75 px-3 py-1 text-xs font-semibold text-white">
           Open preview
         </span>
       </div>
       {extraCount && extraCount > 0 ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#203040]/45">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-bg-elevated/45">
           <span className="text-xl font-bold text-white">{`+${extraCount}`}</span>
         </div>
       ) : null}
@@ -179,7 +179,7 @@ function ImageAttachment({
           event.stopPropagation();
           onSave();
         }}
-        className="absolute right-3 top-3 rounded-full border border-white/15 bg-[#203040]/75 px-3 py-1 text-xs font-semibold text-white opacity-0 transition-opacity hover:bg-[#203040] group-hover:opacity-100"
+        className="absolute right-3 top-3 rounded-full border border-white/15 bg-bg-elevated/75 px-3 py-1 text-xs font-semibold text-white opacity-0 transition-opacity hover:bg-bg-elevated group-hover:opacity-100"
       >
         {saveLabel}
       </button>
@@ -203,21 +203,21 @@ function FileAttachment({
   const kindLabel = getAttachmentKindLabel(attachment);
 
   return (
-    <div className="flex items-center gap-3 rounded-[1rem] border border-[#4f545c] bg-[#2f3136] px-4 py-3">
+    <div className="flex items-center gap-3 rounded-[1rem] border border-line bg-bg-subtle px-4 py-3">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#4f545c] bg-[#40444b]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-line bg-bg-hover">
           <FileIcon />
         </div>
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <span className="rounded-full bg-[#40444b] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[#96989d]">
+            <span className="rounded-full bg-bg-hover px-2 py-0.5 text-[10px] font-bold tracking-wide text-fg-muted">
               {kindLabel}
             </span>
           </div>
-          <p className="truncate text-sm font-semibold text-[#dcddde]">
+          <p className="truncate text-sm font-semibold text-fg">
             {attachment.fileName}
           </p>
-          <p className="mt-1 text-xs font-medium text-[#96989d]">
+          <p className="mt-1 text-xs font-medium text-fg-muted">
             {formatFileSize(attachment.fileSize)}
           </p>
         </div>
@@ -228,7 +228,7 @@ function FileAttachment({
           data-attachment-id={attachment.id}
           type="button"
           onClick={onSave}
-          className="rounded-full border border-[#4f545c] bg-[#40444b] px-3 py-1 text-xs font-semibold text-[#dcddde] transition-colors hover:bg-[#4f545c]"
+          className="rounded-full border border-line bg-bg-hover px-3 py-1 text-xs font-semibold text-fg transition-colors hover:bg-bg-hover"
         >
           {saveLabel}
         </button>
@@ -237,7 +237,7 @@ function FileAttachment({
           data-attachment-id={attachment.id}
           type="button"
           onClick={onOpen}
-          className="rounded-full border border-[#4f545c] bg-[#40444b] px-3 py-1 text-xs font-semibold text-[#dcddde] transition-colors hover:bg-[#4f545c]"
+          className="rounded-full border border-line bg-bg-hover px-3 py-1 text-xs font-semibold text-fg transition-colors hover:bg-bg-hover"
         >
           {openLabel}
         </button>
@@ -494,7 +494,7 @@ export function AttachmentPreview({ attachments }: AttachmentPreviewProps) {
       )}
       </div>
       {visibleImages.some((attachment) => failedImageIds[attachment.id]) ? (
-        <p className="text-xs font-medium text-[#b5bac1]">
+        <p className="text-xs font-medium text-fg-muted">
           {t('attachment.previewUnavailable')}
         </p>
       ) : null}

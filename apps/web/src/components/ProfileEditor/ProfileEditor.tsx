@@ -171,14 +171,14 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
     >
       <div
         data-testid="profile-editor"
-        className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-800"
+        className="w-full max-w-md rounded-lg border border-line bg-white p-6 shadow-xl dark:border-line dark:bg-bg-subtle"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profile.edit')}</h2>
+          <h2 className="text-lg font-semibold text-fg dark:text-fg-muted">{t('profile.edit')}</h2>
           <button
             onClick={onClose}
-            className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+            className="rounded p-1 text-fg-muted hover:bg-bg-hover hover:text-fg dark:text-fg-muted dark:hover:bg-bg-subtle dark:hover:text-fg-muted"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -202,13 +202,13 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploadingAvatar || mutation.isPending}
-              className="rounded-full border border-indigo-400/40 bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+              className="rounded-full border border-accent/40 bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
             >
               {isUploadingAvatar || mutation.isPending ? t('attachment.uploading') : t('profile.avatarPhoto')}
             </button>
-            <p className="text-xs text-[#9ca3af]">{t('profile.avatarUploadHint')}</p>
+            <p className="text-xs text-fg-muted">{t('profile.avatarUploadHint')}</p>
             {avatarErrorMessage ? (
-              <p data-testid="profile-avatar-error" className="text-xs text-red-500">
+              <p data-testid="profile-avatar-error" className="text-xs text-danger">
                 {avatarErrorMessage}
               </p>
             ) : null}
@@ -217,7 +217,7 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-fg dark:text-fg-muted">
               {t('profile.displayName')}
             </label>
             <input
@@ -225,13 +225,13 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
               data-testid="profile-display-name-input"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
               maxLength={50}
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-fg dark:text-fg-muted">
               {t('profile.username')}
             </label>
             <input
@@ -239,21 +239,21 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
               data-testid="profile-username-input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
               maxLength={30}
               pattern="^[a-zA-Z0-9_]+$"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-fg dark:text-fg-muted">
               {t('profile.bio')}
             </label>
             <textarea
               data-testid="profile-bio-input"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              className="w-full resize-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              className="w-full resize-none rounded-md border border-line bg-white px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
               rows={3}
               maxLength={200}
               placeholder={t('profile.bioPlaceholder')}
@@ -264,17 +264,17 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
 
         <div className="mt-6 flex items-center justify-end gap-2">
           {success && (
-            <span className="text-sm text-green-500">{t('profile.saved')}</span>
+            <span className="text-sm text-success">{t('profile.saved')}</span>
           )}
           {saveErrorMessage && (
-            <span data-testid="profile-save-error" className="text-sm text-red-500">
+            <span data-testid="profile-save-error" className="text-sm text-danger">
               {saveErrorMessage}
             </span>
           )}
           <button
             data-testid="profile-cancel-button"
             onClick={onClose}
-            className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="rounded-md px-4 py-2 text-sm text-fg hover:bg-bg-hover dark:text-fg-muted dark:hover:bg-bg-subtle"
           >
             {t('common.cancel')}
           </button>
@@ -282,7 +282,7 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
             data-testid="profile-save-button"
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending || isUploadingAvatar}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
           >
             {mutation.isPending ? t('settings.saving') : t('common.save')}
           </button>

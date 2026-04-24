@@ -99,22 +99,22 @@ export default function NewCommunityPage() {
           : t('community.slugRules');
 
   const slugHelpTone =
-    slugFeedback === 'needsManual' ? 'text-amber-300' : 'text-gray-400';
+    slugFeedback === 'needsManual' ? 'text-warning' : 'text-fg-muted';
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-gray-700 px-6 py-4 pl-14 md:pl-6">
+      <header className="border-b border-line px-6 py-4 pl-14 md:pl-6">
         <h1 className="text-lg font-bold">{t('community.create')}</h1>
       </header>
 
       <div className="flex-1 overflow-y-auto p-6">
         <form
           onSubmit={handleSubmit}
-          className="mx-auto max-w-lg space-y-5 rounded-lg bg-gray-800 p-6"
+          className="mx-auto max-w-lg space-y-5 rounded-lg bg-bg-subtle p-6"
         >
           {/* Name */}
           <div>
-            <label htmlFor="name" className="mb-1 block text-sm font-medium text-gray-300">
+            <label htmlFor="name" className="mb-1 block text-sm font-medium text-fg-muted">
               {t('community.name')}
             </label>
             <input
@@ -125,17 +125,17 @@ export default function NewCommunityPage() {
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder={t('community.namePlaceholder')}
-              className="w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-400 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
           {/* Slug */}
           <div>
-            <label htmlFor="slug" className="mb-1 block text-sm font-medium text-gray-300">
+            <label htmlFor="slug" className="mb-1 block text-sm font-medium text-fg-muted">
               {t('community.slug')}
             </label>
-            <div className="flex items-center rounded-md border border-gray-600 bg-gray-700">
-              <span className="px-3 text-sm text-gray-400">{t('community.slugPrefix')}</span>
+            <div className="flex items-center rounded-md border border-line bg-bg-subtle">
+              <span className="px-3 text-sm text-fg-muted">{t('community.slugPrefix')}</span>
               <input
                 id="slug"
                 type="text"
@@ -143,7 +143,7 @@ export default function NewCommunityPage() {
                 maxLength={50}
                 value={slug}
                 onChange={(e) => handleSlugChange(e.target.value)}
-                className="w-full bg-transparent px-1 py-2 text-sm text-gray-100 focus:outline-none"
+                className="w-full bg-transparent px-1 py-2 text-sm text-fg-muted focus:outline-none"
               />
             </div>
             <p className={`mt-2 text-xs ${slugHelpTone}`}>
@@ -153,7 +153,7 @@ export default function NewCommunityPage() {
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="mb-1 block text-sm font-medium text-gray-300">
+            <label htmlFor="description" className="mb-1 block text-sm font-medium text-fg-muted">
               {t('community.description')}
             </label>
             <textarea
@@ -163,13 +163,13 @@ export default function NewCommunityPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('community.descPlaceholder')}
-              className="w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-400 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
           {/* Visibility */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-300">
+            <label className="mb-2 block text-sm font-medium text-fg-muted">
               {t('community.visibility')}
             </label>
             <div className="space-y-2">
@@ -182,8 +182,8 @@ export default function NewCommunityPage() {
                   key={opt.value}
                   className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors ${
                     visibility === opt.value
-                      ? 'border-indigo-500 bg-indigo-600/10'
-                      : 'border-gray-600 hover:border-gray-500'
+                      ? 'border-accent bg-accent/10'
+                      : 'border-line hover:border-line'
                   }`}
                 >
                   <input
@@ -196,27 +196,27 @@ export default function NewCommunityPage() {
                   />
                   <div>
                     <div className="text-sm font-medium">{opt.label}</div>
-                    <div className="text-xs text-gray-400">{opt.desc}</div>
+                    <div className="text-xs text-fg-muted">{opt.desc}</div>
                   </div>
                 </label>
               ))}
             </div>
           </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
 
           <div className="flex gap-3">
             <button
               type="button"
               onClick={() => router.back()}
-              className="rounded-md border border-gray-600 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700"
+              className="rounded-md border border-line px-4 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-bg-subtle"
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !name.trim() || !slug.trim()}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
             >
               {isSubmitting ? t('community.creating') : t('community.createBtn')}
             </button>

@@ -42,10 +42,10 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   return (
     <div className="flex h-full w-full">
       {/* Sidebar */}
-      <nav className="w-56 shrink-0 border-r border-gray-800 bg-gray-900 p-4">
-        <div className="mb-5 rounded-2xl border border-gray-800 bg-gray-950/70 p-4">
+      <nav className="w-56 shrink-0 border-r border-line bg-bg-subtle p-4">
+        <div className="mb-5 rounded-2xl border border-line bg-bg-elevated/70 p-4">
           <h2 className="text-base font-semibold text-white">{t('settings.title')}</h2>
-          <p className="mt-2 text-xs leading-5 text-gray-400">{t('settings.listSubtitle')}</p>
+          <p className="mt-2 text-xs leading-5 text-fg-muted">{t('settings.listSubtitle')}</p>
         </div>
         <ul className="space-y-1">
           {navItems.map((item) => {
@@ -55,8 +55,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                   href={item.href}
                   className={`block rounded-md px-3 py-2 text-sm ${
                     item.active
-                      ? 'bg-gray-800 text-white'
-                      : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+                      ? 'bg-bg-subtle text-white'
+                      : 'text-fg-muted hover:bg-bg-subtle/50 hover:text-fg-muted'
                   }`}
                 >
                   {item.label}

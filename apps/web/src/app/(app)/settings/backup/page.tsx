@@ -197,31 +197,31 @@ export default function BackupSettingsPage() {
 
       <div className="space-y-6">
         {/* Export */}
-        <div className="rounded-lg border border-gray-700 bg-gray-800 p-5">
+        <div className="rounded-lg border border-line bg-bg-subtle p-5">
           <h2 className="text-lg font-semibold text-white">
             {t('backup.export')}
           </h2>
-          <p className="mt-1 text-sm text-gray-400">
+          <p className="mt-1 text-sm text-fg-muted">
             {t('backup.exportDesc')}
           </p>
           <button
             onClick={handleExport}
             disabled={isExporting}
-            className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-4 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isExporting ? t('backup.encrypting') : t('backup.export')}
           </button>
         </div>
 
         {/* Import */}
-        <div className="rounded-lg border border-gray-700 bg-gray-800 p-5">
+        <div className="rounded-lg border border-line bg-bg-subtle p-5">
           <h2 className="text-lg font-semibold text-white">
             {t('backup.import')}
           </h2>
-          <p className="mt-1 text-sm text-gray-400">
+          <p className="mt-1 text-sm text-fg-muted">
             {t('backup.importDesc')}
           </p>
-          <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600">
+          <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-bg-subtle px-4 py-2 text-sm font-medium text-white hover:bg-bg-subtle">
             {isImporting ? t('backup.decrypting') : t('backup.import')}
             <input
               ref={fileInputRef}
@@ -239,10 +239,10 @@ export default function BackupSettingsPage() {
           <div
             className={`rounded-lg border p-4 text-sm ${
               statusTone === 'success'
-                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
+                ? 'border-success/30 bg-success/10 text-success'
                 : statusTone === 'error'
-                  ? 'border-rose-500/30 bg-rose-500/10 text-rose-100'
-                  : 'border-gray-700 bg-gray-800/50 text-gray-300'
+                  ? 'border-danger/30 bg-danger/10 text-danger'
+                  : 'border-line bg-bg-subtle/50 text-fg-muted'
             }`}
           >
             {status}

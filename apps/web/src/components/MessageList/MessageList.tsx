@@ -382,7 +382,7 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
               onClick={() => onTopicSelect?.(null)}
               className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition ${
                 !topicFilter
-                  ? 'border-sky-300/30 bg-sky-300/14 text-sky-100'
+                  ? 'border-accent/30 bg-accent/14 text-accent'
                   : 'border-white/8 bg-white/[0.04] text-white/56 hover:bg-white/[0.08] hover:text-white'
               }`}
             >
@@ -394,7 +394,7 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
                 onClick={() => onTopicSelect?.(topicItem.topic)}
                 className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition ${
                   topicFilter === topicItem.topic
-                    ? 'border-sky-300/30 bg-sky-300/14 text-sky-100'
+                    ? 'border-accent/30 bg-accent/14 text-accent'
                     : 'border-white/8 bg-white/[0.04] text-white/56 hover:bg-white/[0.08] hover:text-white'
                 }`}
               >
@@ -427,7 +427,7 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
 
           <div className="py-5">
             {(pendingOfflineCount > 0 || failedOfflineCount > 0) && (
-              <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-xs font-medium text-amber-100">
+              <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-warning/20 bg-warning/10 px-4 py-3 text-xs font-medium text-warning">
                 {pendingOfflineCount > 0 ? (
                   <span>{t('offline.queued')} ({pendingOfflineCount})</span>
                 ) : null}
@@ -437,7 +437,7 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
                 <button
                   type="button"
                   onClick={() => void flushOfflineQueueForChannel(channelId)}
-                  className="rounded-full border border-amber-200/25 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-white/15"
+                  className="rounded-full border border-warning/25 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-white/15"
                 >
                   {t('offline.retry')}
                 </button>
@@ -455,7 +455,7 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
             ) : groupedByTopic ? (
               groupedByTopic.map((group) => (
                 <div key={group.topic}>
-                  <div className="sticky top-3 z-10 mx-auto mb-3 flex w-fit max-w-full items-center gap-2 rounded-full border border-white/8 bg-[#0f1a2b]/88 px-4 py-2 text-white/44 shadow-[0_16px_34px_rgba(2,8,23,0.28)] backdrop-blur-xl">
+                  <div className="sticky top-3 z-10 mx-auto mb-3 flex w-fit max-w-full items-center gap-2 rounded-full border border-white/8 bg-bg-elevated px-4 py-2 text-white/44 shadow-[0_16px_34px_rgba(2,8,23,0.28)] backdrop-blur-xl">
                     <svg className="h-3.5 w-3.5 text-white/40" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M9.243 3.03a1 1 0 01.727 1.213L9.53 6h2.94l.56-2.243a1 1 0 111.94.486L14.53 6H17a1 1 0 110 2h-2.97l-1 4H15a1 1 0 110 2h-2.47l-.56 2.243a1 1 0 11-1.94-.486L10.47 14H7.53l-.56 2.243a1 1 0 11-1.94-.486L5.47 14H3a1 1 0 110-2h2.97l1-4H5a1 1 0 110-2h2.47l.56-2.243a1 1 0 011.213-.727zM9.03 8l-1 4h2.938l1-4H9.031z" clipRule="evenodd" />
                     </svg>
@@ -532,7 +532,7 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
 
       {typingText && (
         <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 -translate-x-1/2">
-          <div className="rounded-full border border-white/10 bg-[#0f1a2b]/86 px-4 py-2 text-xs font-medium text-white/72 shadow-[0_16px_36px_rgba(2,8,23,0.32)] backdrop-blur-xl">
+          <div className="rounded-full border border-white/10 bg-bg-elevated px-4 py-2 text-xs font-medium text-white/72 shadow-[0_16px_36px_rgba(2,8,23,0.32)] backdrop-blur-xl">
             {typingText}
           </div>
         </div>
@@ -541,7 +541,7 @@ export function MessageList({ channelId, threadId, communityId, onReplyToMessage
       {hasNewMessages && (
         <button
           onClick={scrollToBottom}
-          className="absolute bottom-5 left-1/2 z-10 -translate-x-1/2 rounded-full border border-sky-300/30 bg-[linear-gradient(180deg,rgba(70,108,255,0.95),rgba(54,84,205,0.95))] px-4 py-2 text-xs font-semibold text-white shadow-[0_18px_42px_rgba(41,56,161,0.35)] hover:brightness-105"
+          className="absolute bottom-5 left-1/2 z-10 -translate-x-1/2 rounded-full border border-accent/30 bg-[linear-gradient(180deg,rgba(70,108,255,0.95),rgba(54,84,205,0.95))] px-4 py-2 text-xs font-semibold text-white shadow-[0_18px_42px_rgba(41,56,161,0.35)] hover:brightness-105"
         >
           {t('message.newMessages')} &darr;
         </button>

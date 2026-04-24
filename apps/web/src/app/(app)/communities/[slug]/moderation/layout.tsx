@@ -49,7 +49,7 @@ export default function ModerationLayout({
   if (roleLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="text-gray-400">{t('common.loading')}</div>
+        <div className="text-fg-muted">{t('common.loading')}</div>
       </div>
     );
   }
@@ -59,13 +59,13 @@ export default function ModerationLayout({
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-300">{t('mod.accessDenied')}</h2>
-          <p className="mt-2 text-sm text-gray-500">
+          <h2 className="text-xl font-bold text-fg-muted">{t('mod.accessDenied')}</h2>
+          <p className="mt-2 text-sm text-fg-muted">
             {t('mod.noPermission')}
           </p>
           <Link
             href={`/communities/${slug}`}
-            className="mt-4 inline-block text-sm text-indigo-400 hover:underline"
+            className="mt-4 inline-block text-sm text-accent hover:underline"
           >
             {t('mod.backToCommunity')}
           </Link>
@@ -83,9 +83,9 @@ export default function ModerationLayout({
   return (
     <div className="flex flex-1 overflow-hidden" data-testid="moderation-layout">
       {/* Moderation sidebar */}
-      <aside className="flex w-56 flex-col border-r border-gray-700 bg-gray-900" data-testid="moderation-sidebar">
-        <div className="border-b border-gray-700 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-300">{t('mod.title')}</h2>
+      <aside className="flex w-56 flex-col border-r border-line bg-bg-subtle" data-testid="moderation-sidebar">
+        <div className="border-b border-line px-4 py-3">
+          <h2 className="text-sm font-semibold text-fg-muted">{t('mod.title')}</h2>
         </div>
         <nav className="flex-1 overflow-y-auto p-2" data-testid="moderation-nav">
           {visibleNavItems.map((item) => {
@@ -102,8 +102,8 @@ export default function ModerationLayout({
                 data-testid={`moderation-nav-${navKey}`}
                 className={`block rounded px-3 py-2 text-sm transition-colors ${
                   isActive
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                    ? 'bg-bg-subtle text-white'
+                    : 'text-fg-muted hover:bg-bg-subtle hover:text-fg-muted'
                 }`}
               >
                 {item.label}

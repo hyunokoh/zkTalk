@@ -27,9 +27,9 @@ interface ReportCardProps {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  open: 'bg-orange-900/50 text-orange-400',
-  resolved: 'bg-green-900/50 text-green-400',
-  dismissed: 'bg-gray-700 text-gray-400',
+  open: 'bg-warning/50 text-warning',
+  resolved: 'bg-success/50 text-success',
+  dismissed: 'bg-bg-subtle text-fg-muted',
 };
 
 export function ReportCard({ report, communityId }: ReportCardProps) {
@@ -49,7 +49,7 @@ export function ReportCard({ report, communityId }: ReportCardProps) {
 
   return (
     <div
-      className="rounded-lg border border-gray-700 bg-gray-800/50 p-4"
+      className="rounded-lg border border-line bg-bg-subtle/50 p-4"
       data-testid="report-card"
       data-report-id={details.id}
       data-report-status={details.status}
@@ -65,42 +65,42 @@ export function ReportCard({ report, communityId }: ReportCardProps) {
             >
               {details.status}
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-fg-muted">
               {new Date(details.createdAt).toLocaleDateString()}
             </span>
           </div>
 
           <div className="mt-2">
-            <p className="text-sm font-medium text-gray-200">
-              Reason: <span className="text-gray-300">{details.reasonCode}</span>
+            <p className="text-sm font-medium text-fg-muted">
+              Reason: <span className="text-fg-muted">{details.reasonCode}</span>
             </p>
             {details.reasonText && (
-              <p className="mt-1 text-sm text-gray-400">{details.reasonText}</p>
+              <p className="mt-1 text-sm text-fg-muted">{details.reasonText}</p>
             )}
             {report.message && (
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-fg-muted">
                 Message preview:{' '}
-                <span className="text-gray-400">{report.message.bodyPlaintext}</span>
+                <span className="text-fg-muted">{report.message.bodyPlaintext}</span>
               </p>
             )}
           </div>
 
-          <div className="mt-2 flex gap-4 text-xs text-gray-500">
+          <div className="mt-2 flex gap-4 text-xs text-fg-muted">
             {details.reportedUserId && (
               <span>
                 Reported user:{' '}
-                <span className="text-gray-400">{details.reportedUserId}</span>
+                <span className="text-fg-muted">{details.reportedUserId}</span>
               </span>
             )}
             {details.messageId && (
               <span>
                 Message:{' '}
-                <span className="text-gray-400">{details.messageId}</span>
+                <span className="text-fg-muted">{details.messageId}</span>
               </span>
             )}
             <span>
               Reporter:{' '}
-              <span className="text-gray-400">
+              <span className="text-fg-muted">
                 {report.reporter?.displayName ?? details.reporterUserId}
               </span>
             </span>
@@ -114,7 +114,7 @@ export function ReportCard({ report, communityId }: ReportCardProps) {
               onClick={() => updateReport.mutate('resolved')}
               disabled={updateReport.isPending}
               data-testid="report-resolve-button"
-              className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+              className="rounded-lg bg-success px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-success disabled:opacity-50"
             >
               Resolve
             </button>
@@ -122,7 +122,7 @@ export function ReportCard({ report, communityId }: ReportCardProps) {
               onClick={() => updateReport.mutate('dismissed')}
               disabled={updateReport.isPending}
               data-testid="report-dismiss-button"
-              className="rounded-lg bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:bg-gray-600 disabled:opacity-50"
+              className="rounded-lg bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted transition-colors hover:bg-bg-subtle disabled:opacity-50"
             >
               Dismiss
             </button>

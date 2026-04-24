@@ -107,7 +107,7 @@ export function EventList({
   if (events.length === 0) {
     return (
       <p
-        className="py-8 text-center text-sm text-gray-500 dark:text-gray-400"
+        className="py-8 text-center text-sm text-fg-muted dark:text-fg-muted"
         data-testid="event-empty-state"
       >
         {t('event.noEvents')}
@@ -121,7 +121,7 @@ export function EventList({
       {events.map((event) => (
         <div
           key={event.id}
-          className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+          className="rounded-lg border border-line p-4 dark:border-line"
           data-testid="event-card"
           data-event-id={event.id}
           data-user-rsvp-status={event.userRsvpStatus ?? 'none'}
@@ -133,14 +133,14 @@ export function EventList({
               <button
                 onClick={() => setEditingEvent(event)}
                 data-testid="event-edit-button"
-                className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-subtle"
               >
                 {t('common.edit')}
               </button>
               <button
                 onClick={() => setPendingDeleteEvent(event)}
                 data-testid="event-delete-button"
-                className="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
+                className="rounded-lg bg-danger px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger dark:bg-danger/30 dark:text-danger dark:hover:bg-danger/50"
               >
                 {t('common.delete')}
               </button>
@@ -148,8 +148,8 @@ export function EventList({
           )}
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{event.title}</h3>
-              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+              <h3 className="font-semibold text-fg dark:text-fg-muted">{event.title}</h3>
+              <p className="mt-0.5 text-sm text-fg-muted dark:text-fg-muted">
                 {new Date(event.startAt).toLocaleDateString(undefined, {
                   weekday: 'short',
                   month: 'short',
@@ -168,11 +168,11 @@ export function EventList({
           </div>
 
           {event.description && (
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{event.description}</p>
+            <p className="mt-2 text-sm text-fg dark:text-fg-muted">{event.description}</p>
           )}
 
           {event.location && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-fg-muted dark:text-fg-muted">
               {event.location}
             </p>
           )}
@@ -185,8 +185,8 @@ export function EventList({
               data-count={String(event.rsvpCounts.interested)}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                 event.userRsvpStatus === 'interested'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                  ? 'bg-accent text-white'
+                  : 'bg-bg-hover text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-subtle'
               }`}
             >
               {t('event.interested')} ({event.rsvpCounts.interested})
@@ -198,8 +198,8 @@ export function EventList({
               data-count={String(event.rsvpCounts.going)}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                 event.userRsvpStatus === 'going'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                  ? 'bg-success text-white'
+                  : 'bg-bg-hover text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-subtle'
               }`}
             >
               {t('event.going')} ({event.rsvpCounts.going})
@@ -207,7 +207,7 @@ export function EventList({
             <button
               onClick={() => setAttendeesEvent(event)}
               data-testid="event-attendees-button"
-              className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-subtle"
             >
               {t('event.attendees')}
             </button>
@@ -256,23 +256,23 @@ export function EventList({
           data-event-id={attendeesEvent.id}
         >
           <div
-            className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900"
+            className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-bg-subtle"
             onClick={(e) => e.stopPropagation()}
             data-testid="event-attendees-panel"
           >
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h2 className="text-lg font-semibold text-fg dark:text-fg-muted">
                   {t('event.attendees')}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-sm text-fg-muted dark:text-fg-muted">
                   {attendeesEvent.title}
                 </p>
               </div>
               <button
                 onClick={() => setAttendeesEvent(null)}
                 data-testid="event-attendees-close-button"
-                className="rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                className="rounded-lg px-3 py-1.5 text-sm text-fg-muted hover:bg-bg-hover hover:text-fg dark:text-fg-muted dark:hover:bg-bg-subtle dark:hover:text-fg-muted"
               >
                 {t('common.cancel')}
               </button>
@@ -280,19 +280,19 @@ export function EventList({
 
             <div className="mt-4 space-y-3">
               {dmMutation.isError && (
-                <p className="text-sm text-red-500 dark:text-red-400">
+                <p className="text-sm text-danger dark:text-danger">
                   {(dmMutation.error as Error).message || 'Failed to open direct message'}
                 </p>
               )}
 
               {attendeesQuery.isLoading && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-fg-muted dark:text-fg-muted">
                   {t('common.loading')}
                 </p>
               )}
 
               {!attendeesQuery.isLoading && (attendeesQuery.data?.length ?? 0) === 0 && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-fg-muted dark:text-fg-muted">
                   {t('event.noAttendees')}
                 </p>
               )}
@@ -300,16 +300,16 @@ export function EventList({
               {attendeesQuery.data?.map((attendee) => (
                 <div
                   key={attendee.user.id}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700"
+                  className="flex items-center justify-between rounded-lg border border-line px-3 py-2 dark:border-line"
                   data-testid="event-attendee-row"
                   data-user-id={attendee.user.id}
                   data-status={attendee.status}
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <p className="truncate text-sm font-medium text-fg dark:text-fg-muted">
                       {attendee.user.displayName}
                     </p>
-                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                    <p className="truncate text-xs text-fg-muted dark:text-fg-muted">
                       @{attendee.user.username} · {attendee.status === 'going' ? t('event.going') : t('event.interested')}
                     </p>
                   </div>
@@ -317,7 +317,7 @@ export function EventList({
                     onClick={() => dmMutation.mutate(attendee.user.id)}
                     disabled={dmMutation.isPending}
                     data-testid="event-attendee-message-button"
-                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent disabled:opacity-50"
                   >
                     {t('event.messageAttendee')}
                   </button>

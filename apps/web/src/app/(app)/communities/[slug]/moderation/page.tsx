@@ -84,7 +84,7 @@ export default function ModerationOverviewPage() {
   if (communityLoading || !community || roleLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="text-gray-400">{t('common.loading')}</div>
+        <div className="text-fg-muted">{t('common.loading')}</div>
       </div>
     );
   }
@@ -96,8 +96,8 @@ export default function ModerationOverviewPage() {
         data-testid="moderation-overview-access-denied"
       >
         <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-300">{t('mod.accessDenied')}</h2>
-          <p className="mt-2 text-sm text-gray-500">{t('mod.noPermission')}</p>
+          <h2 className="text-xl font-bold text-fg-muted">{t('mod.accessDenied')}</h2>
+          <p className="mt-2 text-sm text-fg-muted">{t('mod.noPermission')}</p>
         </div>
       </div>
     );
@@ -110,48 +110,48 @@ export default function ModerationOverviewPage() {
       {/* Stats */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div
-          className="rounded-lg border border-gray-700 bg-gray-800/50 p-4"
+          className="rounded-lg border border-line bg-bg-subtle/50 p-4"
           data-testid="moderation-overview-open-reports-card"
         >
-          <p className="text-sm text-gray-400">{t('mod.openReports')}</p>
-          <p className="mt-1 text-3xl font-bold text-orange-400">
+          <p className="text-sm text-fg-muted">{t('mod.openReports')}</p>
+          <p className="mt-1 text-3xl font-bold text-warning">
             {reports.length}
           </p>
           <Link
             href={`${basePath}/reports`}
-            className="mt-2 inline-block text-xs text-indigo-400 hover:underline"
+            className="mt-2 inline-block text-xs text-accent hover:underline"
           >
             {t('mod.viewAllReports')}
           </Link>
         </div>
         <div
-          className="rounded-lg border border-gray-700 bg-gray-800/50 p-4"
+          className="rounded-lg border border-line bg-bg-subtle/50 p-4"
           data-testid="moderation-overview-recent-actions-card"
           data-access={isAdmin ? 'granted' : 'restricted'}
         >
-          <p className="text-sm text-gray-400">{t('mod.recentActions')}</p>
+          <p className="text-sm text-fg-muted">{t('mod.recentActions')}</p>
           {isAdmin ? (
             <>
-              <p className="mt-1 text-3xl font-bold text-gray-200">
+              <p className="mt-1 text-3xl font-bold text-fg-muted">
                 {recentActions.length}
               </p>
               <Link
                 href={`${basePath}/audit-log`}
-                className="mt-2 inline-block text-xs text-indigo-400 hover:underline"
+                className="mt-2 inline-block text-xs text-accent hover:underline"
               >
                 {t('mod.viewAuditLog')}
               </Link>
             </>
           ) : (
-            <p className="mt-3 text-sm text-gray-500">{t('mod.noPermission')}</p>
+            <p className="mt-3 text-sm text-fg-muted">{t('mod.noPermission')}</p>
           )}
         </div>
         <div
-          className="rounded-lg border border-gray-700 bg-gray-800/50 p-4"
+          className="rounded-lg border border-line bg-bg-subtle/50 p-4"
           data-testid="moderation-overview-status-card"
         >
-          <p className="text-sm text-gray-400">{t('mod.status')}</p>
-          <p className="mt-1 text-lg font-semibold text-green-400">
+          <p className="text-sm text-fg-muted">{t('mod.status')}</p>
+          <p className="mt-1 text-lg font-semibold text-success">
             {reports.length === 0 ? t('mod.allClear') : t('mod.needsAttention')}
           </p>
         </div>
@@ -159,11 +159,11 @@ export default function ModerationOverviewPage() {
 
       {/* Recent Actions */}
       <div className="mt-8" data-testid="moderation-overview-recent-actions">
-        <h2 className="text-lg font-semibold text-gray-300">{t('mod.recentActions')}</h2>
+        <h2 className="text-lg font-semibold text-fg-muted">{t('mod.recentActions')}</h2>
         {!isAdmin ? (
-          <p className="mt-4 text-sm text-gray-500">{t('mod.noPermission')}</p>
+          <p className="mt-4 text-sm text-fg-muted">{t('mod.noPermission')}</p>
         ) : recentActions.length === 0 ? (
-          <p className="mt-4 text-sm text-gray-500">
+          <p className="mt-4 text-sm text-fg-muted">
             {t('mod.noActions')}
           </p>
         ) : (
@@ -171,17 +171,17 @@ export default function ModerationOverviewPage() {
             {recentActions.map((action) => (
               <div
                 key={action.action.id}
-                className="flex items-center gap-3 rounded-lg border border-gray-700 bg-gray-800/30 px-4 py-3"
+                className="flex items-center gap-3 rounded-lg border border-line bg-bg-subtle/30 px-4 py-3"
               >
                 <ActionTypeBadge actionType={action.action.actionType} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm text-gray-300">
+                  <p className="text-sm text-fg-muted">
                     {action.action.actionType}
                     {action.action.reason && (
-                      <span className="text-gray-500"> &mdash; {action.action.reason}</span>
+                      <span className="text-fg-muted"> &mdash; {action.action.reason}</span>
                     )}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-fg-muted">
                     {new Date(action.action.createdAt).toLocaleString()}
                   </p>
                 </div>
@@ -195,12 +195,12 @@ export default function ModerationOverviewPage() {
 }
 
 function ActionTypeBadge({ actionType }: { actionType: string }) {
-  let colorClasses = 'bg-gray-700 text-gray-300';
-  if (actionType === 'mute') colorClasses = 'bg-yellow-900/50 text-yellow-400';
-  else if (actionType === 'kick') colorClasses = 'bg-orange-900/50 text-orange-400';
-  else if (actionType === 'ban') colorClasses = 'bg-red-900/50 text-red-400';
-  else if (actionType === 'warn') colorClasses = 'bg-yellow-900/50 text-yellow-300';
-  else if (actionType === 'delete_message') colorClasses = 'bg-gray-700 text-gray-300';
+  let colorClasses = 'bg-bg-subtle text-fg-muted';
+  if (actionType === 'mute') colorClasses = 'bg-warning/50 text-warning';
+  else if (actionType === 'kick') colorClasses = 'bg-warning/50 text-warning';
+  else if (actionType === 'ban') colorClasses = 'bg-danger/50 text-danger';
+  else if (actionType === 'warn') colorClasses = 'bg-warning/50 text-warning';
+  else if (actionType === 'delete_message') colorClasses = 'bg-bg-subtle text-fg-muted';
 
   return (
     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${colorClasses}`}>

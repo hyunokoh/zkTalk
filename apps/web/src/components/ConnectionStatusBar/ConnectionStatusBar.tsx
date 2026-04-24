@@ -16,7 +16,7 @@ export function ConnectionStatusBar({ className = '' }: ConnectionStatusBarProps
   const state = useMemo(() => {
     if (isOffline || socketStatus === 'offline') {
       return {
-        tone: 'bg-rose-500/95 text-white border-rose-300/30',
+        tone: 'bg-danger/95 text-white border-danger/30',
         title: t('connection.offlineTitle'),
         body: t('connection.offlineBody'),
       };
@@ -24,7 +24,7 @@ export function ConnectionStatusBar({ className = '' }: ConnectionStatusBarProps
 
     if (socketStatus === 'reconnecting' || socketStatus === 'connecting') {
       return {
-        tone: 'bg-amber-400/95 text-slate-950 border-amber-200/60',
+        tone: 'bg-warning/95 text-slate-950 border-warning/60',
         title: t('connection.reconnectingTitle'),
         body: t('connection.reconnectingBody'),
       };

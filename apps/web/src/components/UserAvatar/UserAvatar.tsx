@@ -78,7 +78,7 @@ export function UserAvatar({
 
   const onlineDot = isOnline != null && isOnline ? (
     <span
-      className={`absolute bottom-0 right-0 block ${dotSize} rounded-full border-2 border-white bg-green-500 dark:border-gray-900`}
+      className={`absolute bottom-0 right-0 block ${dotSize} rounded-full border-2 border-white bg-success dark:border-line`}
     />
   ) : null;
 
@@ -102,7 +102,7 @@ export function UserAvatar({
   return (
     <span className="relative inline-block">
       <div
-        className={`${sizeClasses} flex shrink-0 items-center justify-center rounded-full bg-indigo-600 font-medium text-white ${className}`}
+        className={`${sizeClasses} flex shrink-0 items-center justify-center rounded-full bg-accent font-medium text-white ${className}`}
       >
         {getInitials(displayName)}
       </div>

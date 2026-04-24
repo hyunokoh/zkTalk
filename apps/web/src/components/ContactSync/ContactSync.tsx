@@ -187,8 +187,8 @@ export function ContactSync() {
   return (
     <div className="space-y-4">
       {/* Contact Picker / Manual Input */}
-      <div className="rounded-lg border border-gray-700 bg-gray-800/50 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-gray-200">
+      <div className="rounded-lg border border-line bg-bg-subtle/50 p-4">
+        <h3 className="mb-3 text-sm font-semibold text-fg-muted">
           {t('contacts.sync')}
         </h3>
 
@@ -196,7 +196,7 @@ export function ContactSync() {
         <button
           onClick={handleContactPicker}
           disabled={syncMutation.isPending}
-          className="mb-3 w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mb-3 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           {syncMutation.isPending ? t('contacts.syncing') : t('contacts.sync')}
         </button>
@@ -208,12 +208,12 @@ export function ContactSync() {
             onChange={(e) => setManualPhones(e.target.value)}
             placeholder="010-1234-5678&#10;+821098765432&#10;..."
             rows={3}
-            className="w-full resize-none rounded-md border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+            className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none"
           />
           <button
             onClick={handleManualSync}
             disabled={!manualPhones.trim() || syncMutation.isPending}
-            className="rounded-md bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-200 hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-bg-subtle disabled:cursor-not-allowed disabled:opacity-50"
           >
             {syncMutation.isPending ? t('contacts.syncing') : t('contacts.sync')}
           </button>
@@ -222,19 +222,19 @@ export function ContactSync() {
 
       {/* Results */}
       {hasSearched && matches.length === 0 && (
-        <p className="text-sm text-gray-500">{t('contacts.noResults')}</p>
+        <p className="text-sm text-fg-muted">{t('contacts.noResults')}</p>
       )}
 
       {allSuggestions.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-fg-muted">
               {t('contacts.found', { count: allSuggestions.length })}
             </p>
             {allSuggestions.length > 1 && (
               <button
                 onClick={handleAddAll}
-                className="rounded-md bg-indigo-600 px-3 py-1 text-xs font-medium text-white hover:bg-indigo-500"
+                className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent"
               >
                 {t('contacts.addAll')}
               </button>
@@ -245,7 +245,7 @@ export function ContactSync() {
             {allSuggestions.map((user) => (
               <div
                 key={user.userId}
-                className="flex items-center justify-between rounded-md border border-gray-700 bg-gray-800/50 px-3 py-2"
+                className="flex items-center justify-between rounded-md border border-line bg-bg-subtle/50 px-3 py-2"
               >
                 <div className="flex items-center gap-3">
                   <UserAvatar
@@ -254,16 +254,16 @@ export function ContactSync() {
                     size="sm"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-200">
+                    <p className="text-sm font-medium text-fg-muted">
                       {user.displayName}
                     </p>
-                    <p className="text-xs text-gray-500">@{user.username}</p>
+                    <p className="text-xs text-fg-muted">@{user.username}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => addFriendMutation.mutate(user.userId)}
                   disabled={addFriendMutation.isPending}
-                  className="rounded-md bg-indigo-600 px-3 py-1 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                  className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent disabled:opacity-50"
                 >
                   {t('friend.add')}
                 </button>

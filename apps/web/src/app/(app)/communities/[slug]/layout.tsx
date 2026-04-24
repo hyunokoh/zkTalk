@@ -97,9 +97,9 @@ export default function CommunityLayout({
   if (!community) {
     return (
       <div className="flex flex-1 items-center justify-center px-6">
-        <div className="rounded-[2rem] border border-white/10 bg-[#0f1928]/92 px-7 py-6 text-center shadow-[0_28px_70px_rgba(2,8,23,0.5)] backdrop-blur-xl">
+        <div className="rounded-[2rem] border border-white/10 bg-bg-elevated px-7 py-6 text-center shadow-[0_28px_70px_rgba(2,8,23,0.5)] backdrop-blur-xl">
           <h2 className="text-xl font-semibold text-white">{t('community.notFound')}</h2>
-          <Link href="/home" className="mt-2 inline-flex text-sm font-medium text-sky-300 hover:text-sky-200">
+          <Link href="/home" className="mt-2 inline-flex text-sm font-medium text-accent hover:text-accent">
             {t('community.goHome')}
           </Link>
         </div>
@@ -146,7 +146,7 @@ export default function CommunityLayout({
       {!channelId && (
         <button
           onClick={toggleChannelSidebar}
-          className="fixed left-16 top-3 z-30 flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-[#0f1a2b]/92 text-white/78 shadow-[0_16px_38px_rgba(2,8,23,0.44)] backdrop-blur-xl transition hover:bg-[#152235] hover:text-white md:hidden"
+          className="fixed left-16 top-3 z-30 flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-bg-elevated text-white/78 shadow-[0_16px_38px_rgba(2,8,23,0.44)] backdrop-blur-xl transition hover:bg-bg-hover hover:text-white md:hidden"
           aria-label="Toggle channels"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -158,7 +158,7 @@ export default function CommunityLayout({
       {/* Mobile channel sidebar backdrop */}
       {channelSidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-[#020617]/70 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-30 bg-fg/40 backdrop-blur-sm md:hidden"
           onClick={closeChannelSidebar}
         />
       )}

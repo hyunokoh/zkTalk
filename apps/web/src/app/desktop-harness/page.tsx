@@ -114,34 +114,34 @@ export default function DesktopHarnessPage() {
   }, [t]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#b2c7d9] px-6 text-center">
+    <main className="flex min-h-screen items-center justify-center bg-bg px-6 text-center">
       <div className="w-full max-w-md rounded-[2rem] border border-white/60 bg-white/90 px-6 py-8 shadow-xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#607384]">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
           {t('desktopHarness.label')}
         </p>
-        <h1 className="mt-3 text-2xl font-semibold text-[#203040]">
+        <h1 className="mt-3 text-2xl font-semibold text-fg">
           {state === 'error' ? t('desktopHarness.failedTitle') : t('desktopHarness.inProgressTitle')}
         </h1>
-        <p className="mt-3 text-sm text-[#53667a]">{message}</p>
+        <p className="mt-3 text-sm text-fg-muted">{message}</p>
         {summary ? (
-          <dl className="mt-5 rounded-2xl bg-[#eef4f8] px-4 py-4 text-left">
+          <dl className="mt-5 rounded-2xl bg-bg-subtle px-4 py-4 text-left">
             <div>
-              <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#607384]">
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
                 {t('desktopHarness.modeLabel')}
               </dt>
-              <dd className="mt-1 text-sm text-[#203040]">{summary.modeLabel}</dd>
+              <dd className="mt-1 text-sm text-fg">{summary.modeLabel}</dd>
             </div>
             <div className="mt-3">
-              <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#607384]">
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
                 {t('desktopHarness.destinationLabel')}
               </dt>
-              <dd className="mt-1 break-all text-sm text-[#203040]">{summary.destinationLabel}</dd>
+              <dd className="mt-1 break-all text-sm text-fg">{summary.destinationLabel}</dd>
             </div>
             <div className="mt-3">
-              <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#607384]">
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
                 {t('desktopHarness.messagePreviewLabel')}
               </dt>
-              <dd className="mt-1 text-sm text-[#203040]">{summary.messagePreview}</dd>
+              <dd className="mt-1 text-sm text-fg">{summary.messagePreview}</dd>
             </div>
           </dl>
         ) : null}

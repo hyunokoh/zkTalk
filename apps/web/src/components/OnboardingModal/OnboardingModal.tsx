@@ -46,18 +46,18 @@ export function OnboardingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-800">
+      <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-bg-subtle">
         {/* Welcome */}
-        <h2 className="text-center text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <h2 className="text-center text-2xl font-bold text-fg dark:text-fg-muted">
           {t('onboarding.welcome')}
         </h2>
-        <p className="mt-1 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-center text-sm text-fg-muted dark:text-fg-muted">
           {communityName}
         </p>
 
         {/* Welcome message */}
         {onboarding.welcomeMessage && (
-          <p className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+          <p className="mt-4 rounded-lg bg-bg-subtle p-3 text-sm text-fg dark:bg-bg-subtle dark:text-fg-muted">
             {onboarding.welcomeMessage}
           </p>
         )}
@@ -65,13 +65,13 @@ export function OnboardingModal({
         {/* Rules */}
         {hasRules && (
           <div className="mt-4">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="text-sm font-semibold text-fg dark:text-fg-muted">
               {t('onboarding.rules')}
             </h3>
             <ul className="mt-2 space-y-1.5">
               {rules.map((rule, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-medium text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
+                <li key={i} className="flex items-start gap-2 text-sm text-fg dark:text-fg-muted">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-medium text-accent-strong dark:bg-accent dark:text-accent">
                     {i + 1}
                   </span>
                   {rule}
@@ -79,12 +79,12 @@ export function OnboardingModal({
               ))}
             </ul>
 
-            <label className="mt-3 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <label className="mt-3 flex items-center gap-2 text-sm text-fg dark:text-fg-muted">
               <input
                 type="checkbox"
                 checked={rulesAccepted}
                 onChange={(e) => setRulesAccepted(e.target.checked)}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="rounded border-line text-accent-strong focus:ring-accent"
               />
               {t('onboarding.acceptRules')}
             </label>
@@ -93,13 +93,13 @@ export function OnboardingModal({
 
         {starterChannels.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="text-sm font-semibold text-fg dark:text-fg-muted">
               {t('community.onboardingDefaultChannels')}
             </h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-sm text-fg-muted dark:text-fg-muted">
               {t('community.onboardingDefaultChannelsHint')}
             </p>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-fg-muted dark:text-fg-muted">
               {t('community.onboardingDefaultChannelsPolicyHint')}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -109,7 +109,7 @@ export function OnboardingModal({
                   type="button"
                   onClick={() => handleDone(channel.id)}
                   disabled={hasRules && !rulesAccepted}
-                  className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-200 dark:hover:bg-indigo-500/20"
+                  className="rounded-full border border-accent-soft bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent-strong transition hover:border-accent-soft hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50 dark:border-accent/30 dark:bg-accent/10 dark:text-accent dark:hover:bg-accent/20"
                 >
                   # {channel.name}
                 </button>
@@ -122,7 +122,7 @@ export function OnboardingModal({
           <button
             onClick={() => handleDone(primaryStarterChannel?.id)}
             disabled={hasRules && !rulesAccepted}
-            className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-lg bg-accent py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             {primaryStarterChannel
               ? t('onboarding.openChannel', { channel: primaryStarterChannel.name })
@@ -133,7 +133,7 @@ export function OnboardingModal({
               type="button"
               onClick={() => handleDone()}
               disabled={hasRules && !rulesAccepted}
-              className="w-full rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="w-full rounded-lg border border-line py-2.5 text-sm font-medium text-fg transition-colors hover:bg-bg-subtle disabled:cursor-not-allowed disabled:opacity-50 dark:border-line dark:text-fg-muted dark:hover:bg-bg-subtle"
             >
               {t('onboarding.stayOnOverview')}
             </button>

@@ -8,9 +8,9 @@ type ToastViewportProps = {
 };
 
 const TONE_STYLES = {
-  success: 'border-emerald-400/35 bg-emerald-500/95 text-white',
-  error: 'border-rose-300/35 bg-rose-500/95 text-white',
-  info: 'border-sky-300/35 bg-sky-500/95 text-white',
+  success: 'border-success/35 bg-success/95 text-white',
+  error: 'border-danger/35 bg-danger/95 text-white',
+  info: 'border-accent/35 bg-accent/95 text-white',
 } as const;
 
 export function ToastViewport({ className = '' }: ToastViewportProps) {

@@ -100,10 +100,10 @@ export function FileUploadZone({ onFilesSelected, children }: FileUploadZoneProp
 
       {/* Drag overlay */}
       {isDragging && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center rounded-lg border-2 border-dashed border-indigo-500 bg-indigo-500/10">
+        <div className="absolute inset-0 z-40 flex items-center justify-center rounded-lg border-2 border-dashed border-accent bg-accent/10">
           <div className="text-center">
             <svg
-              className="mx-auto h-10 w-10 text-indigo-400"
+              className="mx-auto h-10 w-10 text-accent"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -115,7 +115,7 @@ export function FileUploadZone({ onFilesSelected, children }: FileUploadZoneProp
                 d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
               />
             </svg>
-            <p className="mt-2 text-sm font-medium text-indigo-300">
+            <p className="mt-2 text-sm font-medium text-accent">
               Drop files to upload
             </p>
           </div>
@@ -135,7 +135,7 @@ export function FileUploadButton({
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
-      className="flex h-8 w-8 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-700 hover:text-gray-200"
+      className="flex h-8 w-8 items-center justify-center rounded text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg-muted"
       title="Attach file"
     >
       <svg
@@ -166,30 +166,30 @@ export function PendingFileList({
   if (files.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 border-t border-gray-700 px-3 py-2">
+    <div className="flex flex-wrap gap-2 border-t border-line px-3 py-2">
       {files.map((pf) => (
         <div
           key={pf.id}
-          className="flex items-center gap-2 rounded-lg bg-gray-800 px-3 py-1.5 text-sm"
+          className="flex items-center gap-2 rounded-lg bg-bg-subtle px-3 py-1.5 text-sm"
         >
-          <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <svg className="h-4 w-4 text-fg-muted" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
           </svg>
-          <span className="max-w-[120px] truncate text-gray-300">{pf.file.name}</span>
+          <span className="max-w-[120px] truncate text-fg-muted">{pf.file.name}</span>
           {pf.status === 'uploading' && (
-            <div className="h-1 w-16 overflow-hidden rounded-full bg-gray-700">
+            <div className="h-1 w-16 overflow-hidden rounded-full bg-bg-subtle">
               <div
-                className="h-full rounded-full bg-indigo-500 transition-all"
+                className="h-full rounded-full bg-accent transition-all"
                 style={{ width: `${pf.progress}%` }}
               />
             </div>
           )}
           {pf.status === 'error' && (
-            <span className="text-xs text-red-400">Failed</span>
+            <span className="text-xs text-danger">Failed</span>
           )}
           <button
             onClick={() => onRemove(pf.id)}
-            className="text-gray-500 hover:text-gray-300"
+            className="text-fg-muted hover:text-fg-muted"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />

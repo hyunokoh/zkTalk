@@ -22,9 +22,9 @@ interface ConversationResponse {
 }
 
 const ACTION_STYLES: Record<ActionType, string> = {
-  mute: 'text-yellow-400 hover:bg-yellow-900/30',
-  kick: 'text-orange-400 hover:bg-orange-900/30',
-  ban: 'text-red-400 hover:bg-red-900/30',
+  mute: 'text-warning hover:bg-warning/30',
+  kick: 'text-warning hover:bg-warning/30',
+  ban: 'text-danger hover:bg-danger/30',
 };
 
 const ACTION_TYPES: ActionType[] = ['mute', 'kick', 'ban'];
@@ -146,7 +146,7 @@ export function MemberActionMenu({
           setConfirmAction(null);
         }}
         data-testid="member-action-trigger"
-        className="flex h-7 w-7 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-700 hover:text-gray-300"
+        className="flex h-7 w-7 items-center justify-center rounded text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg-muted"
         title={t('memberAction.title')}
       >
         <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
@@ -156,7 +156,7 @@ export function MemberActionMenu({
 
       {open && !confirmAction && (
         <div
-          className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-gray-700 bg-gray-800 py-1 shadow-xl"
+          className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-line bg-bg-subtle py-1 shadow-xl"
           data-testid="member-action-menu"
         >
           {/* DM button */}
@@ -166,7 +166,7 @@ export function MemberActionMenu({
               setOpen(false);
             }}
             data-testid="member-action-dm-button"
-            className="flex w-full items-center px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700"
+            className="flex w-full items-center px-3 py-2 text-left text-sm text-fg-muted hover:bg-bg-subtle"
           >
             {t('dm.sendDm')}
           </button>
@@ -176,7 +176,7 @@ export function MemberActionMenu({
             <button
               onClick={() => friendRequestMutation.mutate()}
               data-testid="member-action-add-friend-button"
-              className="flex w-full items-center px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700"
+              className="flex w-full items-center px-3 py-2 text-left text-sm text-fg-muted hover:bg-bg-subtle"
             >
               {t('friend.add')}
             </button>
@@ -185,13 +185,13 @@ export function MemberActionMenu({
             <button
               onClick={() => removeFriendMutation.mutate(friendshipId)}
               data-testid="member-action-remove-friend-button"
-              className="flex w-full items-center px-3 py-2 text-left text-sm text-red-400 hover:bg-red-900/30"
+              className="flex w-full items-center px-3 py-2 text-left text-sm text-danger hover:bg-danger/30"
             >
               {t('friend.remove')}
             </button>
           )}
           {friendshipStatus === 'pending' && isFriendRequestRequester && (
-            <span className="block px-3 py-2 text-xs text-gray-500">
+            <span className="block px-3 py-2 text-xs text-fg-muted">
               {t('friend.requestSent')}
             </span>
           )}
@@ -200,14 +200,14 @@ export function MemberActionMenu({
               <button
                 onClick={() => acceptFriendMutation.mutate(friendshipId)}
                 data-testid="member-action-accept-friend-button"
-                className="flex w-full items-center px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700"
+                className="flex w-full items-center px-3 py-2 text-left text-sm text-fg-muted hover:bg-bg-subtle"
               >
                 {t('friend.accept')}
               </button>
               <button
                 onClick={() => removeFriendMutation.mutate(friendshipId)}
                 data-testid="member-action-decline-friend-button"
-                className="flex w-full items-center px-3 py-2 text-left text-sm text-red-400 hover:bg-red-900/30"
+                className="flex w-full items-center px-3 py-2 text-left text-sm text-danger hover:bg-danger/30"
               >
                 {t('friend.decline')}
               </button>
@@ -215,7 +215,7 @@ export function MemberActionMenu({
           )}
 
           {canModerate && (
-            <div className="my-1 h-px bg-gray-700" />
+            <div className="my-1 h-px bg-bg-subtle" />
           )}
           {canModerate && ACTION_TYPES.map((actionType) => (
             <button
@@ -233,14 +233,14 @@ export function MemberActionMenu({
 
       {open && confirmAction && (
         <div
-          className="absolute right-0 top-full z-50 mt-1 w-72 rounded-lg border border-gray-700 bg-gray-800 p-4 shadow-xl"
+          className="absolute right-0 top-full z-50 mt-1 w-72 rounded-lg border border-line bg-bg-subtle p-4 shadow-xl"
           data-testid="member-action-confirm-dialog"
           data-action-type={confirmAction}
         >
-          <p className="text-sm font-medium text-gray-200">
+          <p className="text-sm font-medium text-fg-muted">
             {t(`memberAction.${confirmAction}Confirm`, { name: targetDisplayName })}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-fg-muted">
             {t(`memberAction.${confirmAction}Desc`)}
           </p>
           <textarea
@@ -249,7 +249,7 @@ export function MemberActionMenu({
             placeholder={t('memberAction.reasonPlaceholder')}
             rows={2}
             data-testid="member-action-reason-input"
-            className="mt-3 w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none"
+            className="mt-3 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg focus:border-accent focus:outline-none"
           />
           <div className="mt-3 flex justify-end gap-2">
             <button
@@ -258,7 +258,7 @@ export function MemberActionMenu({
                 setReason('');
               }}
               data-testid="member-action-cancel-button"
-              className="rounded-lg px-3 py-1.5 text-xs text-gray-400 transition-colors hover:bg-gray-700 hover:text-gray-200"
+              className="rounded-lg px-3 py-1.5 text-xs text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg-muted"
             >
               {t('common.cancel')}
             </button>
@@ -268,10 +268,10 @@ export function MemberActionMenu({
               data-testid="member-action-confirm-button"
               className={`rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-50 ${
                 confirmAction === 'ban'
-                  ? 'bg-red-600 hover:bg-red-700'
+                  ? 'bg-danger hover:bg-danger'
                   : confirmAction === 'kick'
-                    ? 'bg-orange-600 hover:bg-orange-700'
-                    : 'bg-yellow-600 hover:bg-yellow-700'
+                    ? 'bg-warning hover:bg-warning'
+                    : 'bg-warning hover:bg-warning'
               }`}
             >
               {modAction.isPending ? t('memberAction.processing') : t('common.confirm')}

@@ -81,7 +81,7 @@ export default function ReportsPage() {
                 data-testid={`moderation-reports-filter-${f.value}`}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
                   statusFilter === f.value
-                    ? 'border-sky-300/30 bg-sky-300/14 text-sky-100'
+                    ? 'border-accent/30 bg-accent/14 text-accent'
                     : 'border-white/8 bg-white/[0.04] text-white/56 hover:bg-white/[0.08] hover:text-white'
                 }`}
               >

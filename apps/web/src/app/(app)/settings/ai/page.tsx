@@ -67,16 +67,16 @@ function ToggleCard({
   onToggle: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5">
+    <div className="rounded-2xl border border-line bg-bg-subtle/60 p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-white">{title}</h2>
-          <p className="mt-1 text-sm leading-6 text-gray-400">{description}</p>
+          <p className="mt-1 text-sm leading-6 text-fg-muted">{description}</p>
         </div>
         <button
           onClick={onToggle}
-          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
-            enabled ? 'bg-indigo-600' : 'bg-gray-600'
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-gray-900 ${
+            enabled ? 'bg-accent' : 'bg-bg-subtle'
           }`}
           role="switch"
           aria-checked={enabled}
@@ -97,14 +97,14 @@ function getLocalMachineToneClasses(
 ) {
   switch (getLocalMachineCommandTone(update)) {
     case 'success':
-      return 'border-emerald-700/40 bg-emerald-950/30 text-emerald-100';
+      return 'border-success/40 bg-success/30 text-success';
     case 'warning':
-      return 'border-amber-700/40 bg-amber-950/30 text-amber-100';
+      return 'border-warning/40 bg-warning/30 text-warning';
     case 'danger':
-      return 'border-rose-700/40 bg-rose-950/30 text-rose-100';
+      return 'border-danger/40 bg-danger/30 text-danger';
     case 'info':
     default:
-      return 'border-sky-700/40 bg-sky-950/30 text-sky-100';
+      return 'border-accent/40 bg-accent-soft/30 text-accent';
   }
 }
 
@@ -365,17 +365,17 @@ export default function AISettingsPage() {
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-300/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent/80">
             {t('settings.aiPage.eyebrow')}
           </p>
           <h1 className="mt-2 text-3xl font-bold text-white">{t('settings.aiPage.title')}</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-fg-muted">
             {t('settings.aiPage.description')}
           </p>
         </div>
         <Link
           href="/settings"
-          className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-750"
+          className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
         >
           {t('settings.aiPage.backToSettings')}
         </Link>
@@ -406,38 +406,38 @@ export default function AISettingsPage() {
 
           <div
             id="translation-preferences"
-            className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5 scroll-mt-24"
+            className="rounded-2xl border border-line bg-bg-subtle/60 p-5 scroll-mt-24"
           >
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-white">
                   {t('settings.aiPage.translation.title')}
                 </h2>
-                <p className="mt-1 text-sm leading-6 text-gray-400">
+                <p className="mt-1 text-sm leading-6 text-fg-muted">
                   {t('settings.aiPage.translation.description')}
                 </p>
               </div>
-              <span className="rounded-full border border-gray-700 bg-gray-950/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-gray-300">
+              <span className="rounded-full border border-line bg-bg-elevated/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-fg-muted">
                 {activeTranslationPresetId
                   ? getLocalizedTranslationPreset(activeTranslationPresetId).label
                   : t('settings.aiPage.translationCustom')}
               </span>
             </div>
-            <div className="mt-4 rounded-2xl border border-gray-800 bg-gray-950/40 p-4">
+            <div className="mt-4 rounded-2xl border border-line bg-bg-elevated/40 p-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fg-muted">
                   {t('settings.aiPage.translationActiveRule')}
                 </p>
                 <span
                   data-testid="translation-active-rule-mode"
-                  className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-400"
+                  className="text-xs font-semibold uppercase tracking-[0.12em] text-fg-muted"
                 >
                   {getTranslationModeLabel(translationPreferenceSummary.modeLabel)}
                 </span>
               </div>
               <p
                 data-testid="translation-active-rule-summary"
-                className="mt-2 text-sm leading-6 text-gray-300"
+                className="mt-2 text-sm leading-6 text-fg-muted"
               >
                 {getTranslationSummary(
                   translationPreferenceSummary.modeLabel,
@@ -445,7 +445,7 @@ export default function AISettingsPage() {
                   translationPreferenceSummary.readableLanguages,
                 )}
               </p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-fg-muted">
                 <span data-testid="translation-active-rule-target">
                   {t('settings.aiPage.translationTargetLabel')}:{' '}
                   {translationPreferenceSummary.targetLanguage ?? t('settings.aiPage.none')}
@@ -458,11 +458,11 @@ export default function AISettingsPage() {
                 </span>
               </div>
             </div>
-            <div className="mt-4 rounded-2xl border border-gray-800 bg-gray-950/40 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+            <div className="mt-4 rounded-2xl border border-line bg-bg-elevated/40 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fg-muted">
                 {t('settings.aiPage.translationQuickPresets')}
               </p>
-              <p className="mt-2 text-sm leading-6 text-gray-400">
+              <p className="mt-2 text-sm leading-6 text-fg-muted">
                 {t('settings.aiPage.translationQuickPresetsDescription')}
               </p>
               <div className="mt-4 grid gap-3">
@@ -479,22 +479,22 @@ export default function AISettingsPage() {
                       onClick={() => void handleTranslationPresetChange(preset.id)}
                       className={`rounded-2xl border px-4 py-4 text-left transition ${
                         isActive
-                          ? 'border-sky-500/60 bg-sky-950/30'
-                          : 'border-gray-800 bg-gray-950/40 hover:border-gray-700 hover:bg-gray-950/60'
+                          ? 'border-accent/60 bg-accent-soft/30'
+                          : 'border-line bg-bg-elevated/40 hover:border-line hover:bg-bg-elevated/60'
                       } disabled:cursor-not-allowed disabled:opacity-60`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="font-medium text-white">{localizedPreset.label}</span>
                         {isActive ? (
-                          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-200">
+                          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-accent">
                             {t('settings.aiPage.translationPresetActive')}
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-2 text-sm leading-6 text-gray-400">
+                      <p className="mt-2 text-sm leading-6 text-fg-muted">
                         {localizedPreset.description}
                       </p>
-                      <p className="mt-2 text-xs leading-5 text-gray-500">
+                      <p className="mt-2 text-xs leading-5 text-fg-muted">
                         {t('settings.aiPage.translationBridgeDefault')}:{' '}
                         {localizedPreset.bridgeInstruction}
                       </p>
@@ -503,21 +503,21 @@ export default function AISettingsPage() {
                 })}
               </div>
             </div>
-            <div className="mt-4 rounded-2xl border border-gray-800 bg-gray-950/40 p-4">
+            <div className="mt-4 rounded-2xl border border-line bg-bg-elevated/40 p-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fg-muted">
                   {t('settings.aiPage.translationCustomLanguageCodes')}
                 </p>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-fg-muted">
                   {t('settings.aiPage.translationIsoCodesOnly')}
                 </span>
               </div>
-              <p className="mt-2 text-sm leading-6 text-gray-400">
+              <p className="mt-2 text-sm leading-6 text-fg-muted">
                 {t('settings.aiPage.translationCustomDescription')}
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <label className="space-y-2 text-sm text-gray-300">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                <label className="space-y-2 text-sm text-fg-muted">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-fg-muted">
                     {t('settings.aiPage.translationModeLabel')}
                   </span>
                   <select
@@ -526,7 +526,7 @@ export default function AISettingsPage() {
                     onChange={(event) =>
                       setTranslationMode(event.target.value as TranslationDisplayMode)
                     }
-                    className="w-full rounded-xl border border-gray-800 bg-gray-950/60 px-3 py-2 text-sm text-white outline-none transition focus:border-sky-500/60"
+                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-white outline-none transition focus:border-accent/60"
                   >
                     <option value="manual_only">
                       {t('settings.aiPage.translationMode.manual_only')}
@@ -539,8 +539,8 @@ export default function AISettingsPage() {
                     </option>
                   </select>
                 </label>
-                <label className="space-y-2 text-sm text-gray-300">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                <label className="space-y-2 text-sm text-fg-muted">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-fg-muted">
                     {t('settings.aiPage.translationTargetInputLabel')}
                   </span>
                   <input
@@ -549,11 +549,11 @@ export default function AISettingsPage() {
                     onChange={(event) => setTargetLanguageInput(event.target.value)}
                     placeholder="pt-BR"
                     disabled={translationMode === 'manual_only'}
-                    className="w-full rounded-xl border border-gray-800 bg-gray-950/60 px-3 py-2 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-sky-500/60 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-white outline-none transition placeholder:text-fg focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </label>
-                <label className="space-y-2 text-sm text-gray-300">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                <label className="space-y-2 text-sm text-fg-muted">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-fg-muted">
                     {t('settings.aiPage.translationReadableInputLabel')}
                   </span>
                   <input
@@ -562,7 +562,7 @@ export default function AISettingsPage() {
                     onChange={(event) => setReadableLanguagesInput(event.target.value)}
                     placeholder="en, ko, zh-Hant"
                     disabled={translationMode === 'target_language_all'}
-                    className="w-full rounded-xl border border-gray-800 bg-gray-950/60 px-3 py-2 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-sky-500/60 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-white outline-none transition placeholder:text-fg focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </label>
               </div>
@@ -572,16 +572,16 @@ export default function AISettingsPage() {
                   data-testid="translation-custom-save-button"
                   disabled={isSavingTranslationPreset}
                   onClick={() => void handleCustomTranslationSave()}
-                  className="rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {t('settings.aiPage.translationSaveButton')}
                 </button>
-                <p className="text-xs leading-5 text-gray-500">
+                <p className="text-xs leading-5 text-fg-muted">
                   {t('settings.aiPage.translationModeHelp')}
                 </p>
               </div>
             </div>
-            <div className="mt-3 text-xs text-gray-500">
+            <div className="mt-3 text-xs text-fg-muted">
               {isTranslationSettingsLoading
                 ? t('settings.aiPage.translationLoadingSaved')
                 : isSavingTranslationPreset
@@ -589,32 +589,32 @@ export default function AISettingsPage() {
                   : t('settings.aiPage.translationBuildNote')}
             </div>
             {translationPresetError ? (
-              <div className="mt-2 text-sm text-rose-300">{translationPresetError}</div>
+              <div className="mt-2 text-sm text-danger">{translationPresetError}</div>
             ) : null}
           </div>
 
           <div
             id="machine-control"
-            className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5 scroll-mt-24"
+            className="rounded-2xl border border-line bg-bg-subtle/60 p-5 scroll-mt-24"
           >
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-white">
                   {t('settings.aiPage.machineControl.title')}
                 </h2>
-                <p className="mt-1 text-sm leading-6 text-gray-400">
+                <p className="mt-1 text-sm leading-6 text-fg-muted">
                   {t('settings.aiPage.machineControl.description')}
                 </p>
               </div>
-              <span className="rounded-full border border-gray-700 bg-gray-950/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-gray-300">
+              <span className="rounded-full border border-line bg-bg-elevated/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-fg-muted">
                 {t('settings.aiPage.machineControl.queueBadge', { id: '271' })}
               </span>
             </div>
-            <div className="mt-4 rounded-2xl border border-gray-800 bg-gray-950/30 p-4">
+            <div className="mt-4 rounded-2xl border border-line bg-bg-elevated/30 p-4">
               <p className="text-sm font-medium text-white">
                 {t('settings.aiPage.machineControl.availabilityTitle')}
               </p>
-              <p className="mt-2 text-sm leading-6 text-gray-400">
+              <p className="mt-2 text-sm leading-6 text-fg-muted">
                 {t('settings.aiPage.machineControl.availabilityDescription')}
               </p>
             </div>
@@ -622,29 +622,29 @@ export default function AISettingsPage() {
               {settingsSurfaceRows.map((row) => (
                 <div
                   key={row.platform}
-                  className="rounded-2xl border border-gray-800 bg-gray-950/40 px-4 py-4"
+                  className="rounded-2xl border border-line bg-bg-elevated/40 px-4 py-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-white">{row.platform}</p>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-fg-muted">
                       {row.surface}
                     </p>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-gray-400">{row.detail}</p>
+                  <p className="mt-2 text-sm leading-6 text-fg-muted">{row.detail}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-4 rounded-2xl border border-gray-800 bg-gray-950/40 p-4">
+            <div className="mt-4 rounded-2xl border border-line bg-bg-elevated/40 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-white">
                     {t('settings.aiPage.machineControl.timelineTitle')}
                   </p>
-                  <p className="mt-1 text-sm leading-6 text-gray-400">
+                  <p className="mt-1 text-sm leading-6 text-fg-muted">
                     {t('settings.aiPage.machineControl.timelineDescription')}
                   </p>
                 </div>
-                <span className="rounded-full border border-gray-700 bg-gray-950/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-300">
+                <span className="rounded-full border border-line bg-bg-elevated/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
                   {desktopBridgeSnapshot?.registered
                     ? (desktopBridgeSnapshot.machine?.presence ?? t('settings.aiPage.unknown'))
                     : t('settings.aiPage.machineControl.browserNoBridge')}
@@ -652,10 +652,10 @@ export default function AISettingsPage() {
               </div>
               {desktopBridgeSnapshot?.registered && desktopBridgeSnapshot.machine ? (
                 <div className="mt-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fg-muted">
                     {desktopBridgeSnapshot.machine.name} · {desktopBridgeSnapshot.machine.id}
                   </p>
-                  <p className="mt-1 text-sm text-gray-400">
+                  <p className="mt-1 text-sm text-fg-muted">
                     {t('settings.aiPage.machineControl.bridgeId', {
                       bridgeId: desktopBridgeSnapshot.machine.bridgeIdentifier,
                     })}
@@ -700,13 +700,13 @@ export default function AISettingsPage() {
                       )}
                     </div>
                   ) : (
-                    <p className="mt-4 text-sm leading-6 text-gray-400">
+                    <p className="mt-4 text-sm leading-6 text-fg-muted">
                       {t('settings.aiPage.machineControl.noCommands')}
                     </p>
                   )}
                 </div>
               ) : (
-                <p className="mt-4 text-sm leading-6 text-gray-400">
+                <p className="mt-4 text-sm leading-6 text-fg-muted">
                   {t('settings.aiPage.machineControl.noDesktopBridge')}
                 </p>
               )}
@@ -714,8 +714,8 @@ export default function AISettingsPage() {
           </div>
         </section>
 
-        <aside className="rounded-3xl border border-gray-800 bg-gray-900/80 p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+        <aside className="rounded-3xl border border-line bg-bg-subtle/80 p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fg-muted">
             {t('settings.aiPage.runtime.title')}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -724,37 +724,37 @@ export default function AISettingsPage() {
               <span
                 className={
                   runtimePresentation.tone === 'live'
-                    ? 'rounded-full border border-emerald-700/40 bg-emerald-950/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-200'
+                    ? 'rounded-full border border-success/40 bg-success/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-success'
                     : runtimePresentation.tone === 'mock'
-                      ? 'rounded-full border border-amber-700/40 bg-amber-950/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-200'
-                      : 'rounded-full border border-rose-700/40 bg-rose-950/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-rose-200'
+                      ? 'rounded-full border border-warning/40 bg-warning/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-warning'
+                      : 'rounded-full border border-danger/40 bg-danger/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-danger'
                 }
               >
                 {runtimePresentation.label}
               </span>
             ) : null}
           </div>
-          <p className="mt-3 text-sm leading-6 text-gray-400">
+          <p className="mt-3 text-sm leading-6 text-fg-muted">
             {t('settings.aiPage.runtime.description')}
           </p>
-          <div className="mt-4 rounded-2xl border border-gray-800 bg-gray-950/70 p-4 text-sm text-gray-300">
+          <div className="mt-4 rounded-2xl border border-line bg-bg-elevated/70 p-4 text-sm text-fg-muted">
             <p className="font-medium text-white">{t('settings.aiPage.runtime.sessionTitle')}</p>
             <p className="mt-2 leading-6">
               {runtimePresentation?.description ?? t('settings.aiPage.runtime.loading')}
             </p>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-emerald-700/30 bg-emerald-950/20 p-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-emerald-300">
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+          <div className="mt-5 rounded-2xl border border-success/30 bg-success/20 p-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-success">
+              <span className="inline-block h-2 w-2 rounded-full bg-success" />
               {t('settings.aiPage.runtime.desktopPackagingTitle')}
             </div>
-            <p className="mt-2 text-sm leading-6 text-emerald-100/70">
+            <p className="mt-2 text-sm leading-6 text-success/70">
               {t('settings.aiPage.runtime.desktopPackagingDescription')}
             </p>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-sky-800/40 bg-sky-950/20 p-4 text-sm text-sky-100/80">
+          <div className="mt-4 rounded-2xl border border-accent/40 bg-accent-soft/20 p-4 text-sm text-accent/80">
             <p className="font-medium text-white">{t('settings.aiPage.mobileActions.title')}</p>
             <p className="mt-2 leading-6">{t('settings.aiPage.mobileActions.description')}</p>
             <ul className="mt-3 space-y-2">
@@ -762,15 +762,15 @@ export default function AISettingsPage() {
                 <li key={item}>• {item}</li>
               ))}
             </ul>
-            <p className="mt-3 text-xs leading-5 text-sky-200/70">
+            <p className="mt-3 text-xs leading-5 text-accent/70">
               {t('settings.aiPage.mobileActions.limitation')}
             </p>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-violet-800/40 bg-violet-950/20 p-4 text-sm text-violet-100/80">
+          <div className="mt-4 rounded-2xl border border-agent/40 bg-agent-soft/20 p-4 text-sm text-agent/80">
             <p className="font-medium text-white">{t('settings.aiPage.desktopPresets.title')}</p>
             <p className="mt-2 leading-6">{t('settings.aiPage.desktopPresets.description')}</p>
-            <p className="mt-2 text-xs uppercase tracking-[0.14em] text-violet-200/70">
+            <p className="mt-2 text-xs uppercase tracking-[0.14em] text-agent/70">
               {currentDesktopBridgePreset
                 ? t('settings.aiPage.desktopPresets.current', {
                     preset: getLocalizedTranslationPreset(currentDesktopBridgePreset.id).label,
@@ -786,7 +786,7 @@ export default function AISettingsPage() {
                   <span className="block mt-1 leading-6">
                     {getLocalizedTranslationPreset(preset.id).description}
                   </span>
-                  <span className="block mt-1 text-violet-200/70">
+                  <span className="block mt-1 text-agent/70">
                     {getLocalizedTranslationPreset(preset.id).bridgeInstruction}
                   </span>
                 </li>
@@ -794,11 +794,11 @@ export default function AISettingsPage() {
             </ul>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-gray-800 bg-gray-950/70 p-4 text-sm text-gray-400">
+          <div className="mt-4 rounded-2xl border border-line bg-bg-elevated/70 p-4 text-sm text-fg-muted">
             <p className="font-medium text-white">{t('settings.aiPage.platformFeatures.title')}</p>
             <div className="mt-3 space-y-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fg-muted">
                   {t('settings.aiPage.platform.web')}
                 </p>
                 <ul className="mt-2 space-y-2">
@@ -808,7 +808,7 @@ export default function AISettingsPage() {
                 </ul>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fg-muted">
                   {t('settings.aiPage.platform.desktop')}
                 </p>
                 <ul className="mt-2 space-y-2">
@@ -818,7 +818,7 @@ export default function AISettingsPage() {
                 </ul>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fg-muted">
                   {t('settings.aiPage.platform.mobile')}
                 </p>
                 <ul className="mt-2 space-y-2">

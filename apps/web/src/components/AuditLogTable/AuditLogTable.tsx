@@ -27,13 +27,13 @@ interface AuditLogTableProps {
 const PAGE_SIZE = 20;
 
 const ACTION_TYPE_STYLES: Record<string, string> = {
-  mute: 'bg-yellow-900/50 text-yellow-400',
-  kick: 'bg-orange-900/50 text-orange-400',
-  ban: 'bg-red-900/50 text-red-400',
-  warn: 'bg-yellow-900/50 text-yellow-300',
-  delete_message: 'bg-gray-700 text-gray-300',
-  unmute: 'bg-green-900/50 text-green-400',
-  unban: 'bg-green-900/50 text-green-400',
+  mute: 'bg-warning/50 text-warning',
+  kick: 'bg-warning/50 text-warning',
+  ban: 'bg-danger/50 text-danger',
+  warn: 'bg-warning/50 text-warning',
+  delete_message: 'bg-bg-subtle text-fg-muted',
+  unmute: 'bg-success/50 text-success',
+  unban: 'bg-success/50 text-success',
 };
 
 type SortField = 'createdAt' | 'actionType';
@@ -72,27 +72,27 @@ export function AuditLogTable({ actions }: AuditLogTableProps) {
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <span className="ml-1 text-gray-600">&#8645;</span>;
+    if (sortField !== field) return <span className="ml-1 text-fg">&#8645;</span>;
     return <span className="ml-1">{sortDir === 'asc' ? '\u25B2' : '\u25BC'}</span>;
   };
 
   if (actions.length === 0) {
     return (
       <div
-        className="rounded-lg border border-gray-700 bg-gray-800/30 p-8 text-center"
+        className="rounded-lg border border-line bg-bg-subtle/30 p-8 text-center"
         data-testid="audit-log-empty-state"
       >
-        <p className="text-sm text-gray-500">{t('mod.noAuditEntries')}</p>
+        <p className="text-sm text-fg-muted">{t('mod.noAuditEntries')}</p>
       </div>
     );
   }
 
   return (
     <div data-testid="audit-log-table-wrapper">
-      <div className="overflow-x-auto rounded-lg border border-gray-700">
+      <div className="overflow-x-auto rounded-lg border border-line">
         <table className="w-full text-sm" data-testid="audit-log-table">
           <thead>
-            <tr className="border-b border-gray-700 bg-gray-800/50 text-left text-xs text-gray-400">
+            <tr className="border-b border-line bg-bg-subtle/50 text-left text-xs text-fg-muted">
               <th
                 className="cursor-pointer px-4 py-3 font-medium"
                 onClick={() => toggleSort('createdAt')}
@@ -114,31 +114,31 @@ export function AuditLogTable({ actions }: AuditLogTableProps) {
             {paginated.map((action) => (
               <tr
                 key={action.action.id}
-                className="hover:bg-gray-800/30"
+                className="hover:bg-bg-subtle/30"
                 data-testid="audit-log-row"
                 data-action-id={action.action.id}
                 data-action-type={action.action.actionType}
               >
-                <td className="whitespace-nowrap px-4 py-3 text-gray-400">
+                <td className="whitespace-nowrap px-4 py-3 text-fg-muted">
                   {new Date(action.action.createdAt).toLocaleString()}
                 </td>
-                <td className="px-4 py-3 text-gray-300">
+                <td className="px-4 py-3 text-fg-muted">
                   {action.actor.displayName}
                 </td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       ACTION_TYPE_STYLES[action.action.actionType] ??
-                      'bg-gray-700 text-gray-300'
+                      'bg-bg-subtle text-fg-muted'
                     }`}
                   >
                     {action.action.actionType}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-400">
+                <td className="px-4 py-3 text-fg-muted">
                   {action.action.targetUserId ?? action.action.targetMessageId ?? '-'}
                 </td>
-                <td className="max-w-xs truncate px-4 py-3 text-gray-500">
+                <td className="max-w-xs truncate px-4 py-3 text-fg-muted">
                   {action.action.reason ?? action.message?.bodyPlaintext ?? '-'}
                 </td>
               </tr>
@@ -150,7 +150,7 @@ export function AuditLogTable({ actions }: AuditLogTableProps) {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-fg-muted">
             Showing {page * PAGE_SIZE + 1}-
             {Math.min((page + 1) * PAGE_SIZE, sorted.length)} of{' '}
             {sorted.length}
@@ -159,14 +159,14 @@ export function AuditLogTable({ actions }: AuditLogTableProps) {
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="rounded-lg bg-gray-800 px-3 py-1.5 text-xs text-gray-300 transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg bg-bg-subtle px-3 py-1.5 text-xs text-fg-muted transition-colors hover:bg-bg-subtle disabled:cursor-not-allowed disabled:opacity-40"
             >
               Previous
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="rounded-lg bg-gray-800 px-3 py-1.5 text-xs text-gray-300 transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg bg-bg-subtle px-3 py-1.5 text-xs text-fg-muted transition-colors hover:bg-bg-subtle disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
             </button>

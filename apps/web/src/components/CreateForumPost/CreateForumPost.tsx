@@ -36,7 +36,7 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
   );
 
   return (
-    <div data-testid="forum-create-panel" className="border-b border-gray-800 bg-gray-850 px-4 py-4">
+    <div data-testid="forum-create-panel" className="border-b border-line bg-bg-subtle px-4 py-4">
       <form data-testid="forum-create-form" onSubmit={handleSubmit} className="space-y-3">
         <input
           data-testid="forum-create-title-input"
@@ -44,7 +44,7 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Post title"
-          className="w-full rounded-md border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           autoFocus
         />
         <textarea
@@ -53,11 +53,11 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
           onChange={(e) => setBody(e.target.value)}
           placeholder="Write your post content... (Markdown supported)"
           rows={4}
-          className="w-full resize-none rounded-md border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
 
         {createPost.isError && (
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-danger">
             {(createPost.error as Error).message || 'Failed to create post'}
           </p>
         )}
@@ -67,7 +67,7 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
             type="button"
             data-testid="forum-create-cancel-button"
             onClick={onClose}
-            className="rounded-md px-4 py-2 text-sm font-medium text-gray-300 hover:text-gray-100"
+            className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg-muted"
           >
             Cancel
           </button>
@@ -75,7 +75,7 @@ export function CreateForumPost({ channelId, onClose }: CreateForumPostProps) {
             type="submit"
             data-testid="forum-create-submit-button"
             disabled={!title.trim() || !body.trim() || createPost.isPending}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createPost.isPending ? 'Posting...' : 'Create Post'}
           </button>

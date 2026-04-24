@@ -78,7 +78,7 @@ function OtpInput({
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={i === 0 ? handlePaste : undefined}
           disabled={disabled}
-          className="h-12 w-10 rounded-md border border-gray-600 bg-gray-700 text-center text-lg font-bold text-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+          className="h-12 w-10 rounded-md border border-line bg-bg-subtle text-center text-lg font-bold text-fg-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50"
         />
       ))}
     </div>
@@ -119,7 +119,7 @@ function useCountdown(seconds: number) {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p className="text-gray-400">...</p></div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p className="text-fg-muted">...</p></div>}>
       <LoginContent />
     </Suspense>
   );
@@ -329,9 +329,9 @@ function LoginContent() {
   if (otpSent) {
     return (
       <main className="flex min-h-screen items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-lg bg-gray-800 p-8">
+        <div className="w-full max-w-sm rounded-lg bg-bg-subtle p-8">
           <h1 className="mb-2 text-center text-xl font-bold">{t('auth.enterCode')}</h1>
-          <p className="mb-6 text-center text-sm text-gray-400">
+          <p className="mb-6 text-center text-sm text-fg-muted">
             {t('auth.codeSentTo', { phone: maskedPhone || fullPhoneNumber })}
           </p>
 
@@ -344,14 +344,14 @@ function LoginContent() {
           />
 
           {devOtpCode && (
-            <div data-testid="login-otp-dev-code" className="mt-4 rounded bg-gray-700 p-3 text-center">
-              <p className="mb-1 text-xs text-gray-400">Dev code:</p>
-              <p className="text-lg font-bold text-indigo-400">{devOtpCode}</p>
+            <div data-testid="login-otp-dev-code" className="mt-4 rounded bg-bg-subtle p-3 text-center">
+              <p className="mb-1 text-xs text-fg-muted">Dev code:</p>
+              <p className="text-lg font-bold text-accent">{devOtpCode}</p>
             </div>
           )}
 
           <div className="mt-4 flex items-center justify-between text-sm">
-            <span className={`${timer.isExpired ? 'text-red-400' : 'text-gray-400'}`}>
+            <span className={`${timer.isExpired ? 'text-danger' : 'text-fg-muted'}`}>
               {timer.isExpired
                 ? t('auth.codeExpired')
                 : t('auth.timeRemaining', { time: timer.formatTime(timer.remaining) })}
@@ -363,13 +363,13 @@ function LoginContent() {
                 handleRequestOtp(e as unknown as FormEvent);
               }}
               disabled={isSubmitting || timer.isRunning}
-              className="text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
+              className="text-accent hover:text-accent disabled:opacity-50"
             >
               {t('auth.resend')}
             </button>
           </div>
 
-          {error && <p className="mt-4 text-center text-sm text-red-400">{error}</p>}
+          {error && <p className="mt-4 text-center text-sm text-danger">{error}</p>}
 
           <button
             onClick={() => {
@@ -378,7 +378,7 @@ function LoginContent() {
               setDevOtpCode(null);
               setError(null);
             }}
-            className="mt-6 block w-full text-center text-sm text-gray-400 hover:text-gray-200"
+            className="mt-6 block w-full text-center text-sm text-fg-muted hover:text-fg-muted"
           >
             {t('common.back')}
           </button>
@@ -392,19 +392,19 @@ function LoginContent() {
   if (emailSubmitted) {
     return (
       <main className="flex min-h-screen items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-lg bg-gray-800 p-8 text-center">
+        <div className="w-full max-w-sm rounded-lg bg-bg-subtle p-8 text-center">
           <div className="mb-4 text-4xl">&#9993;</div>
           <h1 className="text-xl font-bold">{t('auth.checkEmail')}</h1>
-          <p className="mt-2 text-sm text-gray-400">
+          <p className="mt-2 text-sm text-fg-muted">
             {t('auth.magicLinkSent')}{' '}
-            <span className="font-medium text-gray-200">{email}</span>
+            <span className="font-medium text-fg-muted">{email}</span>
           </p>
           {devToken && (
-            <div data-testid="login-email-dev-link" className="mt-4 rounded bg-gray-700 p-3">
-              <p className="mb-1 text-xs text-gray-400">{t('auth.devToken')}</p>
+            <div data-testid="login-email-dev-link" className="mt-4 rounded bg-bg-subtle p-3">
+              <p className="mb-1 text-xs text-fg-muted">{t('auth.devToken')}</p>
               <a
                 href={`/verify?token=${devToken}`}
-                className="break-all text-sm text-indigo-400 underline"
+                className="break-all text-sm text-accent underline"
               >
                 /verify?token={devToken}
               </a>
@@ -415,7 +415,7 @@ function LoginContent() {
               setEmailSubmitted(false);
               setDevToken(null);
             }}
-            className="mt-6 text-sm text-gray-400 hover:text-gray-200"
+            className="mt-6 text-sm text-fg-muted hover:text-fg-muted"
           >
             {t('auth.useDifferentEmail')}
           </button>
@@ -429,7 +429,7 @@ function LoginContent() {
   if (showQr) {
     return (
       <main className="flex min-h-screen items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-lg bg-gray-800 p-8 text-center">
+        <div className="w-full max-w-sm rounded-lg bg-bg-subtle p-8 text-center">
           <h1 className="mb-4 text-xl font-bold">{t('auth.qrLogin')}</h1>
 
           {qrToken ? (
@@ -437,24 +437,24 @@ function LoginContent() {
               <div className="mx-auto mb-4 flex h-48 w-48 items-center justify-center rounded-lg bg-white p-4">
                 {/* QR code representation - in production use a QR library */}
                 <div className="text-center">
-                  <div className="mb-2 text-4xl text-gray-800">&#9635;</div>
-                  <p className="break-all text-xs text-gray-600">
+                  <div className="mb-2 text-4xl text-fg">&#9635;</div>
+                  <p className="break-all text-xs text-fg">
                     zktalk://qr/{qrToken.substring(0, 8)}...
                   </p>
                 </div>
               </div>
-              <p className="text-sm text-gray-400">{t('auth.scanQr')}</p>
-              <div className="mt-2 animate-pulse text-xs text-gray-500">
+              <p className="text-sm text-fg-muted">{t('auth.scanQr')}</p>
+              <div className="mt-2 animate-pulse text-xs text-fg-muted">
                 {t('auth.scanQr')}
               </div>
             </>
           ) : (
             <div className="flex h-48 items-center justify-center">
-              <p className="text-gray-400">{t('common.loading')}</p>
+              <p className="text-fg-muted">{t('common.loading')}</p>
             </div>
           )}
 
-          {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
           <button
             onClick={() => {
@@ -463,7 +463,7 @@ function LoginContent() {
               setQrToken(null);
               setError(null);
             }}
-            className="mt-6 text-sm text-gray-400 hover:text-gray-200"
+            className="mt-6 text-sm text-fg-muted hover:text-fg-muted"
           >
             {t('common.back')}
           </button>
@@ -476,18 +476,18 @@ function LoginContent() {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-lg bg-gray-800 p-8">
+      <div className="w-full max-w-sm rounded-lg bg-bg-subtle p-8">
         <h1 className="mb-6 text-center text-2xl font-bold">{t('auth.welcome')}</h1>
 
         {/* Tab Selector */}
-        <div className="mb-6 flex rounded-md border border-gray-600">
+        <div className="mb-6 flex rounded-md border border-line">
           <button
             data-testid="login-tab-phone"
             onClick={() => { setActiveTab('phone'); setError(null); }}
             className={`flex-1 rounded-l-md px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === 'phone'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-700 text-gray-400 hover:text-gray-200'
+                ? 'bg-accent text-white'
+                : 'bg-bg-subtle text-fg-muted hover:text-fg-muted'
             }`}
           >
             {t('auth.phoneTab')}
@@ -497,8 +497,8 @@ function LoginContent() {
             onClick={() => { setActiveTab('email'); setError(null); }}
             className={`flex-1 rounded-r-md px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === 'email'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-700 text-gray-400 hover:text-gray-200'
+                ? 'bg-accent text-white'
+                : 'bg-bg-subtle text-fg-muted hover:text-fg-muted'
             }`}
           >
             {t('auth.emailTab')}
@@ -509,7 +509,7 @@ function LoginContent() {
         {activeTab === 'phone' && (
           <form data-testid="login-phone-form" onSubmit={handleRequestOtp} className="space-y-4">
             <div>
-              <label htmlFor="phone" className="mb-1 block text-sm font-medium text-gray-300">
+              <label htmlFor="phone" className="mb-1 block text-sm font-medium text-fg-muted">
                 {t('auth.phone')}
               </label>
               <div className="flex gap-2">
@@ -517,7 +517,7 @@ function LoginContent() {
                   data-testid="login-phone-country"
                   value={countryCode}
                   onChange={(e) => setCountryCode(e.target.value)}
-                  className="w-24 rounded-md border border-gray-600 bg-gray-700 px-2 py-2 text-sm text-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-24 rounded-md border border-line bg-bg-subtle px-2 py-2 text-sm text-fg-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 >
                   {COUNTRY_CODES.map((cc) => (
                     <option key={cc.code} value={cc.code}>{cc.label}</option>
@@ -531,18 +531,18 @@ function LoginContent() {
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder={t('auth.phonePlaceholder')}
-                  className="flex-1 rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="flex-1 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-400 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 />
               </div>
             </div>
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="text-sm text-danger">{error}</p>}
 
             <button
               data-testid="login-phone-submit"
               type="submit"
               disabled={isSubmitting || !phoneNumber.trim()}
-              className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50"
+              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
             >
               {isSubmitting ? t('auth.sending') : t('auth.sendCode')}
             </button>
@@ -553,7 +553,7 @@ function LoginContent() {
         {activeTab === 'email' && (
           <form data-testid="login-email-form" onSubmit={handleEmailSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-300">
+              <label htmlFor="email" className="mb-1 block text-sm font-medium text-fg-muted">
                 {t('auth.email')}
               </label>
               <input
@@ -564,17 +564,17 @@ function LoginContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('auth.emailPlaceholder')}
-                className="w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-400 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
             </div>
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="text-sm text-danger">{error}</p>}
 
             <button
               data-testid="login-email-submit"
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50"
+              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
             >
               {isSubmitting ? t('auth.sending') : t('auth.continueWithEmail')}
             </button>
@@ -583,16 +583,16 @@ function LoginContent() {
 
         {/* Divider */}
         <div className="my-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-gray-600" />
-          <span className="text-xs text-gray-400">{t('auth.orContinueWith')}</span>
-          <div className="h-px flex-1 bg-gray-600" />
+          <div className="h-px flex-1 bg-bg-subtle" />
+          <span className="text-xs text-fg-muted">{t('auth.orContinueWith')}</span>
+          <div className="h-px flex-1 bg-bg-subtle" />
         </div>
 
         {/* OAuth Buttons */}
         <div className="space-y-3">
           <button
             onClick={handleGoogleLogin}
-            className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-600 bg-gray-700 px-4 py-2.5 text-sm font-medium text-gray-200 transition-colors hover:bg-gray-600"
+            className="flex w-full items-center justify-center gap-3 rounded-md border border-line bg-bg-subtle px-4 py-2.5 text-sm font-medium text-fg-muted transition-colors hover:bg-bg-subtle"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -617,7 +617,7 @@ function LoginContent() {
 
           <button
             onClick={handleAppleLogin}
-            className="flex w-full items-center justify-center gap-3 rounded-md border border-gray-600 bg-gray-700 px-4 py-2.5 text-sm font-medium text-gray-200 transition-colors hover:bg-gray-600"
+            className="flex w-full items-center justify-center gap-3 rounded-md border border-line bg-bg-subtle px-4 py-2.5 text-sm font-medium text-fg-muted transition-colors hover:bg-bg-subtle"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
@@ -627,10 +627,10 @@ function LoginContent() {
         </div>
 
         {/* QR Code Section */}
-        <div className="mt-6 border-t border-gray-600 pt-4 text-center">
+        <div className="mt-6 border-t border-line pt-4 text-center">
           <button
             onClick={handleShowQr}
-            className="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-gray-200"
+            className="inline-flex items-center gap-2 text-sm text-fg-muted transition-colors hover:text-fg-muted"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="3" width="7" height="7" rx="1" />

@@ -66,8 +66,8 @@ export function ZkCredentialBadge({ userId }: ZkCredentialBadgeProps) {
             key={credential.id}
             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
               credential.isVerified
-                ? 'bg-green-900/50 text-green-400'
-                : 'bg-gray-700 text-gray-400'
+                ? 'bg-success/50 text-success'
+                : 'bg-bg-subtle text-fg-muted'
             }`}
             title={metadataLabel ?? label}
           >

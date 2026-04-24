@@ -68,7 +68,7 @@ export function ReportButton({
       <button
         onClick={() => setOpen(true)}
         data-testid="message-report-button"
-        className="flex items-center gap-1.5 text-xs text-gray-500 transition-colors hover:text-red-400"
+        className="flex items-center gap-1.5 text-xs text-fg-muted transition-colors hover:text-danger"
         title="Report"
       >
         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -85,19 +85,19 @@ export function ReportButton({
         >
           <div
             ref={modalRef}
-            className="w-full max-w-md rounded-xl border border-gray-700 bg-gray-900 p-6 shadow-2xl"
+            className="w-full max-w-md rounded-xl border border-line bg-bg-subtle p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             data-testid="report-modal-panel"
           >
             {submitted ? (
               <div className="text-center" data-testid="report-success-state">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-900/50">
-                  <svg className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/50">
+                  <svg className="h-6 w-6 text-success" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                   </svg>
                 </div>
-                <p className="mt-3 font-medium text-gray-200">{t('report.submitted')}</p>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-3 font-medium text-fg-muted">{t('report.submitted')}</p>
+                <p className="mt-1 text-sm text-fg-muted">
                   {t('report.reviewMessage')}
                 </p>
               </div>
@@ -108,7 +108,7 @@ export function ReportButton({
                   <button
                     onClick={() => setOpen(false)}
                     data-testid="report-close-button"
-                    className="text-gray-500 hover:text-gray-300"
+                    className="text-fg-muted hover:text-fg-muted"
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -116,7 +116,7 @@ export function ReportButton({
                   </button>
                 </div>
 
-                <p className="mt-2 text-sm text-gray-400">
+                <p className="mt-2 text-sm text-fg-muted">
                   Select a reason for reporting this content.
                 </p>
 
@@ -128,8 +128,8 @@ export function ReportButton({
                       data-reason-code={r.code}
                       className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
                         selectedReason === r.code
-                          ? 'border-indigo-500 bg-indigo-500/10 text-gray-200'
-                          : 'border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600'
+                          ? 'border-accent bg-accent/10 text-fg-muted'
+                          : 'border-line bg-bg-subtle/50 text-fg-muted hover:border-line'
                       }`}
                     >
                       <input
@@ -144,12 +144,12 @@ export function ReportButton({
                       <div
                         className={`flex h-4 w-4 items-center justify-center rounded-full border ${
                           selectedReason === r.code
-                            ? 'border-indigo-500'
-                            : 'border-gray-600'
+                            ? 'border-accent'
+                            : 'border-line'
                         }`}
                       >
                         {selectedReason === r.code && (
-                          <div className="h-2 w-2 rounded-full bg-indigo-500" />
+                          <div className="h-2 w-2 rounded-full bg-accent" />
                         )}
                       </div>
                       {r.label}
@@ -164,7 +164,7 @@ export function ReportButton({
                     placeholder="Please describe the issue..."
                     rows={3}
                     data-testid="report-reason-text-input"
-                    className="mt-3 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none"
+                    className="mt-3 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg focus:border-accent focus:outline-none"
                   />
                 )}
 
@@ -172,7 +172,7 @@ export function ReportButton({
                   <button
                     onClick={() => setOpen(false)}
                     data-testid="report-cancel-button"
-                    className="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-200"
+                    className="rounded-lg px-4 py-2 text-sm text-fg-muted transition-colors hover:bg-bg-subtle hover:text-fg-muted"
                   >
                     Cancel
                   </button>
@@ -180,14 +180,14 @@ export function ReportButton({
                     onClick={() => submitReport.mutate()}
                     disabled={!selectedReason || submitReport.isPending}
                     data-testid="report-submit-button"
-                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-danger disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {submitReport.isPending ? 'Submitting...' : 'Submit Report'}
                   </button>
                 </div>
 
                 {submitReport.isError && (
-                  <p className="mt-2 text-center text-xs text-red-400" data-testid="report-error-message">
+                  <p className="mt-2 text-center text-xs text-danger" data-testid="report-error-message">
                     Failed to submit report. Please try again.
                   </p>
                 )}

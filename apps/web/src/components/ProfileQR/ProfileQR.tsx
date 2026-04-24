@@ -132,7 +132,7 @@ export function ProfileQR({ userId, className, hideHeading = false }: ProfileQRP
           <p className="text-sm font-semibold text-white">
             {user?.displayName ?? t('settings.unknown')}
           </p>
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-fg-muted">
             @{user?.username ?? 'unknown'}
           </p>
         </div>
@@ -170,32 +170,32 @@ export function ProfileQR({ userId, className, hideHeading = false }: ProfileQRP
 
       {/* Shareable link */}
       <div className="w-full max-w-xs">
-        <div className="flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2">
+        <div className="flex items-center gap-2 rounded-lg border border-line bg-bg-subtle px-3 py-2">
           <input
             type="text"
             value={profileLink}
             readOnly
-            className="flex-1 truncate bg-transparent text-xs text-gray-300 focus:outline-none"
+            className="flex-1 truncate bg-transparent text-xs text-fg-muted focus:outline-none"
           />
           <button
             onClick={() => void copyToClipboard(profileLink, 'link')}
-            className="shrink-0 rounded bg-indigo-600 px-2 py-1 text-xs text-white hover:bg-indigo-500"
+            className="shrink-0 rounded bg-accent px-2 py-1 text-xs text-white hover:bg-accent"
           >
             {copiedMode === 'link' ? t('settings.copied') : t('qr.shareLink')}
           </button>
         </div>
         <button
           onClick={() => void copyToClipboard(shareText, 'text')}
-          className="mt-2 w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-xs font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-800"
+          className="mt-2 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-xs font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
         >
           {copiedMode === 'text' ? t('settings.copied') : t('qr.copyShareText')}
         </button>
       </div>
 
-      <p className="text-center text-xs text-gray-500">
+      <p className="text-center text-xs text-fg-muted">
         {t('qr.scanDesc')}
       </p>
-      <p className="max-w-xs text-center text-xs text-gray-500">
+      <p className="max-w-xs text-center text-xs text-fg-muted">
         {t('qr.shareTextHint')}
       </p>
     </div>

@@ -68,7 +68,7 @@ export default function InboxPage() {
             <h1 className="text-xl font-bold text-white">
               {t('inbox.title')}
             </h1>
-            <p className="mt-1 text-sm text-[#96989d]">
+            <p className="mt-1 text-sm text-fg-muted">
               {t('inbox.listSubtitle')}
             </p>
           </div>
@@ -77,7 +77,7 @@ export default function InboxPage() {
             data-testid="inbox-mark-all-read-button"
             onClick={() => markAllReadMutation.mutate()}
             disabled={unreadCount === 0 || markAllReadMutation.isPending}
-            className="rounded-lg border border-[#4f545c] bg-[#2f3136] px-3 py-2 text-sm font-medium text-[#dcddde] transition hover:bg-[#40444b] disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm font-medium text-fg transition hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {markAllReadMutation.isPending
               ? t('inbox.markingAllRead')
@@ -85,7 +85,7 @@ export default function InboxPage() {
           </button>
         </div>
 
-        <div className="mt-6 overflow-hidden rounded-2xl border border-[#40444b] bg-[#202225] shadow-sm">
+        <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-bg-subtle shadow-sm">
           <InboxView
             items={items}
             isLoading={inboxQuery.isLoading}

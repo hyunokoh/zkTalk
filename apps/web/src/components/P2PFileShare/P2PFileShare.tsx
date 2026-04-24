@@ -166,7 +166,7 @@ export function P2PFileShare({
         type="button"
         onClick={handleClick}
         disabled={isProcessing || (requireTopic && !topic?.trim())}
-        className="rounded p-1.5 text-gray-400 hover:bg-gray-700 hover:text-gray-200 disabled:opacity-50"
+        className="rounded p-1.5 text-fg-muted hover:bg-bg-subtle hover:text-fg-muted disabled:opacity-50"
         title={t('p2p.shareFile')}
       >
         {isProcessing ? (
@@ -200,7 +200,7 @@ export function P2PFileShare({
         )}
       </button>
       {selectedFile && isProcessing && (
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-fg-muted">
           {t('p2p.downloading')} {selectedFile.name}
         </span>
       )}

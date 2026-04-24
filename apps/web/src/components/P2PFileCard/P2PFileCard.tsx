@@ -28,7 +28,7 @@ function getFileIcon(mimeType: string): string {
 }
 
 function FileIcon({ type }: { type: string }) {
-  const iconClasses = 'h-8 w-8 text-gray-400';
+  const iconClasses = 'h-8 w-8 text-fg-muted';
 
   switch (type) {
     case 'image':
@@ -128,25 +128,25 @@ export function P2PFileCard({
   const iconType = getFileIcon(mimeType);
 
   return (
-    <div className="my-1 inline-flex max-w-sm items-center gap-3 rounded-lg border border-gray-700 bg-gray-800/60 px-4 py-3">
+    <div className="my-1 inline-flex max-w-sm items-center gap-3 rounded-lg border border-line bg-bg-subtle/60 px-4 py-3">
       <FileIcon type={iconType} />
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-gray-200">{fileName}</p>
-        <p className="text-xs text-gray-500">
+        <p className="truncate text-sm font-medium text-fg-muted">{fileName}</p>
+        <p className="text-xs text-fg-muted">
           {fileSize} &middot; {t('p2p.noLimit')}
         </p>
 
         {/* Progress bar */}
         {(state === 'downloading' || state === 'connecting') && (
           <div className="mt-1.5">
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-700">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-subtle">
               <div
-                className="h-full rounded-full bg-indigo-500 transition-all duration-200"
+                className="h-full rounded-full bg-accent transition-all duration-200"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="mt-0.5 text-xs text-fg-muted">
               {state === 'connecting'
                 ? t('p2p.downloading')
                 : t('p2p.progress', { percent: progress })}
@@ -159,7 +159,7 @@ export function P2PFileCard({
         {state === 'idle' && (
           <button
             onClick={handleDownload}
-            className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
+            className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent"
           >
             <svg className="inline-block h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
               <path
@@ -172,24 +172,24 @@ export function P2PFileCard({
         )}
 
         {state === 'connecting' && (
-          <svg className="h-5 w-5 animate-spin text-indigo-400" viewBox="0 0 24 24" fill="none">
+          <svg className="h-5 w-5 animate-spin text-accent" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" className="opacity-25" />
             <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" className="opacity-75" />
           </svg>
         )}
 
         {state === 'downloading' && (
-          <span className="text-xs font-medium text-indigo-400">{progress}%</span>
+          <span className="text-xs font-medium text-accent">{progress}%</span>
         )}
 
         {state === 'done' && (
-          <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+          <svg className="h-5 w-5 text-success" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
         )}
 
         {state === 'seeding' && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-green-900/30 px-2 py-0.5 text-xs font-medium text-green-400">
+          <span className="inline-flex items-center gap-1 rounded-full bg-success/30 px-2 py-0.5 text-xs font-medium text-success">
             <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
@@ -200,7 +200,7 @@ export function P2PFileCard({
         {state === 'error' && (
           <button
             onClick={handleDownload}
-            className="text-xs text-red-400 hover:text-red-300"
+            className="text-xs text-danger hover:text-danger"
             title={t('p2p.noSeeders')}
           >
             {t('p2p.noSeeders')}

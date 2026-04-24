@@ -71,12 +71,12 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
     >
       <div
         data-testid="poll-creator-panel"
-        className="w-full max-w-md rounded-lg border border-gray-700 bg-gray-900 shadow-xl"
+        className="w-full max-w-md rounded-lg border border-line bg-bg-subtle shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-gray-700 px-4 py-3">
-          <h3 className="text-sm font-semibold text-gray-100">{t('poll.create')}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-200">
+        <div className="flex items-center justify-between border-b border-line px-4 py-3">
+          <h3 className="text-sm font-semibold text-fg-muted">{t('poll.create')}</h3>
+          <button onClick={onClose} className="text-fg-muted hover:text-fg-muted">
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
@@ -86,14 +86,14 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
         <div className="space-y-4 p-4">
           {/* Question */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-400">{t('poll.question')}</label>
+            <label className="mb-1 block text-xs font-medium text-fg-muted">{t('poll.question')}</label>
             <input
               data-testid="poll-creator-question-input"
               type="text"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder={t('poll.questionPlaceholder')}
-              className="w-full rounded-md border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
@@ -107,12 +107,12 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
                   value={opt}
                   onChange={(e) => updateOption(i, e.target.value)}
                   placeholder={t('poll.option', { num: i + 1 })}
-                  className="flex-1 rounded-md border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="flex-1 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 />
                 {options.length > 2 && (
                   <button
                     onClick={() => removeOption(i)}
-                    className="shrink-0 rounded px-2 py-1 text-xs text-red-400 hover:bg-gray-800"
+                    className="shrink-0 rounded px-2 py-1 text-xs text-danger hover:bg-bg-subtle"
                   >
                     {t('poll.removeOption')}
                   </button>
@@ -123,7 +123,7 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
               <button
                 data-testid="poll-creator-add-option-button"
                 onClick={addOption}
-                className="text-xs text-indigo-400 hover:text-indigo-300"
+                className="text-xs text-accent hover:text-accent"
               >
                 + {t('poll.addOption')}
               </button>
@@ -132,23 +132,23 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
 
           {/* Settings */}
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-gray-300">
+            <label className="flex items-center gap-2 text-sm text-fg-muted">
               <input
                 data-testid="poll-creator-anonymous-toggle"
                 type="checkbox"
                 checked={anonymous}
                 onChange={(e) => setAnonymous(e.target.checked)}
-                className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-indigo-500"
+                className="rounded border-line bg-bg-subtle text-accent-strong focus:ring-accent"
               />
               {t('poll.anonymous')}
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-300">
+            <label className="flex items-center gap-2 text-sm text-fg-muted">
               <input
                 data-testid="poll-creator-multiple-toggle"
                 type="checkbox"
                 checked={multiple}
                 onChange={(e) => setMultiple(e.target.checked)}
-                className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-indigo-500"
+                className="rounded border-line bg-bg-subtle text-accent-strong focus:ring-accent"
               />
               {t('poll.multiple')}
             </label>
@@ -156,7 +156,7 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
 
           {/* Expiry */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-400">
+            <label className="mb-1 block text-xs font-medium text-fg-muted">
               {t('poll.expires')} {t('common.optional')}
             </label>
             <input
@@ -165,7 +165,7 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
               min="1"
               value={expiresHours}
               onChange={(e) => setExpiresHours(e.target.value)}
-              className="w-24 rounded-md border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-24 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
@@ -174,7 +174,7 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
             <button
               data-testid="poll-creator-cancel-button"
               onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm text-gray-400 hover:text-gray-200"
+              className="rounded-md px-4 py-2 text-sm text-fg-muted hover:text-fg-muted"
             >
               {t('common.cancel')}
             </button>
@@ -182,7 +182,7 @@ export function PollCreator({ channelId, onClose, onCreated }: PollCreatorProps)
               data-testid="poll-creator-submit-button"
               onClick={() => createMutation.mutate()}
               disabled={!canSubmit || createMutation.isPending}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
             >
               {createMutation.isPending ? t('common.loading') : t('common.create')}
             </button>

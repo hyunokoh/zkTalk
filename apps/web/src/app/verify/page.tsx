@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p className="text-gray-400">...</p></div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p className="text-fg-muted">...</p></div>}>
       <VerifyContent />
     </Suspense>
   );
@@ -77,23 +77,23 @@ function VerifyContent() {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-lg bg-gray-800 p-8 text-center">
+      <div className="w-full max-w-sm rounded-lg bg-bg-subtle p-8 text-center">
         {isVerifying ? (
           <>
             <div className="mb-4 animate-spin text-4xl">&#9881;</div>
             <h1 className="text-xl font-bold">{t('auth.verifying')}</h1>
-            <p className="mt-2 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-fg-muted">
               {t('auth.verifyWait')}
             </p>
           </>
         ) : (
           <>
             <div className="mb-4 text-4xl">&#10060;</div>
-            <h1 className="text-xl font-bold text-red-400">{t('auth.verifyFailed')}</h1>
-            <p className="mt-2 text-sm text-gray-400">{error}</p>
+            <h1 className="text-xl font-bold text-danger">{t('auth.verifyFailed')}</h1>
+            <p className="mt-2 text-sm text-fg-muted">{error}</p>
             <Link
               href="/login"
-              className="mt-6 inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+              className="mt-6 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent"
             >
               {t('auth.backToLogin')}
             </Link>

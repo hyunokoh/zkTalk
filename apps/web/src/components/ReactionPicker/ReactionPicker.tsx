@@ -47,14 +47,14 @@ export function ReactionPicker({ onSelect, onClose }: ReactionPickerProps) {
   return (
     <div
       ref={ref}
-      className="absolute bottom-full left-0 z-50 mb-1 grid grid-cols-5 gap-1 rounded-lg border border-gray-700 bg-gray-800 p-2 shadow-xl"
+      className="absolute bottom-full left-0 z-50 mb-1 grid grid-cols-5 gap-1 rounded-lg border border-line bg-bg-subtle p-2 shadow-xl"
     >
       {EMOJI_LIST.map(({ emoji, label }) => (
         <button
           key={label}
           onClick={() => onSelect(emoji)}
           title={label}
-          className="flex h-8 w-8 items-center justify-center rounded text-lg transition-colors hover:bg-gray-700"
+          className="flex h-8 w-8 items-center justify-center rounded text-lg transition-colors hover:bg-bg-subtle"
         >
           {emoji}
         </button>

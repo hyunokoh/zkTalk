@@ -147,7 +147,7 @@ export default function WebhooksSettingsPage() {
 
   if (communityLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-400">
+      <div className="flex h-full items-center justify-center text-fg-muted">
         {t('common.loading')}
       </div>
     );
@@ -155,7 +155,7 @@ export default function WebhooksSettingsPage() {
 
   if (!community) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-400">
+      <div className="flex h-full items-center justify-center text-fg-muted">
         {t('community.notFound')}
       </div>
     );
@@ -163,7 +163,7 @@ export default function WebhooksSettingsPage() {
 
   if (roleLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-400">
+      <div className="flex h-full items-center justify-center text-fg-muted">
         {t('common.loading')}
       </div>
     );
@@ -171,8 +171,8 @@ export default function WebhooksSettingsPage() {
 
   if (!canManageSettings) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 text-gray-400">
-        <svg className="h-12 w-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="flex h-full flex-col items-center justify-center gap-4 text-fg-muted">
+        <svg className="h-12 w-12 text-fg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m0 0a2 2 0 100-4 2 2 0 000 4zm6-6V7a6 6 0 10-12 0v4m-2 0h16a1 1 0 011 1v8a1 1 0 01-1 1H5a1 1 0 01-1-1v-8a1 1 0 011-1z" />
         </svg>
         <p className="text-sm">{t('settings.notAdmin')}</p>
@@ -189,16 +189,16 @@ export default function WebhooksSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h1 className="text-xl font-bold text-gray-100">{t('webhook.title')}</h1>
+      <h1 className="text-xl font-bold text-fg-muted">{t('webhook.title')}</h1>
 
       {/* ── Webhooks Section ────────────────────────────────────── */}
       <section className="mt-6">
-        <h2 className="text-lg font-semibold text-gray-300">{t('webhook.create')}</h2>
+        <h2 className="text-lg font-semibold text-fg-muted">{t('webhook.create')}</h2>
 
         <div className="mt-4 space-y-4">
           {/* Name */}
           <div>
-            <label htmlFor="webhook-name" className="block text-sm font-medium text-gray-400">
+            <label htmlFor="webhook-name" className="block text-sm font-medium text-fg-muted">
               {t('webhook.name')}
             </label>
             <input
@@ -207,20 +207,20 @@ export default function WebhooksSettingsPage() {
               value={webhookName}
               onChange={(e) => setWebhookName(e.target.value)}
               placeholder={t('webhook.namePlaceholder')}
-              className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
           {/* Channel select */}
           <div>
-            <label htmlFor="webhook-channel" className="block text-sm font-medium text-gray-400">
+            <label htmlFor="webhook-channel" className="block text-sm font-medium text-fg-muted">
               {t('webhook.channel')}
             </label>
             <select
               id="webhook-channel"
               value={webhookChannelId}
               onChange={(e) => setWebhookChannelId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             >
               <option value="">{t('webhook.selectChannel')}</option>
               {channels.map((ch) => (
@@ -235,7 +235,7 @@ export default function WebhooksSettingsPage() {
             type="button"
             onClick={() => createWebhookMutation.mutate()}
             disabled={!webhookName.trim() || !webhookChannelId || createWebhookMutation.isPending}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
           >
             {createWebhookMutation.isPending ? t('common.loading') : t('webhook.create')}
           </button>
@@ -244,21 +244,21 @@ export default function WebhooksSettingsPage() {
         {/* Existing webhooks list */}
         <div className="mt-6 space-y-3">
           {webhooks.length === 0 && (
-            <p className="text-sm text-gray-500">{t('webhook.noWebhooks')}</p>
+            <p className="text-sm text-fg-muted">{t('webhook.noWebhooks')}</p>
           )}
           {webhooks.map((wh) => (
             <div
               key={wh.id}
-              className="rounded-lg border border-gray-700 bg-gray-800/50 p-4 space-y-3"
+              className="rounded-lg border border-line bg-bg-subtle/50 p-4 space-y-3"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-200">{wh.name}</span>
+                  <span className="font-medium text-fg-muted">{wh.name}</span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       wh.isActive
-                        ? 'bg-green-900/50 text-green-400'
-                        : 'bg-red-900/50 text-red-400'
+                        ? 'bg-success/50 text-success'
+                        : 'bg-danger/50 text-danger'
                     }`}
                   >
                     {wh.isActive ? t('webhook.active') : t('webhook.inactive')}
@@ -267,7 +267,7 @@ export default function WebhooksSettingsPage() {
                 <button
                   type="button"
                   onClick={() => setPendingDeleteWebhookId(wh.id)}
-                  className="text-xs text-red-400 hover:text-red-300"
+                  className="text-xs text-danger hover:text-danger"
                 >
                   {t('common.delete')}
                 </button>
@@ -275,18 +275,18 @@ export default function WebhooksSettingsPage() {
 
               {/* Token */}
               <div>
-                <p className="mb-1 text-xs font-medium text-gray-500">{t('webhook.token')}</p>
+                <p className="mb-1 text-xs font-medium text-fg-muted">{t('webhook.token')}</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     readOnly
                     value={wh.token}
-                    className="flex-1 rounded-lg border border-gray-600 bg-gray-900 px-3 py-1.5 font-mono text-xs text-gray-300 focus:outline-none"
+                    className="flex-1 rounded-lg border border-line bg-bg-subtle px-3 py-1.5 font-mono text-xs text-fg-muted focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => handleCopyToken(wh.token, wh.id)}
-                    className="shrink-0 rounded-lg bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-200 hover:bg-gray-600"
+                    className="shrink-0 rounded-lg bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-bg-subtle"
                   >
                     {copiedTokenId === wh.id ? t('webhook.tokenCopied') : t('webhook.copyToken')}
                   </button>
@@ -295,8 +295,8 @@ export default function WebhooksSettingsPage() {
 
               {/* Execute URL */}
               <div>
-                <p className="mb-1 text-xs font-medium text-gray-500">{t('webhook.executeUrl')}</p>
-                <code className="block rounded bg-gray-900 px-3 py-1.5 font-mono text-xs text-gray-400 break-all">
+                <p className="mb-1 text-xs font-medium text-fg-muted">{t('webhook.executeUrl')}</p>
+                <code className="block rounded bg-bg-subtle px-3 py-1.5 font-mono text-xs text-fg-muted break-all">
                   POST {API_URL}/api/webhooks/{wh.token}/execute
                 </code>
               </div>
@@ -305,15 +305,15 @@ export default function WebhooksSettingsPage() {
         </div>
       </section>
 
-      <hr className="my-8 border-gray-700" />
+      <hr className="my-8 border-line" />
 
       {/* ── Bots Section ────────────────────────────────────────── */}
       <section>
-        <h2 className="text-lg font-semibold text-gray-300">{t('bot.create')}</h2>
+        <h2 className="text-lg font-semibold text-fg-muted">{t('bot.create')}</h2>
 
         <div className="mt-4 space-y-4">
           <div>
-            <label htmlFor="bot-name" className="block text-sm font-medium text-gray-400">
+            <label htmlFor="bot-name" className="block text-sm font-medium text-fg-muted">
               {t('bot.name')}
             </label>
             <input
@@ -322,7 +322,7 @@ export default function WebhooksSettingsPage() {
               value={botName}
               onChange={(e) => setBotName(e.target.value)}
               placeholder={t('bot.namePlaceholder')}
-              className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
@@ -330,7 +330,7 @@ export default function WebhooksSettingsPage() {
             type="button"
             onClick={() => createBotMutation.mutate()}
             disabled={!botName.trim() || createBotMutation.isPending}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
           >
             {createBotMutation.isPending ? t('common.loading') : t('bot.create')}
           </button>
@@ -339,21 +339,21 @@ export default function WebhooksSettingsPage() {
         {/* Existing bots list */}
         <div className="mt-6 space-y-3">
           {bots.length === 0 && (
-            <p className="text-sm text-gray-500">{t('bot.noBots')}</p>
+            <p className="text-sm text-fg-muted">{t('bot.noBots')}</p>
           )}
           {bots.map((bot) => (
             <div
               key={bot.id}
-              className="rounded-lg border border-gray-700 bg-gray-800/50 p-4 space-y-3"
+              className="rounded-lg border border-line bg-bg-subtle/50 p-4 space-y-3"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-200">{bot.name}</span>
+                  <span className="font-medium text-fg-muted">{bot.name}</span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       bot.isActive
-                        ? 'bg-green-900/50 text-green-400'
-                        : 'bg-red-900/50 text-red-400'
+                        ? 'bg-success/50 text-success'
+                        : 'bg-danger/50 text-danger'
                     }`}
                   >
                     {bot.isActive ? t('webhook.active') : t('webhook.inactive')}
@@ -362,7 +362,7 @@ export default function WebhooksSettingsPage() {
                 <button
                   type="button"
                   onClick={() => setPendingDeleteBotId(bot.id)}
-                  className="text-xs text-red-400 hover:text-red-300"
+                  className="text-xs text-danger hover:text-danger"
                 >
                   {t('common.delete')}
                 </button>
@@ -370,18 +370,18 @@ export default function WebhooksSettingsPage() {
 
               {/* Token */}
               <div>
-                <p className="mb-1 text-xs font-medium text-gray-500">{t('bot.token')}</p>
+                <p className="mb-1 text-xs font-medium text-fg-muted">{t('bot.token')}</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     readOnly
                     value={bot.token}
-                    className="flex-1 rounded-lg border border-gray-600 bg-gray-900 px-3 py-1.5 font-mono text-xs text-gray-300 focus:outline-none"
+                    className="flex-1 rounded-lg border border-line bg-bg-subtle px-3 py-1.5 font-mono text-xs text-fg-muted focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => handleCopyToken(bot.token, bot.id)}
-                    className="shrink-0 rounded-lg bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-200 hover:bg-gray-600"
+                    className="shrink-0 rounded-lg bg-bg-subtle px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-bg-subtle"
                   >
                     {copiedTokenId === bot.id ? t('webhook.tokenCopied') : t('webhook.copyToken')}
                   </button>

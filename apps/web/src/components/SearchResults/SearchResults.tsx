@@ -27,7 +27,7 @@ function highlightMatch(text: string, query: string): React.ReactNode {
   const parts = text.split(regex);
   return parts.map((part, i) =>
     regex.test(part) ? (
-      <mark key={i} className="rounded bg-yellow-500/30 px-0.5 text-yellow-200">
+      <mark key={i} className="rounded bg-warning/30 px-0.5 text-warning">
         {part}
       </mark>
     ) : (
@@ -70,7 +70,7 @@ export function SearchResults({ results, isLoading, query }: SearchResultsProps)
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-fg-muted">
         {results.length === 1
           ? t('search.resultCount', { count: results.length })
           : t('search.resultCountPlural', { count: results.length })}
@@ -81,14 +81,14 @@ export function SearchResults({ results, isLoading, query }: SearchResultsProps)
           href={`/communities/${result.communitySlug}/channels/${result.channelId}#${result.id}`}
           className="block rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(19,28,42,0.98),rgba(11,18,29,0.98))] p-4 transition hover:border-white/12 hover:bg-white/[0.04]"
         >
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="text-gray-400"># {result.channelName}</span>
+          <div className="flex items-center gap-2 text-xs text-fg-muted">
+            <span className="text-fg-muted"># {result.channelName}</span>
             <span>&middot;</span>
             <span>{result.authorDisplayName}</span>
             <span>&middot;</span>
             <span>{formatRelativeTime(result.createdAt)}</span>
           </div>
-          <p className="mt-1.5 line-clamp-2 text-sm text-gray-300">
+          <p className="mt-1.5 line-clamp-2 text-sm text-fg-muted">
             {highlightMatch(result.bodyPlaintext, query)}
           </p>
         </Link>

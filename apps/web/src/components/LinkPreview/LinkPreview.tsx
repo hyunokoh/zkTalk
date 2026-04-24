@@ -32,10 +32,10 @@ export function LinkPreview({ url }: LinkPreviewProps) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="mt-2 flex overflow-hidden rounded-[1rem] border border-[#d7e2ea] bg-[#f4f8fb] shadow-sm transition-colors hover:bg-white"
+      className="mt-2 flex overflow-hidden rounded-[1rem] border border-line bg-bg-subtle shadow-sm transition-colors hover:bg-white"
     >
       {data.image && (
-        <div className="h-24 w-24 shrink-0 border-r border-[#d7e2ea]">
+        <div className="h-24 w-24 shrink-0 border-r border-line">
           <Image
             src={data.image}
             alt=""
@@ -48,17 +48,17 @@ export function LinkPreview({ url }: LinkPreviewProps) {
       )}
       <div className="min-w-0 p-3">
         {data.siteName && (
-          <p className="inline-flex rounded-full bg-[#eaf1f6] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#607384]">
+          <p className="inline-flex rounded-full bg-bg-subtle px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-fg-muted">
             {data.siteName}
           </p>
         )}
         {data.title && (
-          <p className="mt-1 truncate text-sm font-semibold text-[#203040]">
+          <p className="mt-1 truncate text-sm font-semibold text-fg">
             {data.title}
           </p>
         )}
         {data.description && (
-          <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#607384]">
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-fg-muted">
             {data.description}
           </p>
         )}

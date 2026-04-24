@@ -54,7 +54,7 @@ export default function AuditLogPage() {
   if (communityLoading || !community || roleLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="text-gray-400">{t('common.loading')}</div>
+        <div className="text-fg-muted">{t('common.loading')}</div>
       </div>
     );
   }
@@ -63,7 +63,7 @@ export default function AuditLogPage() {
     return (
       <div className="p-6" data-testid="moderation-audit-log-access-denied">
         <h1 className="text-xl font-bold">{t('mod.auditLog')}</h1>
-        <div className="mt-6 rounded-lg border border-gray-700 bg-gray-800/30 p-6 text-sm text-gray-400">
+        <div className="mt-6 rounded-lg border border-line bg-bg-subtle/30 p-6 text-sm text-fg-muted">
           {t('mod.noPermission')}
         </div>
       </div>
@@ -75,7 +75,7 @@ export default function AuditLogPage() {
       <h1 className="text-xl font-bold">{t('mod.auditLog')}</h1>
       <div className="mt-6" data-testid="moderation-audit-log-content">
         {isLoading ? (
-          <p className="text-sm text-gray-500" data-testid="moderation-audit-log-loading">{t('mod.loadingAuditLog')}</p>
+          <p className="text-sm text-fg-muted" data-testid="moderation-audit-log-loading">{t('mod.loadingAuditLog')}</p>
         ) : (
           <AuditLogTable actions={actions} />
         )}

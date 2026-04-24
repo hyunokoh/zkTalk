@@ -94,14 +94,14 @@ export function UserProfileCard({ userId, communityId, onClose, anchorRect }: Us
     <div
       ref={cardRef}
       style={style}
-      className="z-50 w-72 rounded-lg border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800"
+      className="z-50 w-72 rounded-lg border border-line bg-white p-4 shadow-xl dark:border-line dark:bg-bg-subtle"
     >
       {isLoading ? (
-        <div className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <div className="py-4 text-center text-sm text-fg-muted dark:text-fg-muted">
           {t('common.loading')}
         </div>
       ) : !user ? (
-        <div className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <div className="py-4 text-center text-sm text-fg-muted dark:text-fg-muted">
           {t('misc.unknownUser')}
         </div>
       ) : (
@@ -113,11 +113,11 @@ export function UserProfileCard({ userId, communityId, onClose, anchorRect }: Us
               size="lg"
             />
             <div className="min-w-0 flex-1">
-              <h3 className="truncate text-base font-semibold text-gray-900 dark:text-gray-100">
+              <h3 className="truncate text-base font-semibold text-fg dark:text-fg-muted">
                 {user.displayName}
               </h3>
               {roleLabel && (
-                <span className="mt-0.5 inline-block rounded bg-indigo-100 px-1.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+                <span className="mt-0.5 inline-block rounded bg-accent-soft px-1.5 py-0.5 text-xs font-medium text-accent-strong dark:bg-accent/50 dark:text-accent">
                   {roleLabel}
                 </span>
               )}
@@ -125,8 +125,8 @@ export function UserProfileCard({ userId, communityId, onClose, anchorRect }: Us
           </div>
 
           {user.joinedAt && (
-            <div className="mt-3 border-t border-gray-200 pt-3 dark:border-gray-700">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="mt-3 border-t border-line pt-3 dark:border-line">
+              <p className="text-xs text-fg-muted dark:text-fg-muted">
                 {t('members.joinedAt')}: {relativeTime(user.joinedAt)}
               </p>
             </div>

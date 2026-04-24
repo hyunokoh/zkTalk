@@ -22,7 +22,7 @@ export function ForumPostItem({ thread, author, communitySlug, channelId }: Foru
       href={`/communities/${communitySlug}/channels/${channelId}/threads/${thread.id}`}
       data-testid="forum-post-link"
       data-thread-id={thread.id}
-      className="block px-4 py-3 transition-colors hover:bg-gray-800/70"
+      className="block px-4 py-3 transition-colors hover:bg-bg-subtle/70"
     >
       <div className="flex items-start gap-3">
         <UserAvatar
@@ -33,22 +33,22 @@ export function ForumPostItem({ thread, author, communitySlug, channelId }: Foru
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-semibold text-gray-100">
+            <h3 className="truncate text-sm font-semibold text-fg-muted">
               {thread.title ?? t('thread.title')}
             </h3>
             {thread.isPinned && (
-              <span className="shrink-0 rounded bg-amber-900/50 px-1.5 py-0.5 text-xs text-amber-400">
+              <span className="shrink-0 rounded bg-warning/50 px-1.5 py-0.5 text-xs text-warning">
                 {t('forum.pinned')}
               </span>
             )}
             {thread.isLocked && (
-              <span className="shrink-0 rounded bg-gray-700 px-1.5 py-0.5 text-xs text-gray-400">
+              <span className="shrink-0 rounded bg-bg-subtle px-1.5 py-0.5 text-xs text-fg-muted">
                 {t('thread.locked')}
               </span>
             )}
           </div>
 
-          <div className="mt-0.5 flex items-center gap-3 text-xs text-gray-500">
+          <div className="mt-0.5 flex items-center gap-3 text-xs text-fg-muted">
             <span>{displayName}</span>
             <span>&middot;</span>
             <span>
@@ -62,8 +62,8 @@ export function ForumPostItem({ thread, author, communitySlug, channelId }: Foru
         </div>
 
         <div className="shrink-0 text-right">
-          <div className="text-lg font-semibold text-gray-400">{thread.replyCount}</div>
-          <div className="text-xs text-gray-500">
+          <div className="text-lg font-semibold text-fg-muted">{thread.replyCount}</div>
+          <div className="text-xs text-fg-muted">
             {thread.replyCount === 1
               ? t('thread.replyCount', { count: thread.replyCount })
               : t('thread.replyCountPlural', { count: thread.replyCount })}

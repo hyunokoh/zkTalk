@@ -41,7 +41,7 @@ function ChannelAccessLegend({ labels }: { labels: string[] }) {
       {labels.map((label) => (
         <span
           key={label}
-          className="inline-flex items-center rounded-full border border-[#d8e5ed] bg-white px-3 py-1 text-[11px] font-semibold text-[#516678]"
+          className="inline-flex items-center rounded-full border border-line bg-white px-3 py-1 text-[11px] font-semibold text-fg-muted"
         >
           {label}
         </span>
@@ -250,7 +250,7 @@ export default function CommunityOverviewPage() {
       <div className="flex flex-1 flex-col items-center justify-center p-8">
         <div className="w-full max-w-3xl">
           <div className="mx-auto max-w-md text-center">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-600 text-3xl font-bold text-white">
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-accent text-3xl font-bold text-white">
               {community.iconUrl ? (
                 <Image
                   src={communityIcon.src ?? community.iconUrl}
@@ -266,17 +266,17 @@ export default function CommunityOverviewPage() {
             </div>
             <h1 className="text-2xl font-bold">{community.name}</h1>
             {community.description && (
-              <p className="mt-2 text-gray-400">{community.description}</p>
+              <p className="mt-2 text-fg-muted">{community.description}</p>
             )}
-            <p className="mt-3 text-sm text-gray-500">
+            <p className="mt-3 text-sm text-fg-muted">
               {membersData?.members.length === 1
                 ? t('discover.member', { count: String(membersData.members.length) })
                 : t('discover.members', { count: String(membersData?.members.length ?? 0) })}
             </p>
-            <p className="mt-4 text-sm text-gray-500">
+            <p className="mt-4 text-sm text-fg-muted">
               {t('community.selectChannel')}
             </p>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-fg-muted">
               {t('community.channelAccessHint')}
             </p>
             {accessLegendLabels.length > 0 ? (
@@ -284,12 +284,12 @@ export default function CommunityOverviewPage() {
             ) : null}
           </div>
           {sortedVoiceChannels.length > 0 && (
-            <div className="mx-auto mt-8 max-w-2xl rounded-3xl border border-[#d8e5ed] bg-white/85 p-5 shadow-sm">
+            <div className="mx-auto mt-8 max-w-2xl rounded-3xl border border-line bg-white/85 p-5 shadow-sm">
               <div className="mb-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5f7384]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-fg-muted">
                   {t('voice.quickJoinTitle')}
                 </p>
-                <p className="mt-1 text-sm text-[#607384]">
+                <p className="mt-1 text-sm text-fg-muted">
                   {t('voice.quickJoinBody')}
                 </p>
               </div>
@@ -307,15 +307,15 @@ export default function CommunityOverviewPage() {
                   return (
                     <div
                       key={channel.id}
-                      className="rounded-2xl border border-[#d8e5ed] bg-[#f8fbfd] p-3"
+                      className="rounded-2xl border border-line bg-bg-subtle p-3"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <Link
                             href={`/communities/${slug}/channels/${channel.id}`}
-                            className="inline-flex max-w-full items-center gap-2 text-base font-semibold text-[#203040] hover:text-[#132330]"
+                            className="inline-flex max-w-full items-center gap-2 text-base font-semibold text-fg hover:text-fg"
                           >
-                            <span className="text-[#607384]">
+                            <span className="text-fg-muted">
                               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                               </svg>
@@ -323,30 +323,30 @@ export default function CommunityOverviewPage() {
                             <span className="truncate">{channel.name}</span>
                           </Link>
                           {voiceStatusLabel && (
-                            <p className="mt-1 text-xs font-medium text-[#607384]">
+                            <p className="mt-1 text-xs font-medium text-fg-muted">
                               {voiceStatusLabel}
                             </p>
                           )}
                         </div>
                         <div className="flex shrink-0 flex-wrap justify-end gap-2">
                           {isRecentVoiceChannel && (
-                            <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                            <span className="inline-flex items-center rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent-strong">
                               {t('voice.recentChannel')}
                             </span>
                           )}
                           {isLiveVoiceChannel && (
                             <>
-                              <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">
+                              <span className="inline-flex items-center rounded-full bg-success px-2 py-0.5 text-[11px] font-semibold text-success">
                                 {t('voice.liveNow')}
                               </span>
-                              <span className="inline-flex items-center rounded-full bg-[#eef3f7] px-2 py-0.5 text-[11px] font-semibold text-[#556b7d]">
+                              <span className="inline-flex items-center rounded-full bg-bg-subtle px-2 py-0.5 text-[11px] font-semibold text-fg-muted">
                                 {voiceParticipantCount}
                               </span>
                             </>
                           )}
                         </div>
                       </div>
-                      <div className="mt-3 rounded-full border border-[#d4e2eb] bg-white px-1 py-1">
+                      <div className="mt-3 rounded-full border border-line bg-white px-1 py-1">
                         <VoiceRoomButton
                           channelId={channel.id}
                           communityId={community.id}

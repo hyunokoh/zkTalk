@@ -46,15 +46,15 @@ export function CreateChannelModal({ communityId, categoryId, onClose }: CreateC
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-lg bg-gray-800 p-6 shadow-xl"
+        className="w-full max-w-md rounded-lg bg-bg-subtle p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-semibold text-gray-100">Create Channel</h2>
+        <h2 className="mb-4 text-lg font-semibold text-fg-muted">Create Channel</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Channel type */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-300">Channel Type</label>
+            <label className="mb-1.5 block text-sm font-medium text-fg-muted">Channel Type</label>
             <div className="flex gap-2">
               {([
                 { value: 'chat', label: '# Chat' },
@@ -68,8 +68,8 @@ export function CreateChannelModal({ communityId, categoryId, onClose }: CreateC
                   onClick={() => setType(opt.value)}
                   className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                     type === opt.value
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      ? 'bg-accent text-white'
+                      : 'bg-bg-subtle text-fg-muted hover:bg-bg-subtle'
                   }`}
                 >
                   {opt.label}
@@ -80,7 +80,7 @@ export function CreateChannelModal({ communityId, categoryId, onClose }: CreateC
 
           {/* Channel name */}
           <div>
-            <label htmlFor="channel-name" className="mb-1.5 block text-sm font-medium text-gray-300">
+            <label htmlFor="channel-name" className="mb-1.5 block text-sm font-medium text-fg-muted">
               Name
             </label>
             <input
@@ -89,15 +89,15 @@ export function CreateChannelModal({ communityId, categoryId, onClose }: CreateC
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="new-channel"
-              className="w-full rounded-md border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               autoFocus
             />
           </div>
 
           {/* Description */}
           <div>
-            <label htmlFor="channel-desc" className="mb-1.5 block text-sm font-medium text-gray-300">
-              Description <span className="text-gray-500">(optional)</span>
+            <label htmlFor="channel-desc" className="mb-1.5 block text-sm font-medium text-fg-muted">
+              Description <span className="text-fg-muted">(optional)</span>
             </label>
             <textarea
               id="channel-desc"
@@ -105,13 +105,13 @@ export function CreateChannelModal({ communityId, categoryId, onClose }: CreateC
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What is this channel about?"
               rows={2}
-              className="w-full resize-none rounded-md border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
           {/* Error */}
           {createChannel.isError && (
-            <p className="text-sm text-red-400">
+            <p className="text-sm text-danger">
               {(createChannel.error as Error).message || 'Failed to create channel'}
             </p>
           )}
@@ -121,14 +121,14 @@ export function CreateChannelModal({ communityId, categoryId, onClose }: CreateC
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm font-medium text-gray-300 hover:text-gray-100"
+              className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg-muted"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!name.trim() || createChannel.isPending}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               {createChannel.isPending ? 'Creating...' : 'Create Channel'}
             </button>

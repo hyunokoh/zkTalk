@@ -79,10 +79,10 @@ function renderInline(text: string): string {
   let result = escapeHtml(text);
 
   // Code spans (must come before bold/italic to avoid conflicts)
-  result = result.replace(/`([^`]+)`/g, '<code class="rounded bg-gray-800 px-1.5 py-0.5 text-sm font-mono text-indigo-300">$1</code>');
+  result = result.replace(/`([^`]+)`/g, '<code class="rounded bg-bg-subtle px-1.5 py-0.5 text-sm font-mono text-accent">$1</code>');
 
   // Bold
-  result = result.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-gray-100">$1</strong>');
+  result = result.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-fg-muted">$1</strong>');
 
   // Italic
   result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
@@ -92,7 +92,7 @@ function renderInline(text: string): string {
     /\[([^\]]+)\]\(([^)]+)\)/g,
     (_match, text, url) => {
       const safeUrl = sanitizeUrl(url);
-      return `<a href="${safeUrl}" class="text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">${text}</a>`;
+      return `<a href="${safeUrl}" class="text-accent hover:underline" target="_blank" rel="noopener noreferrer">${text}</a>`;
     },
   );
 
@@ -102,14 +102,14 @@ function renderInline(text: string): string {
     (match, url) => {
       if (match.startsWith('(')) return match;
       const safeUrl = sanitizeUrl(url);
-      return `<a href="${safeUrl}" class="text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
+      return `<a href="${safeUrl}" class="text-accent hover:underline" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
     },
   );
 
   // @mentions: @everyone, @here, @username
   result = result.replace(
     /@(everyone|here|\w+)/g,
-    '<span class="mention-highlight rounded bg-indigo-500/20 px-1 py-0.5 text-indigo-400 font-medium">@$1</span>',
+    '<span class="mention-highlight rounded bg-accent/20 px-1 py-0.5 text-accent font-medium">@$1</span>',
   );
 
   return result;
@@ -128,10 +128,10 @@ function renderMarkdown(raw: string): string {
         const code = codeBlockLines.join('\n');
         const highlighted = highlightCode(code, codeBlockLang);
         const langLabel = codeBlockLang
-          ? `<div class="mb-1 text-xs text-gray-500">${escapeHtml(codeBlockLang)}</div>`
+          ? `<div class="mb-1 text-xs text-fg-muted">${escapeHtml(codeBlockLang)}</div>`
           : '';
         outputParts.push(
-          `<pre class="hljs my-2 overflow-x-auto rounded-lg bg-[#0d1117] p-3 text-sm">${langLabel}<code class="font-mono">${highlighted}</code></pre>`,
+          `<pre class="hljs my-2 overflow-x-auto rounded-lg bg-bg p-3 text-sm">${langLabel}<code class="font-mono">${highlighted}</code></pre>`,
         );
         codeBlockLines = [];
         codeBlockLang = '';
@@ -159,7 +159,7 @@ function renderMarkdown(raw: string): string {
     const code = codeBlockLines.join('\n');
     const highlighted = highlightCode(code, codeBlockLang);
     outputParts.push(
-      `<pre class="hljs my-2 overflow-x-auto rounded-lg bg-[#0d1117] p-3 text-sm"><code class="font-mono">${highlighted}</code></pre>`,
+      `<pre class="hljs my-2 overflow-x-auto rounded-lg bg-bg p-3 text-sm"><code class="font-mono">${highlighted}</code></pre>`,
     );
   }
 

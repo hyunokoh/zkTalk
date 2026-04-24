@@ -97,10 +97,10 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-lg bg-gray-800 p-6 shadow-xl"
+        className="w-full max-w-md rounded-lg bg-bg-subtle p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-semibold text-gray-100">{t('category.manage')}</h2>
+        <h2 className="mb-4 text-lg font-semibold text-fg-muted">{t('category.manage')}</h2>
 
         {/* Create new category */}
         <form onSubmit={handleCreate} className="mb-4 flex gap-2">
@@ -109,12 +109,12 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder={t('category.namePlaceholder')}
-            className="flex-1 rounded-md border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="flex-1 rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
           <button
             type="submit"
             disabled={!newName.trim() || createCategory.isPending}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createCategory.isPending ? t('category.creating') : t('category.create')}
           </button>
@@ -123,17 +123,17 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
         {/* Category list */}
         <div className="max-h-80 space-y-2 overflow-y-auto">
           {isLoading && (
-            <p className="py-4 text-center text-sm text-gray-400">{t('common.loading')}</p>
+            <p className="py-4 text-center text-sm text-fg-muted">{t('common.loading')}</p>
           )}
 
           {!isLoading && categories.length === 0 && (
-            <p className="py-4 text-center text-sm text-gray-400">{t('category.empty')}</p>
+            <p className="py-4 text-center text-sm text-fg-muted">{t('category.empty')}</p>
           )}
 
           {categories.map((category) => (
             <div
               key={category.id}
-              className="flex items-center gap-2 rounded-md bg-gray-700 px-3 py-2"
+              className="flex items-center gap-2 rounded-md bg-bg-subtle px-3 py-2"
             >
               {editingId === category.id ? (
                 <>
@@ -145,32 +145,32 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
                       if (e.key === 'Enter') handleUpdate(category.id);
                       if (e.key === 'Escape') setEditingId(null);
                     }}
-                    className="flex-1 rounded-md border border-gray-600 bg-gray-900 px-2 py-1 text-sm text-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="flex-1 rounded-md border border-line bg-bg-subtle px-2 py-1 text-sm text-fg-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     autoFocus
                   />
                   <button
                     type="button"
                     onClick={() => handleUpdate(category.id)}
                     disabled={!editingName.trim() || updateCategory.isPending}
-                    className="rounded px-2 py-1 text-xs font-medium text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
+                    className="rounded px-2 py-1 text-xs font-medium text-accent hover:text-accent disabled:opacity-50"
                   >
                     {t('common.save')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingId(null)}
-                    className="rounded px-2 py-1 text-xs font-medium text-gray-400 hover:text-gray-300"
+                    className="rounded px-2 py-1 text-xs font-medium text-fg-muted hover:text-fg-muted"
                   >
                     {t('common.cancel')}
                   </button>
                 </>
               ) : (
                 <>
-                  <span className="flex-1 text-sm text-gray-100">{category.name}</span>
+                  <span className="flex-1 text-sm text-fg-muted">{category.name}</span>
                   <button
                     type="button"
                     onClick={() => startEditing(category)}
-                    className="rounded px-2 py-1 text-xs font-medium text-gray-400 hover:text-gray-200"
+                    className="rounded px-2 py-1 text-xs font-medium text-fg-muted hover:text-fg-muted"
                   >
                     {t('category.edit')}
                   </button>
@@ -178,7 +178,7 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
                     type="button"
                     onClick={() => handleDelete(category.id)}
                     disabled={deleteCategory.isPending}
-                    className="rounded px-2 py-1 text-xs font-medium text-red-400 hover:text-red-300 disabled:opacity-50"
+                    className="rounded px-2 py-1 text-xs font-medium text-danger hover:text-danger disabled:opacity-50"
                   >
                     {t('category.delete')}
                   </button>
@@ -190,7 +190,7 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
 
         {/* Error messages */}
         {(createCategory.isError || updateCategory.isError || deleteCategory.isError) && (
-          <p className="mt-3 text-sm text-red-400">
+          <p className="mt-3 text-sm text-danger">
             {((createCategory.error ?? updateCategory.error ?? deleteCategory.error) as Error)?.message || t('misc.failed')}
           </p>
         )}
@@ -200,7 +200,7 @@ export function CategoryManager({ communityId, onClose }: CategoryManagerProps) 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-4 py-2 text-sm font-medium text-gray-300 hover:text-gray-100"
+            className="rounded-md px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg-muted"
           >
             {t('common.cancel')}
           </button>

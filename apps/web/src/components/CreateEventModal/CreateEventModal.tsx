@@ -72,16 +72,16 @@ export function CreateEventModal({ communityId, onClose, event }: CreateEventMod
       data-testid="create-event-modal"
     >
       <div
-        className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-800"
+        className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-bg-subtle"
         data-testid="create-event-panel"
       >
-        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+        <h2 className="text-lg font-bold text-fg dark:text-fg-muted">
           {isEditing ? t('common.edit') : t('event.create')}
         </h2>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4" data-testid="create-event-form">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium text-fg dark:text-fg-muted">
               {t('event.title')}
             </label>
             <input
@@ -89,12 +89,12 @@ export function CreateEventModal({ communityId, onClose, event }: CreateEventMod
               onChange={(e) => setTitle(e.target.value)}
               required
               data-testid="create-event-title-input"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium text-fg dark:text-fg-muted">
               {t('community.description')}
             </label>
             <textarea
@@ -102,12 +102,12 @@ export function CreateEventModal({ communityId, onClose, event }: CreateEventMod
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               data-testid="create-event-description-input"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium text-fg dark:text-fg-muted">
               {t('event.location')}
             </label>
             <input
@@ -115,13 +115,13 @@ export function CreateEventModal({ communityId, onClose, event }: CreateEventMod
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Channel ID or URL"
               data-testid="create-event-location-input"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-fg dark:text-fg-muted">
                 {t('event.start')}
               </label>
               <input
@@ -130,11 +130,11 @@ export function CreateEventModal({ communityId, onClose, event }: CreateEventMod
                 onChange={(e) => setStartAt(e.target.value)}
                 required
                 data-testid="create-event-start-input"
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-fg dark:text-fg-muted">
                 {t('event.end')}
               </label>
               <input
@@ -142,7 +142,7 @@ export function CreateEventModal({ communityId, onClose, event }: CreateEventMod
                 value={endAt}
                 onChange={(e) => setEndAt(e.target.value)}
                 data-testid="create-event-end-input"
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none dark:border-line dark:bg-bg-subtle dark:text-fg-muted"
               />
             </div>
           </div>
@@ -152,7 +152,7 @@ export function CreateEventModal({ communityId, onClose, event }: CreateEventMod
               type="button"
               onClick={onClose}
               data-testid="create-event-cancel-button"
-              className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+              className="rounded-lg px-4 py-2 text-sm text-fg hover:bg-bg-hover dark:text-fg-muted dark:hover:bg-bg-subtle"
             >
               {t('common.cancel')}
             </button>
@@ -160,7 +160,7 @@ export function CreateEventModal({ communityId, onClose, event }: CreateEventMod
               type="submit"
               disabled={saveMutation.isPending || !title.trim() || !startAt}
               data-testid="create-event-submit-button"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
             >
               {saveMutation.isPending
                 ? t('common.loading')

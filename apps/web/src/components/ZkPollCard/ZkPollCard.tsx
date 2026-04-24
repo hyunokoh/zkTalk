@@ -91,14 +91,14 @@ export function ZkPollCard({ pollId }: ZkPollCardProps) {
   );
 
   return (
-    <div className="my-2 rounded-lg border border-gray-700 bg-gray-800 p-4">
+    <div className="my-2 rounded-lg border border-line bg-bg-subtle p-4">
       <div className="mb-1 flex items-center gap-2">
-        <span className="rounded bg-green-900/50 px-1.5 py-0.5 text-[10px] font-medium text-green-400">
+        <span className="rounded bg-success/50 px-1.5 py-0.5 text-[10px] font-medium text-success">
           {t('zkVote.title')}
         </span>
       </div>
 
-      <h4 className="mb-3 text-sm font-semibold text-gray-100">
+      <h4 className="mb-3 text-sm font-semibold text-fg-muted">
         {(pollData as { poll?: { question?: string } } | undefined)?.poll?.question ?? t('common.loading')}
       </h4>
 
@@ -114,20 +114,20 @@ export function ZkPollCard({ pollId }: ZkPollCardProps) {
               disabled={hasVoted || voteMutation.isPending}
               className={`relative w-full overflow-hidden rounded-md border px-3 py-2 text-left text-sm transition ${
                 isSelected
-                  ? 'border-green-500 bg-green-500/10 text-green-200'
-                  : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
+                  ? 'border-success bg-success/10 text-success'
+                  : 'border-line bg-bg-subtle text-fg-muted hover:border-line'
               } ${hasVoted ? 'cursor-default' : 'cursor-pointer'}`}
             >
               <div
                 className={`absolute inset-y-0 left-0 ${
-                  isSelected ? 'bg-green-500/20' : 'bg-gray-700/50'
+                  isSelected ? 'bg-success/20' : 'bg-bg-subtle/50'
                 }`}
                 style={{ width: `${pct}%` }}
               />
               <div className="relative flex items-center justify-between">
                 <span>{option.text}</span>
                 {hasVoted && (
-                  <span className="ml-2 text-xs text-gray-400">
+                  <span className="ml-2 text-xs text-fg-muted">
                     {pct}% ({option.voteCount})
                   </span>
                 )}
@@ -138,18 +138,18 @@ export function ZkPollCard({ pollId }: ZkPollCardProps) {
       </div>
 
       <div className="mt-2 flex items-center justify-between">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-fg-muted">
           {t('zkVote.voted', { count: totalVotes })}
         </p>
         {hasVoted && (
-          <span className="text-xs text-green-400">
+          <span className="text-xs text-success">
             {t('zkVote.anonymous')}
           </span>
         )}
       </div>
 
       {voteMutation.isError && (
-        <p className="mt-1 text-xs text-red-400">
+        <p className="mt-1 text-xs text-danger">
           {(voteMutation.error as Error).message}
         </p>
       )}

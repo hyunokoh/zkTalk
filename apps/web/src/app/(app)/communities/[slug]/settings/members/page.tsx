@@ -29,11 +29,11 @@ interface Role {
 }
 
 const ROLE_BADGE_STYLES: Record<string, string> = {
-  owner: 'bg-purple-900/50 text-purple-300 border-purple-700',
-  admin: 'bg-blue-900/50 text-blue-300 border-blue-700',
-  moderator: 'bg-green-900/50 text-green-300 border-green-700',
-  member: 'bg-gray-800 text-gray-400 border-gray-700',
-  guest: 'bg-gray-800 text-gray-500 border-gray-700',
+  owner: 'bg-agent/50 text-agent border-agent',
+  admin: 'bg-accent/50 text-accent border-accent',
+  moderator: 'bg-success/50 text-success border-success',
+  member: 'bg-bg-subtle text-fg-muted border-line',
+  guest: 'bg-bg-subtle text-fg-muted border-line',
 };
 
 const ROLE_TRANSLATION_KEYS: Record<string, string> = {
@@ -111,7 +111,7 @@ export default function MembersPage() {
   if (isLoading || !community || roleLoading) {
     return (
       <div
-        className="flex h-full items-center justify-center text-gray-400"
+        className="flex h-full items-center justify-center text-fg-muted"
         data-testid="community-members-loading"
       >
         {t('members.loading')}
@@ -122,10 +122,10 @@ export default function MembersPage() {
   if (!canManageModeration) {
     return (
       <div
-        className="flex h-full flex-col items-center justify-center gap-4 text-gray-400"
+        className="flex h-full flex-col items-center justify-center gap-4 text-fg-muted"
         data-testid="community-members-access-denied"
       >
-        <svg className="h-12 w-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="h-12 w-12 text-fg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m0 0a2 2 0 100-4 2 2 0 000 4zm6-6V7a6 6 0 10-12 0v4m-2 0h16a1 1 0 011 1v8a1 1 0 01-1 1H5a1 1 0 01-1-1v-8a1 1 0 011-1z" />
         </svg>
         <p className="text-sm">{t('mod.noPermission')}</p>
@@ -138,8 +138,8 @@ export default function MembersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-100">{t('members.title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-fg-muted">{t('members.title')}</h1>
+          <p className="mt-1 text-sm text-fg-muted">
             {t('members.count', { count: members.length })}
           </p>
         </div>
@@ -153,7 +153,7 @@ export default function MembersPage() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t('members.search')}
           data-testid="community-members-search-input"
-          className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
@@ -161,7 +161,7 @@ export default function MembersPage() {
       <div className="mt-6 space-y-1" data-testid="community-members-list">
         {filteredMembers.length === 0 ? (
           <p
-            className="py-8 text-center text-sm text-gray-500"
+            className="py-8 text-center text-sm text-fg-muted"
             data-testid="community-members-empty-state"
           >
             {t('members.empty')}
@@ -173,7 +173,7 @@ export default function MembersPage() {
               data-testid="member-row"
               data-user-id={member.userId}
               data-member-role={member.role}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-gray-800/60"
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-bg-subtle/60"
             >
               {/* Avatar */}
               <UserAvatar
@@ -185,7 +185,7 @@ export default function MembersPage() {
               {/* Name + Role */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-medium text-gray-200">
+                  <span className="truncate text-sm font-medium text-fg-muted">
                     {member.displayName}
                   </span>
                   <span
@@ -197,7 +197,7 @@ export default function MembersPage() {
                     {t(ROLE_TRANSLATION_KEYS[member.role] ?? 'members.member')}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-fg-muted">
                   {t('members.joinedAt')}{' '}
                   {new Date(member.joinedAt).toLocaleDateString()}
                 </p>
@@ -215,7 +215,7 @@ export default function MembersPage() {
                     })
                   }
                   disabled={assignRoleMutation.isPending}
-                  className="rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-300 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="rounded-md border border-line bg-bg-subtle px-2 py-1 text-xs text-fg-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 >
                   {assignableRoles.map((r) => (
                     <option key={r.id} value={r.name}>

@@ -205,7 +205,7 @@ export default function CommunitySettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-400">
+      <div className="flex h-full items-center justify-center text-fg-muted">
         {t('common.loading')}
       </div>
     );
@@ -220,20 +220,20 @@ export default function CommunitySettingsPage() {
 
     return (
       <div className="flex h-full items-center justify-center px-6">
-        <div className="w-full max-w-lg rounded-2xl border border-gray-800 bg-gray-900/80 p-6 text-center">
+        <div className="w-full max-w-lg rounded-2xl border border-line bg-bg-subtle/80 p-6 text-center">
           <h1 className="text-lg font-semibold text-white">{t('settings.communityUnavailableTitle')}</h1>
-          <p className="mt-2 text-sm leading-6 text-gray-400">{message}</p>
+          <p className="mt-2 text-sm leading-6 text-fg-muted">{message}</p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <button
               type="button"
               onClick={() => void refetchCommunity()}
-              className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+              className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent"
             >
               {t('common.retry')}
             </button>
             <Link
               href="/home"
-              className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-750"
+              className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
             >
               {t('settings.goHome')}
             </Link>
@@ -246,13 +246,13 @@ export default function CommunitySettingsPage() {
   if (!community) {
     return (
       <div className="flex h-full items-center justify-center px-6">
-        <div className="w-full max-w-lg rounded-2xl border border-gray-800 bg-gray-900/80 p-6 text-center">
+        <div className="w-full max-w-lg rounded-2xl border border-line bg-bg-subtle/80 p-6 text-center">
           <h1 className="text-lg font-semibold text-white">{t('settings.communityUnavailableTitle')}</h1>
-          <p className="mt-2 text-sm leading-6 text-gray-400">{t('community.notFound')}</p>
+          <p className="mt-2 text-sm leading-6 text-fg-muted">{t('community.notFound')}</p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link
               href="/home"
-              className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-750"
+              className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
             >
               {t('settings.goHome')}
             </Link>
@@ -264,7 +264,7 @@ export default function CommunitySettingsPage() {
 
   if (roleLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-400">
+      <div className="flex h-full items-center justify-center text-fg-muted">
         {t('common.loading')}
       </div>
     );
@@ -273,22 +273,22 @@ export default function CommunitySettingsPage() {
   if (!canManageSettings) {
     return (
       <div className="flex h-full items-center justify-center px-6">
-        <div className="w-full max-w-lg rounded-2xl border border-gray-800 bg-gray-900/80 p-6 text-center">
-          <svg className="mx-auto h-12 w-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="w-full max-w-lg rounded-2xl border border-line bg-bg-subtle/80 p-6 text-center">
+          <svg className="mx-auto h-12 w-12 text-fg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m0 0a2 2 0 100-4 2 2 0 000 4zm6-6V7a6 6 0 10-12 0v4m-2 0h16a1 1 0 011 1v8a1 1 0 01-1 1H5a1 1 0 01-1-1v-8a1 1 0 011-1z" />
           </svg>
-          <p className="mt-4 text-sm text-gray-200">{t('settings.notAdmin')}</p>
-          <p className="mt-2 text-sm leading-6 text-gray-400">{t('settings.notAdminHelp')}</p>
+          <p className="mt-4 text-sm text-fg-muted">{t('settings.notAdmin')}</p>
+          <p className="mt-2 text-sm leading-6 text-fg-muted">{t('settings.notAdminHelp')}</p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link
               href={`/communities/${slug}`}
-              className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-750"
+              className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
             >
               {t('settings.backToCommunity')}
             </Link>
             <Link
               href="/home"
-              className="rounded-full border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-gray-600 hover:bg-gray-750"
+              className="rounded-full border border-line bg-bg-subtle px-4 py-2 text-sm font-semibold text-fg-muted transition hover:border-line hover:bg-bg-subtle"
             >
               {t('settings.goHome')}
             </Link>
@@ -307,32 +307,32 @@ export default function CommunitySettingsPage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-2xl px-6 py-6 pb-12">
-      <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-5">
-        <h1 className="text-xl font-bold text-gray-100">{t('settings.communitySettings')}</h1>
-        <p className="mt-2 text-sm text-gray-400">{t('settings.communitySettingsSubtitle')}</p>
+      <div className="rounded-2xl border border-line bg-bg-subtle/70 p-5">
+        <h1 className="text-xl font-bold text-fg-muted">{t('settings.communitySettings')}</h1>
+        <p className="mt-2 text-sm text-fg-muted">{t('settings.communitySettingsSubtitle')}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <a
             href="#general"
-            className="rounded-full border border-gray-700 bg-gray-800/70 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:border-gray-600 hover:bg-gray-700"
+            className="rounded-full border border-line bg-bg-subtle/70 px-3 py-1.5 text-xs font-semibold text-fg-muted hover:border-line hover:bg-bg-subtle"
           >
             {t('settings.general')}
           </a>
           <a
             href="#invites"
-            className="rounded-full border border-gray-700 bg-gray-800/70 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:border-gray-600 hover:bg-gray-700"
+            className="rounded-full border border-line bg-bg-subtle/70 px-3 py-1.5 text-xs font-semibold text-fg-muted hover:border-line hover:bg-bg-subtle"
           >
             {t('settings.invites')}
           </a>
           <a
             href="#p2p"
-            className="rounded-full border border-gray-700 bg-gray-800/70 px-3 py-1.5 text-xs font-semibold text-gray-200 hover:border-gray-600 hover:bg-gray-700"
+            className="rounded-full border border-line bg-bg-subtle/70 px-3 py-1.5 text-xs font-semibold text-fg-muted hover:border-line hover:bg-bg-subtle"
           >
             {t('p2p.settings')}
           </a>
           {isOwner ? (
             <a
               href="#danger-zone"
-              className="rounded-full border border-red-900/50 bg-red-900/10 px-3 py-1.5 text-xs font-semibold text-red-200 hover:border-red-800 hover:bg-red-900/20"
+              className="rounded-full border border-danger/50 bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger hover:border-danger hover:bg-danger/20"
             >
               {t('settings.dangerZone')}
             </a>
@@ -342,15 +342,15 @@ export default function CommunitySettingsPage() {
 
       {/* General Settings */}
       <form id="general" onSubmit={handleSave} className="mt-6 scroll-mt-6">
-        <h2 className="text-lg font-semibold text-gray-300">{t('settings.general')}</h2>
+        <h2 className="text-lg font-semibold text-fg-muted">{t('settings.general')}</h2>
 
         <div className="mt-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-400">
+            <label className="block text-sm font-medium text-fg-muted">
               {t('community.iconPhoto')}
             </label>
-            <div className="mt-2 flex items-center gap-4 rounded-2xl border border-gray-700 bg-gray-800/60 p-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-indigo-600 text-xl font-bold text-white">
+            <div className="mt-2 flex items-center gap-4 rounded-2xl border border-line bg-bg-subtle/60 p-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-accent text-xl font-bold text-white">
                 {iconUrl ? (
                   <Image
                     src={previewIcon.src ?? iconUrl}
@@ -365,7 +365,7 @@ export default function CommunitySettingsPage() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-gray-200">{t('community.iconHint')}</p>
+                <p className="text-sm text-fg-muted">{t('community.iconHint')}</p>
                 <input
                   ref={iconInputRef}
                   type="file"
@@ -377,7 +377,7 @@ export default function CommunitySettingsPage() {
                   type="button"
                   onClick={() => iconInputRef.current?.click()}
                   disabled={isUploadingIcon}
-                  className="mt-3 rounded-full border border-gray-600 bg-gray-700 px-3 py-1.5 text-sm font-medium text-gray-100 hover:bg-gray-600 disabled:opacity-50"
+                  className="mt-3 rounded-full border border-line bg-bg-subtle px-3 py-1.5 text-sm font-medium text-fg-muted hover:bg-bg-subtle disabled:opacity-50"
                 >
                   {isUploadingIcon ? t('attachment.uploading') : t('community.iconPhoto')}
                 </button>
@@ -387,7 +387,7 @@ export default function CommunitySettingsPage() {
 
           {/* Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-400">
+            <label htmlFor="name" className="block text-sm font-medium text-fg-muted">
               {t('community.name')}
             </label>
             <input
@@ -395,14 +395,14 @@ export default function CommunitySettingsPage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               required
             />
           </div>
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-400">
+            <label htmlFor="description" className="block text-sm font-medium text-fg-muted">
               {t('community.description')}
             </label>
             <textarea
@@ -410,13 +410,13 @@ export default function CommunitySettingsPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             />
           </div>
 
           {/* Visibility */}
           <div>
-            <label className="block text-sm font-medium text-gray-400">
+            <label className="block text-sm font-medium text-fg-muted">
               {t('community.visibility')}
             </label>
             <div className="mt-2 space-y-2">
@@ -425,8 +425,8 @@ export default function CommunitySettingsPage() {
                   key={opt.value}
                   className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${
                     visibility === opt.value
-                      ? 'border-indigo-500 bg-indigo-500/10'
-                      : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+                      ? 'border-accent bg-accent/10'
+                      : 'border-line bg-bg-subtle/50 hover:border-line'
                   }`}
                 >
                   <input
@@ -438,8 +438,8 @@ export default function CommunitySettingsPage() {
                     className="mt-0.5 accent-indigo-500"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-200">{opt.label}</p>
-                    <p className="text-xs text-gray-500">{opt.desc}</p>
+                    <p className="text-sm font-medium text-fg-muted">{opt.label}</p>
+                    <p className="text-xs text-fg-muted">{opt.desc}</p>
                   </div>
                 </label>
               ))}
@@ -452,7 +452,7 @@ export default function CommunitySettingsPage() {
           <button
             type="submit"
             disabled={updateMutation.isPending}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
           >
             {updateMutation.isPending ? t('settings.saving') : t('common.save')}
           </button>
@@ -460,24 +460,24 @@ export default function CommunitySettingsPage() {
       </form>
 
       {/* Divider */}
-      <hr className="my-8 border-gray-700" />
+      <hr className="my-8 border-line" />
 
       {/* Invite Section */}
       <div id="invites" className="scroll-mt-6">
-        <h2 className="text-lg font-semibold text-gray-300">{t('settings.invites')}</h2>
+        <h2 className="text-lg font-semibold text-fg-muted">{t('settings.invites')}</h2>
 
         <div className="mt-4 space-y-4">
           {/* Max Uses */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="maxUses" className="block text-sm font-medium text-gray-400">
+              <label htmlFor="maxUses" className="block text-sm font-medium text-fg-muted">
                 {t('settings.maxUses')}
               </label>
               <select
                 id="maxUses"
                 value={maxUses}
                 onChange={(e) => setMaxUses(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               >
                 <option value="0">{t('settings.unlimited')}</option>
                 <option value="1">1</option>
@@ -491,14 +491,14 @@ export default function CommunitySettingsPage() {
 
             {/* Expires In */}
             <div>
-              <label htmlFor="expiresIn" className="block text-sm font-medium text-gray-400">
+              <label htmlFor="expiresIn" className="block text-sm font-medium text-fg-muted">
                 {t('settings.expiresIn')}
               </label>
               <select
                 id="expiresIn"
                 value={expiresInDays}
                 onChange={(e) => setExpiresInDays(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               >
                 <option value="0">{t('settings.noExpiry')}</option>
                 <option value="1">{t('settings.days', { count: 1 })}</option>
@@ -514,26 +514,26 @@ export default function CommunitySettingsPage() {
             type="button"
             onClick={handleCreateInvite}
             disabled={inviteMutation.isPending}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent disabled:opacity-50"
           >
             {inviteMutation.isPending ? t('common.loading') : t('settings.createInvite')}
           </button>
 
           {/* Generated Invite Link */}
           {inviteLink && (
-            <div className="rounded-lg border border-gray-700 bg-gray-800/50 p-4">
-              <p className="mb-2 text-xs font-medium text-gray-400">{t('settings.inviteLink')}</p>
+            <div className="rounded-lg border border-line bg-bg-subtle/50 p-4">
+              <p className="mb-2 text-xs font-medium text-fg-muted">{t('settings.inviteLink')}</p>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   readOnly
                   value={inviteLink}
-                  className="flex-1 rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-200 focus:outline-none"
+                  className="flex-1 rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="shrink-0 rounded-lg bg-gray-700 px-3 py-2 text-sm font-medium text-gray-200 hover:bg-gray-600"
+                  className="shrink-0 rounded-lg bg-bg-subtle px-3 py-2 text-sm font-medium text-fg-muted hover:bg-bg-subtle"
                 >
                   {copied ? t('settings.copied') : t('settings.copy')}
                 </button>
@@ -544,16 +544,16 @@ export default function CommunitySettingsPage() {
       </div>
 
       {/* P2P File Settings */}
-      <hr className="my-8 border-gray-700" />
+      <hr className="my-8 border-line" />
       <div id="p2p" className="scroll-mt-6">
-        <h2 className="text-lg font-semibold text-gray-300">{t('p2p.settings')}</h2>
-        <p className="mt-1 text-xs text-gray-500">{t('p2p.noLimit')}</p>
+        <h2 className="text-lg font-semibold text-fg-muted">{t('p2p.settings')}</h2>
+        <p className="mt-1 text-xs text-fg-muted">{t('p2p.noLimit')}</p>
 
         <div className="mt-4 space-y-3">
           {/* WiFi Only Toggle */}
-          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-gray-700 bg-gray-800/50 p-4">
+          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-line bg-bg-subtle/50 p-4">
             <div>
-              <p className="text-sm font-medium text-gray-200">{t('p2p.wifiOnly')}</p>
+              <p className="text-sm font-medium text-fg-muted">{t('p2p.wifiOnly')}</p>
             </div>
             <input
               type="checkbox"
@@ -564,9 +564,9 @@ export default function CommunitySettingsPage() {
           </label>
 
           {/* Auto-seed Toggle */}
-          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-gray-700 bg-gray-800/50 p-4">
+          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-line bg-bg-subtle/50 p-4">
             <div>
-              <p className="text-sm font-medium text-gray-200">{t('p2p.autoSeed')}</p>
+              <p className="text-sm font-medium text-fg-muted">{t('p2p.autoSeed')}</p>
             </div>
             <input
               type="checkbox"
@@ -581,15 +581,15 @@ export default function CommunitySettingsPage() {
       {isOwner && (
         <>
           {/* Danger Zone */}
-          <hr className="my-8 border-gray-700" />
+          <hr className="my-8 border-line" />
           <div id="danger-zone" className="scroll-mt-6">
-            <h2 className="text-lg font-semibold text-red-400">{t('settings.dangerZone')}</h2>
-            <div className="mt-4 rounded-lg border border-red-900/50 bg-red-900/10 p-4 space-y-4">
-              <p className="text-sm text-gray-400">
+            <h2 className="text-lg font-semibold text-danger">{t('settings.dangerZone')}</h2>
+            <div className="mt-4 rounded-lg border border-danger/50 bg-danger/10 p-4 space-y-4">
+              <p className="text-sm text-fg-muted">
                 {t('settings.deleteCommunityWarning')}
               </p>
               <div>
-                <label htmlFor="delete-confirm" className="block text-sm font-medium text-gray-400">
+                <label htmlFor="delete-confirm" className="block text-sm font-medium text-fg-muted">
                   {t('settings.typeToConfirm')}
                 </label>
                 <input
@@ -598,14 +598,14 @@ export default function CommunitySettingsPage() {
                   value={deleteConfirmName}
                   onChange={(e) => setDeleteConfirmName(e.target.value)}
                   placeholder={community.name}
-                  className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+                  className="mt-1 w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder-gray-500 focus:border-danger focus:outline-none focus:ring-1 focus:ring-danger"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => deleteMutation.mutate()}
                 disabled={deleteConfirmName !== community.name || deleteMutation.isPending}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white hover:bg-danger disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deleteMutation.isPending ? t('common.loading') : t('community.deleteCommunity')}
               </button>

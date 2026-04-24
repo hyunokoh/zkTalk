@@ -261,30 +261,30 @@ export function FriendList() {
   return (
     <div data-testid="friend-list">
       <div
-        className="mb-5 rounded-lg border border-gray-700 bg-gray-800/60 p-4"
+        className="mb-5 rounded-lg border border-line bg-bg-subtle/60 p-4"
         data-testid="friend-share-guide"
       >
-        <h3 className="text-sm font-semibold text-gray-100">
+        <h3 className="text-sm font-semibold text-fg-muted">
           {t('friend.desktopShareGuideTitle')}
         </h3>
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-fg-muted">
           {t('friend.desktopShareGuideBody')}
         </p>
-        <div className="mt-3 space-y-2 text-xs text-gray-300">
+        <div className="mt-3 space-y-2 text-xs text-fg-muted">
           <p>{t('friend.desktopShareGuideStepMobile')}</p>
           <p>{t('friend.desktopShareGuideStepDesktop')}</p>
         </div>
       </div>
 
       <div
-        className="mb-5 space-y-3 rounded-lg border border-gray-700 bg-gray-800/60 p-4"
+        className="mb-5 space-y-3 rounded-lg border border-line bg-bg-subtle/60 p-4"
         data-testid="friend-shared-profile-input-section"
       >
         <div>
-          <h3 className="text-sm font-semibold text-gray-100">
+          <h3 className="text-sm font-semibold text-fg-muted">
             {t('friend.sharedProfileInputTitle')}
           </h3>
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-fg-muted">
             {t('friend.sharedProfileInputHelp')}
           </p>
         </div>
@@ -303,21 +303,21 @@ export function FriendList() {
             placeholder={t('friend.sharedProfileInputPlaceholder')}
             rows={3}
             data-testid="friend-shared-profile-input"
-            className="w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-muted focus:border-accent focus:outline-none"
           />
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => void handlePasteFromClipboard()}
               data-testid="friend-shared-profile-paste-button"
-              className="rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-xs font-medium text-gray-200 transition hover:border-gray-500 hover:text-white"
+              className="rounded-lg border border-line bg-bg-subtle px-3 py-2 text-xs font-medium text-fg-muted transition hover:border-line hover:text-white"
             >
               {t('friend.sharedProfilePaste')}
             </button>
             <button
               type="submit"
               data-testid="friend-shared-profile-open-button"
-              className="rounded-lg bg-[#f5c84c] px-3 py-2 text-xs font-semibold text-[#2a2a2a] transition hover:bg-[#f0be32]"
+              className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-accent-strong"
             >
               {t('friend.sharedProfileOpen')}
             </button>
@@ -325,7 +325,7 @@ export function FriendList() {
         </form>
 
         {sharedLinkFeedback && (
-          <p className="text-xs text-[#c05621]" data-testid="friend-shared-profile-feedback">
+          <p className="text-xs text-warning" data-testid="friend-shared-profile-feedback">
             {sharedLinkFeedback}
           </p>
         )}
@@ -333,17 +333,17 @@ export function FriendList() {
 
       {sharedProfile && (
         <div
-          className="mb-5 space-y-3 rounded-lg border border-gray-700 bg-gray-800/60 p-4"
+          className="mb-5 space-y-3 rounded-lg border border-line bg-bg-subtle/60 p-4"
           data-testid="friend-shared-profile-card"
           data-profile-user-id={sharedProfile.userId}
           data-friendship-status={sharedFriendshipStatus}
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-gray-100">
+              <h3 className="text-sm font-semibold text-fg-muted">
                 {t('friend.sharedProfileTitle')}
               </h3>
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-fg-muted">
                 {sharedProfile.username
                   ? t('friend.sharedProfileBodyWithUsername', {
                       name: sharedProfileName,
@@ -355,14 +355,14 @@ export function FriendList() {
             <button
               onClick={dismissSharedProfile}
               data-testid="friend-shared-profile-dismiss-button"
-              className="rounded-full border border-gray-600 bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-300 transition hover:border-gray-500 hover:text-white"
+              className="rounded-full border border-line bg-bg-subtle px-2.5 py-1 text-xs font-medium text-fg-muted transition hover:border-line hover:text-white"
             >
               {t('common.cancel')}
             </button>
           </div>
 
           <div
-            className="flex items-center gap-3 rounded-lg border border-gray-700 bg-gray-900/80 p-3"
+            className="flex items-center gap-3 rounded-lg border border-line bg-bg-subtle/80 p-3"
             data-testid="friend-shared-profile-user-row"
           >
             <UserAvatar
@@ -371,10 +371,10 @@ export function FriendList() {
               size="sm"
             />
             <div className="min-w-0 flex-1">
-              <p className="truncate font-medium text-gray-100">
+              <p className="truncate font-medium text-fg-muted">
                 {sharedProfileName}
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-fg-muted">
                 {sharedProfile.username ? `@${sharedProfile.username}` : t('friend.sharedProfilePendingHint')}
               </p>
             </div>
@@ -384,21 +384,21 @@ export function FriendList() {
                   onClick={() => addMutation.mutate(sharedProfile.userId)}
                   disabled={addMutation.isPending}
                   data-testid="friend-shared-profile-add-button"
-                  className="rounded-lg bg-[#f5c84c] px-3 py-1.5 text-xs font-semibold text-[#2a2a2a] transition hover:bg-[#f0be32] disabled:opacity-50"
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-accent-strong disabled:opacity-50"
                 >
                   {t('friend.add')}
                 </button>
               )}
               {sharedFriendshipStatus === 'accepted' && (
                 <>
-                  <span className="text-xs font-medium text-[#5f7486]">
+                  <span className="text-xs font-medium text-fg-muted">
                     {t('friend.sharedProfileAccepted')}
                   </span>
                   <button
                     onClick={() => dmMutation.mutate(sharedProfile.userId)}
                     disabled={dmMutation.isPending}
                     data-testid="friend-shared-profile-message-button"
-                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent disabled:opacity-50"
                   >
                     {t('friend.message')}
                   </button>
@@ -406,7 +406,7 @@ export function FriendList() {
                     onClick={() => callMutation.mutate({ targetUserId: sharedProfile.userId, mode: 'voice' })}
                     disabled={callMutation.isPending}
                     data-testid="friend-shared-profile-voice-button"
-                    className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover disabled:opacity-50 dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
                   >
                     {t('voice.join')}
                   </button>
@@ -414,14 +414,14 @@ export function FriendList() {
                     onClick={() => callMutation.mutate({ targetUserId: sharedProfile.userId, mode: 'video' })}
                     disabled={callMutation.isPending}
                     data-testid="friend-shared-profile-video-button"
-                    className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover disabled:opacity-50 dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
                   >
                     {t('voice.videoCall')}
                   </button>
                 </>
               )}
               {sharedFriendshipStatus === 'pending' && isSharedRequester && (
-                <span className="text-xs font-medium text-gray-400">
+                <span className="text-xs font-medium text-fg-muted">
                   {t('friend.requestSent')}
                 </span>
               )}
@@ -430,21 +430,21 @@ export function FriendList() {
                   <button
                     onClick={() => acceptMutation.mutate(sharedFriendshipId)}
                     data-testid="friend-shared-profile-accept-button"
-                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent"
                   >
                     {t('friend.accept')}
                   </button>
                   <button
                     onClick={() => removeMutation.mutate(sharedFriendshipId)}
                     data-testid="friend-shared-profile-decline-button"
-                    className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
                   >
                     {t('friend.decline')}
                   </button>
                 </>
               )}
               {sharedFriendshipStatus === 'blocked' && (
-                <span className="text-xs font-medium text-red-500">
+                <span className="text-xs font-medium text-danger">
                   {t('friend.sharedProfileBlocked')}
                 </span>
               )}
@@ -454,14 +454,14 @@ export function FriendList() {
       )}
 
       <div
-        className="mb-5 space-y-3 rounded-lg border border-gray-700 bg-gray-800/60 p-4"
+        className="mb-5 space-y-3 rounded-lg border border-line bg-bg-subtle/60 p-4"
         data-testid="friend-search-section"
       >
         <div>
-          <h3 className="text-sm font-semibold text-gray-100">
+          <h3 className="text-sm font-semibold text-fg-muted">
             {t('friend.addByUsername')}
           </h3>
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-fg-muted">
             {t('friend.addByUsernameHelp')}
           </p>
         </div>
@@ -475,12 +475,12 @@ export function FriendList() {
           }}
           placeholder={t('friend.searchUsers')}
           data-testid="friend-search-input"
-          className="w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none"
+          className="w-full rounded-lg border border-line bg-bg-subtle px-3 py-2 text-sm text-fg-muted placeholder:text-fg-muted focus:border-accent focus:outline-none"
         />
 
         {searchFeedback && (
           <p
-            className="text-xs text-gray-500 dark:text-gray-400"
+            className="text-xs text-fg-muted dark:text-fg-muted"
             data-testid="friend-search-feedback"
           >
             {searchFeedback}
@@ -494,13 +494,13 @@ export function FriendList() {
             ) : searchResults.length === 0 ? (
               <EmptyState
                 title={t('friend.noSearchResults')}
-                className="border-gray-200 bg-gray-50 px-6 py-10 text-gray-500 shadow-none dark:border-gray-700 dark:bg-gray-800/40"
+                className="border-line bg-bg-subtle px-6 py-10 text-fg-muted shadow-none dark:border-line dark:bg-bg-subtle/40"
               />
             ) : (
               searchResults.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                  className="flex items-center gap-3 rounded-lg border border-line p-3 dark:border-line"
                   data-testid="friend-search-result"
                   data-user-id={user.id}
                 >
@@ -510,10 +510,10 @@ export function FriendList() {
                     size="sm"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-gray-900 dark:text-gray-100">
+                    <p className="truncate font-medium text-fg dark:text-fg-muted">
                       {user.displayName}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-fg-muted dark:text-fg-muted">
                       @{user.username}
                     </p>
                   </div>
@@ -521,7 +521,7 @@ export function FriendList() {
                     onClick={() => addMutation.mutate(user.id)}
                     disabled={addMutation.isPending}
                     data-testid="friend-search-add-button"
-                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent disabled:opacity-50"
                   >
                     {t('friend.add')}
                   </button>
@@ -533,7 +533,7 @@ export function FriendList() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex gap-1 border-b border-line dark:border-line">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -541,8 +541,8 @@ export function FriendList() {
             data-testid={`friend-tab-${tab.key}`}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === tab.key
-                ? 'border-b-2 border-indigo-600 text-indigo-600'
-                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                ? 'border-b-2 border-accent text-accent-strong'
+                : 'text-fg-muted hover:text-fg dark:text-fg-muted dark:hover:text-fg-muted'
             }`}
           >
             {tab.label}
@@ -568,12 +568,12 @@ export function FriendList() {
                   ? t('friend.sharedProfileBlocked')
                   : t('friend.friendsPageHelp')
             }
-            className="border-gray-200 bg-gray-50 px-6 py-12 text-gray-500 shadow-none dark:border-gray-700 dark:bg-gray-800/40"
+            className="border-line bg-bg-subtle px-6 py-12 text-fg-muted shadow-none dark:border-line dark:bg-bg-subtle/40"
           />
         ) : friends.map((friend) => (
           <div
             key={friend.id}
-            className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+            className="flex items-center gap-3 rounded-lg border border-line p-3 dark:border-line"
             data-testid="friend-row"
             data-friendship-id={friend.id}
             data-user-id={friend.user?.id ?? ''}
@@ -588,10 +588,10 @@ export function FriendList() {
                   size="sm"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-gray-900 dark:text-gray-100">
+                  <p className="truncate font-medium text-fg dark:text-fg-muted">
                     {friend.user.displayName}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-fg-muted dark:text-fg-muted">
                     @{friend.user.username}
                   </p>
                 </div>
@@ -603,7 +603,7 @@ export function FriendList() {
                 <button
                   onClick={() => acceptMutation.mutate(friend.id)}
                   data-testid="friend-row-accept-button"
-                  className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent"
                 >
                   {t('friend.accept')}
                 </button>
@@ -612,13 +612,13 @@ export function FriendList() {
                 <button
                   onClick={() => removeMutation.mutate(friend.id)}
                   data-testid="friend-row-decline-button"
-                  className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                  className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
                 >
                   {t('friend.decline')}
                 </button>
               )}
               {activeTab === 'pending' && friend.isRequester && (
-                <span className="text-xs text-gray-500">{t('friend.requestSent')}</span>
+                <span className="text-xs text-fg-muted">{t('friend.requestSent')}</span>
               )}
               {activeTab === 'accepted' && (
                 <>
@@ -627,7 +627,7 @@ export function FriendList() {
                       <button
                         onClick={() => dmMutation.mutate(friend.user!.id)}
                         data-testid="friend-row-message-button"
-                        className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                        className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent disabled:opacity-50"
                         disabled={dmMutation.isPending}
                       >
                         {t('friend.message')}
@@ -635,7 +635,7 @@ export function FriendList() {
                       <button
                         onClick={() => callMutation.mutate({ targetUserId: friend.user!.id, mode: 'voice' })}
                         data-testid="friend-row-voice-button"
-                        className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                        className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover disabled:opacity-50 dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
                         disabled={callMutation.isPending}
                       >
                         {t('voice.join')}
@@ -643,7 +643,7 @@ export function FriendList() {
                       <button
                         onClick={() => callMutation.mutate({ targetUserId: friend.user!.id, mode: 'video' })}
                         data-testid="friend-row-video-button"
-                        className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                        className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover disabled:opacity-50 dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
                         disabled={callMutation.isPending}
                       >
                         {t('voice.videoCall')}
@@ -653,14 +653,14 @@ export function FriendList() {
                   <button
                     onClick={() => blockMutation.mutate(friend.id)}
                     data-testid="friend-row-block-button"
-                    className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
                   >
                     {t('friend.block')}
                   </button>
                   <button
                     onClick={() => removeMutation.mutate(friend.id)}
                     data-testid="friend-row-remove-button"
-                    className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 dark:bg-gray-600 dark:text-red-400 dark:hover:bg-red-900/30"
+                    className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger dark:bg-bg-subtle dark:text-danger dark:hover:bg-danger/30"
                   >
                     {t('friend.remove')}
                   </button>
@@ -670,7 +670,7 @@ export function FriendList() {
                 <button
                   onClick={() => removeMutation.mutate(friend.id)}
                   data-testid="friend-row-unblock-button"
-                  className="rounded-lg bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
+                  className="rounded-lg bg-bg-hover px-3 py-1.5 text-xs font-medium text-fg hover:bg-bg-hover dark:bg-bg-subtle dark:text-fg-muted dark:hover:bg-bg-hover"
                 >
                   {t('friend.unblock')}
                 </button>

@@ -34,7 +34,7 @@ export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
 
   return (
     <div>
-      <div className="flex border-b border-gray-700">
+      <div className="flex border-b border-line">
         {TABS.map((tab) => {
           const count = items.filter((i) => {
             if (tab.value === 'all') return !i.isRead;
@@ -49,17 +49,17 @@ export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
               className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeTab === tab.value
                   ? 'text-white'
-                  : 'text-gray-500 hover:text-gray-300'
+                  : 'text-fg-muted hover:text-fg-muted'
               }`}
             >
               {tab.label}
               {count > 0 && (
-                <span className="ml-1.5 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-indigo-600 px-1 py-0.5 text-[10px] font-bold text-white">
+                <span className="ml-1.5 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-accent px-1 py-0.5 text-[10px] font-bold text-white">
                   {count}
                 </span>
               )}
               {activeTab === tab.value && (
-                <div className="absolute inset-x-0 bottom-0 h-0.5 bg-indigo-500" />
+                <div className="absolute inset-x-0 bottom-0 h-0.5 bg-accent" />
               )}
             </button>
           );

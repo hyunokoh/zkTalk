@@ -71,15 +71,15 @@ export default function ThreadPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Thread header */}
       {thread && (
-        <div className="border-b border-gray-800 px-4 py-3">
-          <h2 className="text-lg font-semibold text-gray-100">{thread.title ?? t('thread.title')}</h2>
-          <div className="mt-0.5 flex items-center gap-3 text-xs text-gray-500">
+        <div className="border-b border-line px-4 py-3">
+          <h2 className="text-lg font-semibold text-fg-muted">{thread.title ?? t('thread.title')}</h2>
+          <div className="mt-0.5 flex items-center gap-3 text-xs text-fg-muted">
             <span>
               {thread.replyCount === 1
                 ? t('thread.replyCount', { count: thread.replyCount })
                 : t('thread.replyCountPlural', { count: thread.replyCount })}
             </span>
-            {thread.isLocked && <span className="text-amber-400">{t('thread.locked')}</span>}
+            {thread.isLocked && <span className="text-warning">{t('thread.locked')}</span>}
           </div>
         </div>
       )}
@@ -87,7 +87,7 @@ export default function ThreadPage() {
       {rootMessage ? (
         <div
           data-testid="thread-root-message"
-          className="border-b border-gray-800 bg-[#2f3136] px-4 py-4"
+          className="border-b border-line bg-bg-subtle px-4 py-4"
         >
           <div className="flex items-start gap-3">
             <UserAvatar
@@ -97,17 +97,17 @@ export default function ThreadPage() {
             />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="truncate text-sm font-semibold text-gray-100">
+                <span className="truncate text-sm font-semibold text-fg-muted">
                   {rootMessage.author.displayName}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-fg-muted">
                   {relativeTime(rootMessage.message.createdAt)}
                 </span>
               </div>
               {showRootBody ? (
                 <div
                   data-testid="thread-root-message-body"
-                  className="mt-2 text-sm text-gray-200"
+                  className="mt-2 text-sm text-fg-muted"
                 >
                   <MarkdownRenderer content={rootMessage.message.bodyMarkdown} />
                 </div>
@@ -125,7 +125,7 @@ export default function ThreadPage() {
       <MessageList channelId={channelId} threadId={threadId} />
 
       {thread?.isLocked || !canPostReply ? (
-        <div className="border-t border-gray-800 px-4 py-3 text-center text-sm text-gray-500">
+        <div className="border-t border-line px-4 py-3 text-center text-sm text-fg-muted">
           {thread?.isLocked ? t('thread.lockedMessage') : t('thread.readOnlyMessage')}
         </div>
       ) : (

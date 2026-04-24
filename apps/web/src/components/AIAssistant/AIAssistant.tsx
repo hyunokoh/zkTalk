@@ -78,14 +78,14 @@ export function AIAssistant({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="flex h-[36rem] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1a2736] shadow-2xl"
+        className="flex h-[36rem] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/10 bg-bg-subtle shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/8 bg-[#0f1a2b] px-5 py-3.5">
+        <div className="flex items-center justify-between border-b border-white/8 bg-bg-elevated px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20">
-              <svg className="h-4 w-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20">
+              <svg className="h-4 w-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.312 15.904L17.5 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L10.75 12l2.846-.813a4.5 4.5 0 003.09-3.09L17.5 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L24.25 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
               </svg>
             </div>
@@ -106,8 +106,8 @@ export function AIAssistant({
         <div className="flex-1 overflow-y-auto px-4 py-4">
           {messages.length === 0 && (
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/15">
-                <svg className="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/15">
+                <svg className="h-6 w-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
               </div>
@@ -123,10 +123,10 @@ export function AIAssistant({
               <div
                 className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                   msg.role === 'user'
-                    ? 'rounded-br-md bg-indigo-600 text-white'
+                    ? 'rounded-br-md bg-accent text-white'
                     : msg.role === 'system'
                     ? 'hidden'
-                    : 'rounded-bl-md bg-[#0f1a2b] text-white/85'
+                    : 'rounded-bl-md bg-bg-elevated text-white/85'
                 }`}
               >
                 {msg.content.split('\n').map((line, j) => (
@@ -141,7 +141,7 @@ export function AIAssistant({
 
           {chatMutation.isPending && (
             <div className="mb-3 max-w-[85%]">
-              <div className="rounded-2xl rounded-bl-md bg-[#0f1a2b] px-3.5 py-2.5">
+              <div className="rounded-2xl rounded-bl-md bg-bg-elevated px-3.5 py-2.5">
                 <div className="flex gap-1.5">
                   <span className="h-2 w-2 animate-bounce rounded-full bg-white/40" style={{ animationDelay: '0ms' }} />
                   <span className="h-2 w-2 animate-bounce rounded-full bg-white/40" style={{ animationDelay: '150ms' }} />
@@ -155,7 +155,7 @@ export function AIAssistant({
         </div>
 
         {/* Input */}
-        <div className="border-t border-white/8 bg-[#0f1a2b] p-3">
+        <div className="border-t border-white/8 bg-bg-elevated p-3">
           <div className="flex items-end gap-2">
             <textarea
               ref={inputRef}
@@ -163,13 +163,13 @@ export function AIAssistant({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t('ai.askAnything') ?? 'Ask something...'}
-              className="min-h-[2.25rem] max-h-24 flex-1 resize-none rounded-xl border border-white/10 bg-[#1a2736] px-3 py-2 text-sm text-white placeholder-white/30 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="min-h-[2.25rem] max-h-24 flex-1 resize-none rounded-xl border border-white/10 bg-bg-subtle px-3 py-2 text-sm text-white placeholder-white/30 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               rows={1}
             />
             <button
               onClick={handleSend}
               disabled={!input.trim() || chatMutation.isPending}
-              className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white transition hover:bg-indigo-500 disabled:opacity-40"
+              className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition hover:bg-accent disabled:opacity-40"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />

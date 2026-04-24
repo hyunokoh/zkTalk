@@ -14,7 +14,7 @@ export default function FriendsPage() {
         <h1 className="text-xl font-bold text-white">
           {t('friend.title')}
         </h1>
-        <p className="mt-1 text-sm text-[#96989d]">
+        <p className="mt-1 text-sm text-fg-muted">
           {t('friend.friendsPageHelp')}
         </p>
 
@@ -25,7 +25,7 @@ export default function FriendsPage() {
 
         {/* Friends list */}
         <div className="mt-6">
-          <Suspense fallback={<div className="text-sm text-[#72767d]">{t('common.loading')}</div>}>
+          <Suspense fallback={<div className="text-sm text-fg-subtle">{t('common.loading')}</div>}>
             <FriendList />
           </Suspense>
         </div>
