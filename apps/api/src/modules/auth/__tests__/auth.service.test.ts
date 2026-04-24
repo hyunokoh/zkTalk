@@ -372,7 +372,7 @@ describe('auth.service', () => {
         id: 'community-secret',
         visibility: 'private',
       } as any);
-      mockFindCommunityMembership.mockResolvedValueOnce(null);
+      mockFindCommunityMembership.mockResolvedValueOnce(null as any);
 
       const result = await authService.getSettings('user-1');
 
