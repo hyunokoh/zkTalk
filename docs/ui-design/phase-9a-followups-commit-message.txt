@@ -1,0 +1,45 @@
+feat(web): phase 9a.1–9a.3 telegram-minimal token refresh across message surfaces
+
+Complete the Phase 9A UI refresh by replacing all remaining Discord-inspired
+hardcoded palette values with the token-based design system introduced in the
+9A foundation. Every target surface now consumes semantic tokens
+(bg, bg-subtle, bg-hover, bg-elevated, fg, fg-muted, fg-subtle, line,
+line-strong, accent, accent-soft, accent-strong, agent, success, warning,
+danger) and standardized radius / shadow scales so theme switches and future
+tuning happen in one place.
+
+9A.1 — MessageItem
+- Replaced all raw hex fills, white-opacity overlays, and sky/indigo/amber/
+  emerald/rose/gray utilities with semantic tokens.
+- Normalized hover, selected, highlighted, own-message, and agent-message
+  states to accent/agent/warning tokens.
+- Tokenized reactions pill, reply-context pill, AI action popover, and
+  timestamp row; preserved all data-testid attributes and behavior.
+
+9A.2 — ThreadPanel / MessageComposer / DmConversation / ChannelSidebar
+- ThreadPanel: w-[320px] rail, border-line, bg-bg, follow button uses
+  bg-accent-soft / text-accent for active state; close button uses
+  hover:bg-bg-hover; read-only footer uses text-fg-muted.
+- MessageComposer (1,970 lines): attachment rows, AI summary panel, secondary
+  actions menu, AI runtime status chips (live/mock/error → success/warning/
+  danger), mention dropdown, textarea, send button (bg-accent), recording
+  indicator, error dialog, reply-preview pill, E2EE indicator, schedule
+  picker, topic input, emoji picker, long-form warning — all tokenized.
+- DmConversation (2,355 lines): bulk-migrated Discord palette (#36393f,
+  #313338, #40444b, #5865f2, #202225, #dcddde, #b9bbbe, #72767d, etc.) to
+  bg/bg-subtle/bg-elevated/accent/line/fg/fg-muted/fg-subtle. Own-bubble
+  text uses text-[color:var(--on-accent)]. Modal dialogs rebuilt with
+  bg-bg-elevated + border-line + rounded-lg + shadow-[var(--shadow-3)].
+- ChannelSidebar (1,042 lines): removed gradient wrapper, tokenized
+  community header, search input, locked prompts, voice quick-join panel,
+  channel items (active/locked/highlighted/hasUnread), status dots, badges.
+  Unread mention badge uses bg-danger; focus rings use accent tokens.
+
+9A.3 — AppLayout backdrop
+- Loading state: dropped radial gradient and #07111d; card tokenized.
+- Main layout: removed both backdrop gradient divs (radial + left light
+  overlay) — surface is now flat bg-bg per Telegram-minimal principle.
+- Mobile hamburger, mobile backdrop, and rail-resize handle tokenized.
+
+Design reference: docs/ui-design/design-system.md
+No behavioral or logic changes; data-testids preserved throughout.

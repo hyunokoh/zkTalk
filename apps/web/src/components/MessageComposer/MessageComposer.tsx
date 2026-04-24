@@ -1408,7 +1408,7 @@ export function MessageComposer({
   return (
     <div
       data-testid={`${composerTestIdPrefix}-drop-zone`}
-      className="relative border-t border-white/8 bg-[#0f1724] px-5 pb-5 pt-3 md:px-8"
+      className="relative border-t border-line bg-bg px-5 pb-5 pt-3 md:px-8"
       onDragEnter={handleAttachmentDragEnter}
       onDragLeave={handleAttachmentDragLeave}
       onDragOver={handleAttachmentDragOver}
@@ -1417,18 +1417,18 @@ export function MessageComposer({
       <div className="mx-auto w-full max-w-5xl">
       {/* Reply preview bar */}
       {replyTo && (
-        <div className="mb-3 flex items-center gap-2 rounded-[1.4rem] border border-sky-300/18 bg-sky-300/10 px-4 py-3 text-xs shadow-[0_18px_40px_rgba(2,8,23,0.18)]">
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-accent/20 bg-accent-soft px-4 py-3 text-xs shadow-[var(--shadow-1)]">
           <div className="min-w-0 flex-1">
-            <span className="font-medium text-sky-200">
+            <span className="font-medium text-accent">
               {t('message.quoteReply', { name: replyTo.author?.displayName ?? t('misc.unknownUser') })}
             </span>
-            <p className="truncate text-white/58">
+            <p className="truncate text-fg-muted">
               {replyTo.message.bodyMarkdown.slice(0, 120)}
             </p>
           </div>
           <button
             onClick={onCancelReply}
-            className="shrink-0 rounded-full p-1 text-white/44 hover:bg-white/10 hover:text-white"
+            className="shrink-0 rounded-pill p-1 text-fg-muted hover:bg-bg-hover hover:text-fg"
           >
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -1439,14 +1439,14 @@ export function MessageComposer({
 
       {/* Context indicator */}
       {threadId && (
-        <div className="mb-3 inline-flex w-fit items-center rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-xs font-medium text-white/52">
+        <div className="mb-3 inline-flex w-fit items-center rounded-pill border border-line bg-bg-subtle px-3 py-1 text-xs font-medium text-fg-muted">
           {t('thread.replyingInThread')}
         </div>
       )}
 
       {/* E2EE indicator */}
       {isE2eeEnabled && (
-        <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200">
+        <div className="mb-3 inline-flex items-center gap-1 rounded-pill border border-success/30 bg-success/10 px-3 py-1 text-xs font-medium text-success">
           <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
           </svg>
@@ -1456,24 +1456,24 @@ export function MessageComposer({
 
       {/* Schedule picker */}
       {showSchedule && canScheduleMessage && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-[1.4rem] border border-white/8 bg-white/[0.04] px-4 py-3 text-xs shadow-[0_18px_40px_rgba(2,8,23,0.18)]">
-          <span className="font-semibold text-white/46">{t('schedule.title')}:</span>
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-line bg-bg-subtle px-4 py-3 text-xs shadow-[var(--shadow-1)]">
+          <span className="font-semibold text-fg-muted">{t('schedule.title')}:</span>
           <input
             type="datetime-local"
             value={scheduleDate}
             onChange={(e) => setScheduleDate(e.target.value)}
-            className="rounded-xl border border-white/10 bg-[#0f1a2b] px-3 py-2 text-xs text-[#dcddde]"
+            className="rounded-md border border-line bg-bg-subtle px-3 py-2 text-xs text-fg"
           />
           <button
             onClick={handleSchedule}
             disabled={!scheduleDate || !body.trim() || scheduleMutation.isPending}
-            className="rounded-full bg-indigo-600 px-3 py-1.5 font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+            className="rounded-pill bg-accent px-3 py-1.5 font-medium text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
           >
             {t('schedule.schedule')}
           </button>
           <button
             onClick={() => setShowSchedule(false)}
-            className="rounded-full px-3 py-1.5 text-white/44 hover:bg-white/10 hover:text-white"
+            className="rounded-pill px-3 py-1.5 text-fg-muted hover:bg-bg-hover hover:text-fg"
           >
             {t('common.cancel')}
           </button>
@@ -1484,7 +1484,7 @@ export function MessageComposer({
       {requireTopic && (
         <div className="relative mb-2">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-white/46">{t('topic.title')}:</label>
+            <label className="text-xs font-medium text-fg-muted">{t('topic.title')}:</label>
             <input
               type="text"
               value={topic}
@@ -1495,20 +1495,20 @@ export function MessageComposer({
               onFocus={() => setShowTopicSuggestions(true)}
               onBlur={() => setTimeout(() => setShowTopicSuggestions(false), 150)}
               placeholder={t('topic.placeholder')}
-              className="flex-1 rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-2.5 text-xs text-[#dcddde] placeholder:text-white/28 focus:border-sky-300/40 focus:outline-none"
+              className="flex-1 rounded-md border border-line bg-bg-subtle px-4 py-2.5 text-xs text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none"
             />
             {requireTopic && !topic.trim() && (
-              <span className="text-[10px] text-amber-300">{t('topic.required')}</span>
+              <span className="text-[10px] text-warning">{t('topic.required')}</span>
             )}
           </div>
           {/* Topic autocomplete suggestions */}
           {showTopicSuggestions && filteredTopics.length > 0 && (
-            <div className="absolute left-0 top-full z-10 mt-2 w-full overflow-hidden rounded-[1.25rem] border border-white/10 bg-[#0f1a2b]/96 shadow-[0_24px_50px_rgba(2,8,23,0.44)] backdrop-blur-xl">
+            <div className="absolute left-0 top-full z-10 mt-2 w-full overflow-hidden rounded-lg border border-line bg-bg-elevated shadow-[var(--shadow-3)]">
               {filteredTopics.map((topicItem) => (
                 <button
                   key={topicItem.topic}
                   type="button"
-                  className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs text-[#dcddde] hover:bg-white/10"
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs text-fg hover:bg-bg-hover"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setTopic(topicItem.topic ?? '');
@@ -1516,7 +1516,7 @@ export function MessageComposer({
                   }}
                 >
                   <span>{topicItem.topic}</span>
-                  <span className="text-[#72767d]">
+                  <span className="text-fg-subtle">
                     {t('composer.topicMessageCount', { count: topicItem.messageCount.toLocaleString(numberLocale) })}
                   </span>
                 </button>
@@ -1527,14 +1527,14 @@ export function MessageComposer({
       )}
 
       {showEmojiPicker && (
-        <div className="mb-3 rounded-[1.5rem] border border-white/8 bg-white/[0.04] px-4 py-4 shadow-[0_18px_40px_rgba(2,8,23,0.18)]">
+        <div className="mb-3 rounded-lg border border-line bg-bg-subtle px-4 py-4 shadow-[var(--shadow-1)]">
           <div className="flex flex-wrap gap-1.5">
             {EMOJI_LIST.map((emoji) => (
               <button
                 key={emoji}
                 type="button"
                 onClick={() => insertEmoji(emoji)}
-                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.04] text-lg transition hover:bg-white/[0.08]"
+                className="flex h-10 w-10 items-center justify-center rounded-md border border-line bg-bg text-lg transition hover:bg-bg-hover"
               >
                 {emoji}
               </button>
@@ -1555,26 +1555,26 @@ export function MessageComposer({
       ) : null}
 
       {body.length >= LONG_MESSAGE_SOFT_WARNING ? (
-        <div className="mb-3 flex items-center justify-between gap-3 rounded-[1.4rem] border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-xs shadow-[0_18px_40px_rgba(2,8,23,0.18)]">
-          <span className="font-medium text-amber-100">
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-xs shadow-[var(--shadow-1)]">
+          <span className="font-medium text-warning">
             {t('composer.longFormMode', {
               current: body.length.toLocaleString(numberLocale),
               max: MAX_MESSAGE_LENGTH.toLocaleString(numberLocale),
             })}
           </span>
-          <span className="text-amber-200/80">
+          <span className="text-warning/80">
             {t('composer.longFormHint')}
           </span>
         </div>
       ) : null}
 
       {pendingAttachments.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-2 rounded-[1.8rem] border border-white/8 bg-white/[0.04] px-4 py-4 shadow-[0_18px_40px_rgba(2,8,23,0.18)]">
+        <div className="mb-3 flex flex-wrap gap-2 rounded-lg border border-line bg-bg-subtle px-4 py-4 shadow-[var(--shadow-1)]">
           {pendingAttachments.map((attachment) => (
             <div
               key={attachment.id}
               data-testid={`${composerTestIdPrefix}-pending-attachment`}
-              className="flex min-w-[15rem] items-center gap-3 rounded-[1.25rem] border border-white/10 bg-[#111d2d] px-3 py-3"
+              className="flex min-w-[15rem] items-center gap-3 rounded-md border border-line bg-bg-elevated px-3 py-3"
             >
               {attachment.previewUrl ? (
                 <img
@@ -1586,16 +1586,16 @@ export function MessageComposer({
                   className="h-14 w-14 shrink-0 rounded-xl object-cover"
                 />
               ) : (
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#09111d] text-[11px] font-bold tracking-wide text-[#f2f3f5]">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border border-line bg-bg-subtle text-[11px] font-bold tracking-wide text-fg">
                   {getPendingAttachmentKindLabel(attachment.file)}
                 </div>
               )}
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex items-center gap-2">
-                  <span className="rounded-full bg-[rgba(240,215,76,0.14)] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[#f0d74c]">
+                  <span className="rounded-pill bg-warning/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-warning">
                     {getPendingAttachmentKindLabel(attachment.file)}
                   </span>
-                  <span className="text-[11px] font-medium text-white/52">
+                  <span className="text-[11px] font-medium text-fg-subtle">
                     {attachment.status === 'uploading'
                       ? t('attachment.statusUploading', {
                         progress: Math.round(attachment.progress * 100).toLocaleString(numberLocale),
@@ -1607,17 +1607,17 @@ export function MessageComposer({
                           : t('attachment.statusReady')}
                   </span>
                 </div>
-                <p className="max-w-[13rem] truncate text-sm font-medium text-[#f2f3f5]">
+                <p className="max-w-[13rem] truncate text-sm font-medium text-fg">
                   {attachment.file.name}
                 </p>
-                <p className="text-xs text-[#b5bac1]">
+                <p className="text-xs text-fg-muted">
                   {formatPendingFileSize(attachment.file.size)}
                   {attachment.errorMessage ? ` · ${attachment.errorMessage}` : ''}
                 </p>
                 {attachment.status === 'uploading' ? (
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-bg-hover">
                     <div
-                      className="h-full rounded-full bg-sky-300 transition-[width]"
+                      className="h-full rounded-pill bg-accent transition-[width]"
                       style={{ width: `${Math.max(4, Math.round(attachment.progress * 100))}%` }}
                     />
                   </div>
@@ -1633,14 +1633,14 @@ export function MessageComposer({
                             : item,
                         ));
                       }}
-                      className="rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-[11px] font-semibold text-amber-100 hover:bg-amber-300/20"
+                      className="rounded-pill border border-warning/40 bg-warning/10 px-3 py-1 text-[11px] font-semibold text-warning hover:bg-warning/20"
                     >
                       {t('common.retry')}
                     </button>
                     <button
                       type="button"
                       onClick={() => removePendingAttachment(attachment.id)}
-                      className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold text-white/72 hover:bg-white/[0.08]"
+                      className="rounded-pill border border-line bg-bg-subtle px-3 py-1 text-[11px] font-semibold text-fg-muted hover:bg-bg-hover hover:text-fg"
                     >
                       {t('attachment.remove')}
                     </button>
@@ -1650,7 +1650,7 @@ export function MessageComposer({
               <button
                 type="button"
                 onClick={() => removePendingAttachment(attachment.id)}
-                className="shrink-0 rounded-full p-1 text-[#b5bac1] hover:bg-white/10 hover:text-white"
+                className="shrink-0 rounded-pill p-1 text-fg-muted hover:bg-bg-hover hover:text-fg"
                 title={t('attachment.remove')}
               >
                 <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1665,24 +1665,24 @@ export function MessageComposer({
       {isDraggingAttachments ? (
         <div
           data-testid={`${composerTestIdPrefix}-drop-overlay`}
-          className="pointer-events-none absolute inset-3 z-20 flex items-center justify-center rounded-[2rem] border-2 border-dashed border-sky-300/55 bg-sky-300/10"
+          className="pointer-events-none absolute inset-3 z-20 flex items-center justify-center rounded-lg border-2 border-dashed border-accent/55 bg-accent-soft"
         >
-          <div className="rounded-[1.4rem] border border-white/10 bg-[#08111d]/88 px-5 py-4 text-center shadow-xl backdrop-blur-xl">
-            <p className="text-sm font-semibold text-white">{t('attachment.dropPrompt')}</p>
+          <div className="rounded-lg border border-line bg-bg-elevated px-5 py-4 text-center shadow-[var(--shadow-2)]">
+            <p className="text-sm font-semibold text-fg">{t('attachment.dropPrompt')}</p>
           </div>
         </div>
       ) : null}
 
       {aiChannelSummaryEnabled && channelSummary ? (
-        <div className="mb-3 rounded-[1.5rem] border border-indigo-300/20 bg-indigo-500/10 p-4 text-sm text-white/85 shadow-[0_20px_45px_rgba(41,56,161,0.18)]">
+        <div className="mb-3 rounded-lg border border-agent/25 bg-agent-soft p-4 text-sm text-fg shadow-[var(--shadow-1)]">
           <div className="mb-2 flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-200/80">{t('ai.summaryTitle')}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-agent">{t('ai.summaryTitle')}</p>
             </div>
             <button
               type="button"
               onClick={dismissChannelSummary}
-              className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
+              className="rounded-pill p-1 text-fg-muted hover:bg-bg-hover hover:text-fg"
               aria-label={t('ai.dismissSummary')}
             >
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1694,7 +1694,7 @@ export function MessageComposer({
         </div>
       ) : null}
 
-      <form data-testid={`${composerTestIdPrefix}-form`} onSubmit={handleSubmit} className="flex items-end gap-2 rounded-[2rem] border border-white/8 bg-[#0d1827]/92 p-3 shadow-[0_24px_60px_rgba(2,8,23,0.34)] backdrop-blur-xl">
+      <form data-testid={`${composerTestIdPrefix}-form`} onSubmit={handleSubmit} className="flex items-end gap-2 rounded-lg border border-line bg-bg-subtle p-3 shadow-[var(--shadow-1)]">
         <input
           ref={attachmentInputRef}
           data-testid={`${composerTestIdPrefix}-attachment-input`}
@@ -1712,10 +1712,10 @@ export function MessageComposer({
             disabled={disabled}
             aria-expanded={showSecondaryActionsMenu}
             aria-haspopup="menu"
-            className={`flex h-11 w-11 items-center justify-center rounded-[1rem] border ${
+            className={`flex h-11 w-11 items-center justify-center rounded-md border ${
               showSecondaryActionsMenu || showSchedule || showPollCreator || isRecording
-                ? 'border-sky-300/30 bg-sky-300/14 text-white'
-                : 'border-white/10 bg-white/[0.04] text-white/44 hover:bg-white/[0.08] hover:text-white'
+                ? 'border-accent/30 bg-accent-soft text-accent'
+                : 'border-line bg-bg text-fg-muted hover:bg-bg-hover hover:text-fg'
             } disabled:cursor-not-allowed disabled:opacity-50`}
             title={t('composer.moreActions')}
           >
@@ -1728,15 +1728,15 @@ export function MessageComposer({
             <div
               data-testid={`${composerTestIdPrefix}-more-menu`}
               role="menu"
-              className="absolute bottom-full left-0 z-20 mb-2 w-56 overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#0d1827]/96 p-2 shadow-[0_28px_60px_rgba(2,8,23,0.46)] backdrop-blur-xl"
+              className="absolute bottom-full left-0 z-20 mb-2 w-56 overflow-hidden rounded-lg border border-line bg-bg-elevated p-2 shadow-[var(--shadow-3)]"
             >
               <button
                 data-testid={`${composerTestIdPrefix}-attachment-button`}
                 type="button"
                 onClick={handleOpenAttachmentPicker}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10"
+                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-fg transition hover:bg-bg-hover"
               >
-                <svg className="h-4 w-4 shrink-0 text-[#b5bac1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                <svg className="h-4 w-4 shrink-0 text-fg-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739L10.682 20.43a4.5 4.5 0 11-6.364-6.364l10.94-10.94a3 3 0 114.243 4.243L8.548 18.32a1.5 1.5 0 01-2.12-2.122l7.81-7.81" />
                 </svg>
                 <span>{t('attachment.add')}</span>
@@ -1747,9 +1747,9 @@ export function MessageComposer({
                   data-testid={`${composerTestIdPrefix}-poll-button`}
                   type="button"
                   onClick={handleTogglePollCreator}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-fg transition hover:bg-bg-hover"
                 >
-                  <svg className="h-4 w-4 shrink-0 text-[#b5bac1]" viewBox="0 0 20 20" fill="currentColor">
+                  <svg className="h-4 w-4 shrink-0 text-fg-muted" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M3 4.75A1.75 1.75 0 014.75 3h10.5A1.75 1.75 0 0117 4.75v1.5A1.75 1.75 0 0115.25 8H4.75A1.75 1.75 0 013 6.25v-1.5zm0 4.5A1.75 1.75 0 014.75 7.5h6.5A1.75 1.75 0 0113 9.25v6A1.75 1.75 0 0111.25 17h-6.5A1.75 1.75 0 013 15.25v-6zm11 0a1 1 0 112 0v6a1 1 0 11-2 0v-6zm2-3a1 1 0 100-2 1 1 0 000 2z" />
                   </svg>
                   <span>{t('poll.create')}</span>
@@ -1759,12 +1759,12 @@ export function MessageComposer({
               {aiComposerActionsEnabled && aiRuntimePresentation ? (
                 <div
                   data-testid={`${composerTestIdPrefix}-ai-runtime-status`}
-                  className={`mx-1 mb-1 rounded-xl border px-3 py-2 text-xs leading-5 ${
+                  className={`mx-1 mb-1 rounded-md border px-3 py-2 text-xs leading-5 ${
                     aiRuntimePresentation.tone === 'live'
-                      ? 'border-emerald-700/40 bg-emerald-950/30 text-emerald-100'
+                      ? 'border-success/40 bg-success/10 text-success'
                       : aiRuntimePresentation.tone === 'mock'
-                        ? 'border-amber-700/40 bg-amber-950/30 text-amber-100'
-                        : 'border-rose-700/40 bg-rose-950/30 text-rose-100'
+                        ? 'border-warning/40 bg-warning/10 text-warning'
+                        : 'border-danger/40 bg-danger/10 text-danger'
                   }`}
                 >
                   <p className="font-semibold uppercase tracking-[0.14em]">{aiRuntimePresentation.label}</p>
@@ -1778,10 +1778,10 @@ export function MessageComposer({
                   type="button"
                   onClick={handleAiSummarizeChannel}
                   disabled={isAiWorking || !aiRuntimeUsable}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-fg transition hover:bg-agent-soft hover:text-agent disabled:cursor-not-allowed disabled:opacity-50"
                   title={aiRuntimePresentation ? `${aiRuntimePresentation.label}. ${aiRuntimePresentation.description}` : undefined}
                 >
-                  <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                  <svg className="h-4 w-4 shrink-0 text-agent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.75 6.75h14.5M4.75 12h10.5M4.75 17.25h7.5" />
                   </svg>
                   <span>{isAiWorking ? t('ai.working') : t('ai.summaryMenuAction')}</span>
@@ -1795,10 +1795,10 @@ export function MessageComposer({
                     type="button"
                     onClick={handleAiReplySuggestion}
                     disabled={isAiWorking || !aiRuntimeUsable}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-fg transition hover:bg-agent-soft hover:text-agent disabled:cursor-not-allowed disabled:opacity-50"
                     title={aiRuntimePresentation ? `${aiRuntimePresentation.label}. ${aiRuntimePresentation.description}` : undefined}
                   >
-                    <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className="h-4 w-4 shrink-0 text-agent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                     </svg>
                     <span>{isAiWorking ? t('ai.working') : t('ai.replySuggestion')}</span>
@@ -1809,10 +1809,10 @@ export function MessageComposer({
                     type="button"
                     onClick={handleAiTranslate}
                     disabled={isAiWorking || !aiRuntimeUsable}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-fg transition hover:bg-agent-soft hover:text-agent disabled:cursor-not-allowed disabled:opacity-50"
                     title={aiRuntimePresentation ? `${aiRuntimePresentation.label}. ${aiRuntimePresentation.description}` : undefined}
                   >
-                    <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className="h-4 w-4 shrink-0 text-agent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 5.25h12M9 3v2.25m-2.25 0c0 4.107 1.684 7.82 4.4 10.5m0 0A17.925 17.925 0 0015.75 9m-4.6 6.75L21 21" />
                     </svg>
                     <span>{isAiWorking ? t('ai.working') : t('ai.translateToEnglish')}</span>
@@ -1823,10 +1823,10 @@ export function MessageComposer({
                     type="button"
                     onClick={handleAiRewrite}
                     disabled={isAiWorking || !aiRuntimeUsable}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-fg transition hover:bg-agent-soft hover:text-agent disabled:cursor-not-allowed disabled:opacity-50"
                     title={aiRuntimePresentation ? `${aiRuntimePresentation.label}. ${aiRuntimePresentation.description}` : undefined}
                   >
-                    <svg className="h-4 w-4 shrink-0 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className="h-4 w-4 shrink-0 text-agent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                     </svg>
                     <span>{isAiWorking ? t('ai.working') : t('ai.rewrite')}</span>
@@ -1839,9 +1839,9 @@ export function MessageComposer({
                 type="button"
                 onClick={handleToggleRecording}
                 disabled={!isRecording && !canRecordAudio}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-fg transition hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <svg className={`h-4 w-4 shrink-0 ${isRecording ? 'text-red-400' : 'text-[#b5bac1]'}`} viewBox="0 0 20 20" fill="currentColor">
+                <svg className={`h-4 w-4 shrink-0 ${isRecording ? 'text-danger' : 'text-fg-muted'}`} viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
                 </svg>
                 <span>{isRecording ? t('audio.stop') : t('audio.record')}</span>
@@ -1852,9 +1852,9 @@ export function MessageComposer({
                   data-testid={`${composerTestIdPrefix}-schedule-button`}
                   type="button"
                   onClick={handleToggleSchedulePicker}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-[#dcddde] transition hover:bg-white/10"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-fg transition hover:bg-bg-hover"
                 >
-                  <svg className={`h-4 w-4 shrink-0 ${showSchedule ? 'text-indigo-300' : 'text-[#b5bac1]'}`} viewBox="0 0 20 20" fill="currentColor">
+                  <svg className={`h-4 w-4 shrink-0 ${showSchedule ? 'text-agent' : 'text-fg-muted'}`} viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                   </svg>
                   <span>{t('schedule.title')}</span>
@@ -1864,12 +1864,12 @@ export function MessageComposer({
           ) : null}
         </div>
 
-          <div className="relative flex-1 rounded-[1.4rem] border border-white/8 bg-white/[0.03]">
+          <div className="relative flex-1 rounded-md border border-line bg-bg">
           {/* @Mention autocomplete dropdown */}
           {mentionQuery !== null && filteredMembers.length > 0 && (
             <div
               ref={mentionDropdownRef}
-              className="absolute bottom-full left-0 mb-2 w-72 overflow-hidden rounded-[1.3rem] border border-white/10 bg-[#0f1a2b]/96 shadow-[0_24px_52px_rgba(2,8,23,0.44)] backdrop-blur-xl"
+              className="absolute bottom-full left-0 mb-2 w-72 overflow-hidden rounded-lg border border-line bg-bg-elevated shadow-[var(--shadow-3)]"
             >
               {filteredMembers.map((member, idx) => (
                 <button
@@ -1877,8 +1877,8 @@ export function MessageComposer({
                   type="button"
                   className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${
                     idx === selectedMentionIndex
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-[#dcddde] hover:bg-white/10'
+                      ? 'bg-accent text-[color:var(--on-accent)]'
+                      : 'text-fg hover:bg-bg-hover'
                   }`}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -1910,7 +1910,7 @@ export function MessageComposer({
             disabled={disabled}
             rows={1}
             maxLength={MAX_MESSAGE_LENGTH}
-            className="block min-h-[2.9rem] max-h-[16rem] w-full resize-none overflow-y-auto bg-transparent px-4 py-[0.85rem] text-[0.95rem] leading-6 text-[#e5edf8] placeholder:text-white/28 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="block min-h-[2.9rem] max-h-[16rem] w-full resize-none overflow-y-auto bg-transparent px-4 py-[0.85rem] text-[0.95rem] leading-6 text-fg placeholder:text-fg-subtle focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
 
@@ -1918,7 +1918,7 @@ export function MessageComposer({
           data-testid={`${composerTestIdPrefix}-emoji-button`}
           type="button"
           onClick={() => setShowEmojiPicker((prev) => !prev)}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[1rem] border border-white/10 bg-white/[0.03] text-lg text-white/55 hover:bg-white/[0.08] hover:text-white"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-bg text-lg text-fg-muted hover:bg-bg-hover hover:text-fg"
         >
           {showEmojiPicker ? '⌨️' : '☺'}
         </button>
@@ -1927,7 +1927,7 @@ export function MessageComposer({
           data-testid={`${composerTestIdPrefix}-send-button`}
           type="submit"
           disabled={(!body.trim() && !hasPendingAttachments) || sendMessage.isPending || disabled || (requireTopic && !topic.trim()) || pendingAttachments.some((attachment) => attachment.status === 'failed')}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[1rem] border border-sky-300/25 bg-[#4f6fff] text-white hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-accent text-[color:var(--on-accent)] hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span className="text-base leading-none">➤</span>
         </button>
@@ -1935,19 +1935,19 @@ export function MessageComposer({
 
       {/* Recording indicator */}
       {isRecording && (
-        <div className="mt-3 flex items-center gap-2 text-xs text-red-300">
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
+        <div className="mt-3 flex items-center gap-2 text-xs text-danger">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-pill bg-danger" />
           {t('audio.recording')}
         </div>
       )}
 
       {errorDialogMessage && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#203040]/45 px-4">
-          <div className="w-full max-w-md rounded-[1.75rem] border border-white/70 bg-white p-5 shadow-2xl">
-            <h3 className="text-lg font-semibold text-[#203040]">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-fg/25 px-4">
+          <div className="w-full max-w-md rounded-lg border border-line bg-bg-elevated p-5 shadow-[var(--shadow-3)]">
+            <h3 className="text-lg font-semibold text-fg">
               {errorDialogTitle ?? t('common.error')}
             </h3>
-            <p className="mt-2 text-sm text-[#607384]">{errorDialogMessage}</p>
+            <p className="mt-2 text-sm text-fg-muted">{errorDialogMessage}</p>
 
             <div className="mt-5 flex justify-end">
               <button
@@ -1956,7 +1956,7 @@ export function MessageComposer({
                   setErrorDialogTitle(null);
                   setErrorDialogMessage(null);
                 }}
-                className="rounded-full border border-[#ebd451] bg-[#fee500] px-4 py-2 text-sm font-semibold text-[#20262d]"
+                className="rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] hover:bg-accent-strong"
               >
                 {t('common.confirm')}
               </button>

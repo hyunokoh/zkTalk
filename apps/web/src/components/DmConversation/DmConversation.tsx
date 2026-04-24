@@ -1596,14 +1596,14 @@ export function DmConversation({ conversationId }: DmConversationProps) {
 
   return (
     <div
-      className="flex h-full flex-1 flex-col bg-[#36393f]"
+      className="flex h-full flex-1 flex-col bg-bg"
       data-testid="dm-conversation"
       data-conversation-id={conversationId}
       data-promoted={hasPromotedConversationState ? 'true' : 'false'}
       data-conversation-type={conv?.type ?? 'unknown'}
     >
       {/* Header */}
-      <div className="border-b border-[#202225] bg-[#313338] px-4 py-3">
+      <div className="border-b border-line bg-bg-subtle px-4 py-3">
         <div className="flex flex-wrap items-start gap-4">
             <div className="flex min-w-0 flex-1 gap-3">
               {conv && !isGroup && (
@@ -1614,36 +1614,36 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 />
               )}
               {isGroup && (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#5865f2] text-xs font-medium text-white">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium text-white">
                   {(conv?.name || 'G').charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8e9297]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-subtle">
                   {t('dm.title')}
                 </p>
                 <h2 className="mt-1.5 truncate text-lg font-semibold text-white">
                   {headerName}
                 </h2>
-                <p className="mt-1 text-sm text-[#b5bac1]">
+                <p className="mt-1 text-sm text-fg-muted">
                   {t('dm.listSubtitle')}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex rounded-full bg-[#40444b] px-2 py-0.5 text-xs font-semibold text-[#dbdee1]">
+                  <span className="inline-flex rounded-full bg-bg-elevated px-2 py-0.5 text-xs font-semibold text-fg">
                     {isGroup ? t('dm.group') : t('dm.oneToOne')}
                   </span>
                   {isGroup && (
-                    <span className="inline-flex rounded-full bg-[#40444b] px-2 py-0.5 text-xs font-semibold text-[#dbdee1]">
+                    <span className="inline-flex rounded-full bg-bg-elevated px-2 py-0.5 text-xs font-semibold text-fg">
                       {t('dm.groupMembers', { count: String(participants.length) })}
                     </span>
                   )}
                   {hasPromotedConversationState && (
-                    <span className="inline-flex rounded-full border border-[#4f545c] bg-[#2b2d31] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#dbdee1]">
+                    <span className="inline-flex rounded-full border border-line-strong bg-bg-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-fg">
                       {t('dm.historyBadge')}
                     </span>
                   )}
                   {!hasPromotedConversationState && isDirect && e2eeLoading && (
-                    <span className="text-xs text-[#b5bac1]">{t('e2ee.generating')}</span>
+                    <span className="text-xs text-fg-muted">{t('e2ee.generating')}</span>
                   )}
                   {!hasPromotedConversationState && isDirect && e2eeReady && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-semibold text-green-300">
@@ -1656,7 +1656,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 </div>
               </div>
             </div>
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-l border-[#202225] pl-3">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-l border-line pl-3">
               <button
                 type="button"
                 onClick={() => {
@@ -1664,7 +1664,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 }}
                 data-testid="dm-header-voice-button"
                 disabled={callTargetMutation.isPending}
-                className="shrink-0 rounded-md border border-[#4f545c] bg-[#40444b] px-3 py-1.5 text-xs font-semibold text-[#dbdee1] transition-colors hover:bg-[#4f545c] disabled:cursor-not-allowed disabled:opacity-60"
+                className="shrink-0 rounded-md border border-line-strong bg-bg-elevated px-3 py-1.5 text-xs font-semibold text-fg transition-colors hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {callTargetMutation.isPending ? t('common.loading') : t('voice.join')}
               </button>
@@ -1675,7 +1675,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 }}
                 data-testid="dm-header-video-button"
                 disabled={callTargetMutation.isPending}
-                className="shrink-0 rounded-md border border-[#4f545c] bg-[#40444b] px-3 py-1.5 text-xs font-semibold text-[#dbdee1] transition-colors hover:bg-[#4f545c] disabled:cursor-not-allowed disabled:opacity-60"
+                className="shrink-0 rounded-md border border-line-strong bg-bg-elevated px-3 py-1.5 text-xs font-semibold text-fg transition-colors hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {callTargetMutation.isPending ? t('common.loading') : t('voice.videoCall')}
               </button>
@@ -1684,7 +1684,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 onClick={promotedTarget ? openPromotedCommunity : openPromoteDialog}
                 disabled={promoteConversation.isPending || (hasPromotedConversationState && !promotedTarget)}
                 data-testid="dm-promote-button"
-                className="shrink-0 rounded-md border border-[#4f545c] bg-[#40444b] px-3 py-1.5 text-xs font-semibold text-[#dbdee1] transition-colors hover:bg-[#4f545c] disabled:cursor-not-allowed disabled:opacity-60"
+                className="shrink-0 rounded-md border border-line-strong bg-bg-elevated px-3 py-1.5 text-xs font-semibold text-fg transition-colors hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {promoteConversation.isPending
                   ? t('dm.promoting')
@@ -1699,18 +1699,18 @@ export function DmConversation({ conversationId }: DmConversationProps) {
       </div>
 
       {hasPromotedConversationState && (
-        <div className="border-b border-[#202225] bg-[#2f3136] px-4 py-3">
+        <div className="border-b border-line bg-bg-subtle px-4 py-3">
           <div
-            className="flex items-center gap-3 rounded-2xl border border-[#40444b] bg-[#313338] px-4 py-3"
+            className="flex items-center gap-3 rounded-2xl border border-line bg-bg-subtle px-4 py-3"
             data-testid="dm-promoted-banner"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5865f2] text-white">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-white">
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2a5 5 0 0 1 5 5v1h1a3 3 0 0 1 3 3v5a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6v-5a3 3 0 0 1 3-3h1V7a5 5 0 0 1 5-5Zm3 9H9a3 3 0 0 0-3 3v2a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-2a3 3 0 0 0-3-3Zm-3-6a2 2 0 0 0-2 2v1h4V7a2 2 0 0 0-2-2Z" />
               </svg>
             </div>
             <div className="min-w-0 flex-1">
-              <span className="mb-1 inline-flex rounded-full border border-[#4f545c] bg-[#2b2d31] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#dbdee1]">
+              <span className="mb-1 inline-flex rounded-full border border-line-strong bg-bg-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-fg">
                 {t('dm.historyBadge')}
               </span>
               <p className="text-sm font-semibold text-white">
@@ -1718,7 +1718,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                   ? t('dm.promotedBannerTitle', { community: promotedTarget.community.name })
                   : t('dm.promotedComposerTitle')}
               </p>
-              <p className="mt-0.5 text-xs text-[#b5bac1]">
+              <p className="mt-0.5 text-xs text-fg-muted">
                 {promotedTarget
                   ? t('dm.promotedBannerBody', { channel: promotedTarget.channel.name })
                   : t('dm.promotedReadOnlyFallback')}
@@ -1729,7 +1729,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 type="button"
                 onClick={openPromotedCommunity}
                 data-testid="dm-promoted-banner-open-channel-button"
-                className="shrink-0 rounded-md border border-[#4f545c] bg-[#40444b] px-3 py-2 text-xs font-semibold text-[#dbdee1] transition-colors hover:bg-[#4f545c]"
+                className="shrink-0 rounded-md border border-line-strong bg-bg-elevated px-3 py-2 text-xs font-semibold text-fg transition-colors hover:bg-bg-hover"
               >
                 {t('dm.goToCurrentChannel')}
               </button>
@@ -1745,14 +1745,14 @@ export function DmConversation({ conversationId }: DmConversationProps) {
         className="flex-1 overflow-y-auto px-3 py-4 md:px-4"
       >
         {isFetchingNextPage && (
-          <div className="py-2 text-center text-xs text-[#b5bac1]">
+          <div className="py-2 text-center text-xs text-fg-muted">
             {t('common.loading')}
           </div>
         )}
 
         {allMessages.length === 0 && !isFetchingNextPage && (
           <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-[#b5bac1]">
+            <p className="text-sm text-fg-muted">
               {promotedTarget
                 ? t('dm.promotedNoHistory', { channel: promotedTarget.channel.name })
                 : hasPromotedConversationState
@@ -1836,7 +1836,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
           const translationStatusIssue = !visibleTranslatedText ? translationState?.issue ?? null : null;
           const hideMessageBody = !msg.isDeleted && shouldHideAttachmentBody(messageBody, messageAttachments);
           const sideMeta = (
-            <div className={`shrink-0 self-end pb-0.5 text-[11px] leading-tight text-[#b5bac1] ${isOwnMessage ? 'text-left' : 'text-right'}`}>
+            <div className={`shrink-0 self-end pb-0.5 text-[11px] leading-tight text-fg-muted ${isOwnMessage ? 'text-left' : 'text-right'}`}>
               {msgUnreadCount > 0 ? <div>{Math.min(99, msgUnreadCount)}</div> : null}
               <div>{formatTime(msg.createdAt)}</div>
             </div>
@@ -1867,7 +1867,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
               <div className={`flex min-w-0 max-w-[min(32rem,calc(100%-4rem))] flex-col ${isOwnMessage ? 'items-end' : ''}`}>
                 {showAvatar && (
                   <div className="mb-0.5 flex items-baseline gap-2">
-                    <span className="text-sm font-medium text-[#f2f3f5]">
+                    <span className="text-sm font-medium text-fg">
                       {author.displayName}
                     </span>
                   </div>
@@ -1877,25 +1877,25 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                   <div className="relative">
                     {endsGroup && (
                       <span
-                        className={`absolute bottom-2 h-2.5 w-2.5 rotate-45 ${isOwnMessage ? '-right-1 border-b border-r border-[#ebd451] bg-[#fee500]' : '-left-1 border-b border-l border-[#d9e3ea] bg-white'}`}
+                        className={`absolute bottom-2 h-2.5 w-2.5 rotate-45 ${isOwnMessage ? '-right-1 bg-accent' : '-left-1 border-b border-l border-line bg-bg-elevated'}`}
                       />
                     )}
                     <div
                       className={`relative rounded-[1.2rem] px-3.5 py-2.5 shadow-sm ${
                         isOwnMessage
-                          ? 'rounded-tr-[0.45rem] rounded-br-[0.45rem] border border-[#4752c4] bg-[#5865f2]'
-                          : 'rounded-tl-[0.45rem] rounded-bl-[0.45rem] border border-[#4f545c] bg-[#40444b]'
+                          ? 'rounded-tr-[0.45rem] rounded-br-[0.45rem] border border-accent-strong bg-accent'
+                          : 'rounded-tl-[0.45rem] rounded-bl-[0.45rem] border border-line-strong bg-bg-elevated'
                       }`}
                     >
                       {msg.isDeleted ? (
-                        <p className={`whitespace-pre-wrap break-words text-sm ${isOwnMessage ? 'text-white' : 'text-[#f2f3f5]'}`}>
-                          <span className="italic text-[#b5bac1]">[삭제된 메시지]</span>
+                        <p className={`whitespace-pre-wrap break-words text-sm ${isOwnMessage ? 'text-[color:var(--on-accent)]' : 'text-fg'}`}>
+                          <span className="italic opacity-70">[삭제된 메시지]</span>
                         </p>
                       ) : !hideMessageBody ? (
-                        <p className={`whitespace-pre-wrap break-words text-sm ${isOwnMessage ? 'text-white' : 'text-[#f2f3f5]'}`}>
+                        <p className={`whitespace-pre-wrap break-words text-sm ${isOwnMessage ? 'text-[color:var(--on-accent)]' : 'text-fg'}`}>
                           {msg.isEncrypted ? (
                             <span className="inline-flex items-center gap-1">
-                              <svg className="inline h-3 w-3 shrink-0 text-green-300" viewBox="0 0 24 24" fill="currentColor">
+                              <svg className="inline h-3 w-3 shrink-0 text-success" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM15.1 8H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z" />
                               </svg>
                               <span>{messageBody}</span>
@@ -1915,7 +1915,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                             data-testid="dm-message-ai-reply-button"
                             onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'reply-draft')}
                             disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
-                            className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-pill border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
                             title={aiRuntimePresentation?.description ?? t('ai.replyDraftFromMessage')}
                           >
                             {t('ai.replyDraftFromMessage')}
@@ -1925,7 +1925,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                             data-testid="dm-message-ai-rewrite-button"
                             onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'rewrite-draft')}
                             disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
-                            className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-pill border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
                             title={aiRuntimePresentation?.description ?? t('ai.rewriteDraftFromMessage')}
                           >
                             {t('ai.rewriteDraftFromMessage')}
@@ -1935,17 +1935,17 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                             data-testid="dm-message-ai-translate-button"
                             onClick={() => void handleSelectedMessageAiAction(row, messageBody, 'translate-inline')}
                             disabled={isAiWorkingMessageId === msg.id || !aiRuntimeUsable}
-                            className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-pill border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-[color:var(--on-accent)]/90 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
                             title={aiRuntimePresentation?.description ?? t('translate.translate')}
                           >
                             {t('translate.translate')}
                           </button>
                           {aiRuntimePresentation ? (
-                            <span className="rounded-full border border-white/10 bg-black/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/55">
+                            <span className="rounded-pill border border-white/20 bg-black/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--on-accent)]/80">
                               {aiRuntimePresentation.label}
                             </span>
                           ) : null}
-                          <span className="basis-full text-[11px] leading-4 text-white/46">
+                          <span className="basis-full text-[11px] leading-4 opacity-80">
                             {selectedMessageAiStatusDescription}
                           </span>
                         </div>
@@ -1956,16 +1956,16 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                         data-translation-variant={translationVariant ?? undefined}
                         className={`mt-2 rounded-2xl border px-3 py-2 text-xs ${
                           translationVariant === 'manual'
-                            ? 'border-sky-300/24 bg-sky-400/10 text-sky-50'
-                            : 'border-emerald-300/18 bg-emerald-300/10 text-emerald-50'
+                            ? 'border-accent/25 bg-accent-soft text-fg'
+                            : 'border-success/25 bg-success/10 text-fg'
                         }`}
                       >
                         {translatedLabel ? (
                           <div
                             className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${
                               translationVariant === 'manual'
-                                ? 'text-sky-100/90'
-                                : 'text-emerald-100/80'
+                                ? 'text-accent'
+                                : 'text-success'
                             }`}
                           >
                             {translatedLabel}
@@ -1975,8 +1975,8 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                       </div>
                     ) : null}
                     {translationStatusLabel ? (
-                      <div className="mt-2 rounded-2xl border border-amber-300/18 bg-amber-300/10 px-3 py-2 text-xs text-amber-50">
-                        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-100/80">
+                      <div className="mt-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-warning">
                           {translationStatusLabel}
                         </div>
                         {translationStatusIssue ? <div className="mt-1">{translationStatusIssue}</div> : null}
@@ -2007,18 +2007,18 @@ export function DmConversation({ conversationId }: DmConversationProps) {
       </div>
 
       {/* Composer */}
-      <div className="border-t border-[#202225] bg-[#313338] px-4 py-3">
+      <div className="border-t border-line bg-bg-subtle px-4 py-3">
         {hasPromotedConversationState ? (
           <div
-            className="flex items-center gap-3 rounded-[1.55rem] border border-[#40444b] bg-[#2f3136] px-4 py-3"
+            className="flex items-center gap-3 rounded-[1.55rem] border border-line bg-bg-subtle px-4 py-3"
             data-testid="dm-promoted-composer"
           >
             <div className="min-w-0 flex-1">
-              <span className="mb-1 inline-flex rounded-full border border-[#4f545c] bg-[#2b2d31] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#dbdee1]">
+              <span className="mb-1 inline-flex rounded-full border border-line-strong bg-bg-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-fg">
                 {t('dm.historyBadge')}
               </span>
               <p className="text-sm font-semibold text-white">{t('dm.promotedComposerTitle')}</p>
-              <p className="mt-0.5 text-xs text-[#b5bac1]">
+              <p className="mt-0.5 text-xs text-fg-muted">
                 {promotedTarget
                   ? t('dm.promotedComposerBody', { channel: promotedTarget.channel.name })
                   : t('dm.promotedReadOnlyFallback')}
@@ -2029,7 +2029,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 type="button"
                 onClick={openPromotedCommunity}
                 data-testid="dm-promoted-composer-open-channel-button"
-                className="shrink-0 rounded-md border border-[#4f545c] bg-[#40444b] px-3 py-2 text-xs font-semibold text-[#dbdee1] transition-colors hover:bg-[#4f545c]"
+                className="shrink-0 rounded-md border border-line-strong bg-bg-elevated px-3 py-2 text-xs font-semibold text-fg transition-colors hover:bg-bg-hover"
               >
                 {t('dm.goToCurrentChannel')}
               </button>
@@ -2045,14 +2045,14 @@ export function DmConversation({ conversationId }: DmConversationProps) {
             onDrop={handleAttachmentDrop}
           >
             {showEmojiPicker && (
-              <div className="rounded-[1.4rem] border border-[#40444b] bg-[#2f3136] px-3 py-2 shadow-sm">
+              <div className="rounded-[1.4rem] border border-line bg-bg-subtle px-3 py-2 shadow-sm">
                 <div className="flex flex-wrap gap-1.5">
                   {EMOJI_LIST.map((emoji) => (
                     <button
                       key={emoji}
                       type="button"
                       onClick={() => handleInsertEmoji(emoji)}
-                      className="flex h-9 w-9 items-center justify-center rounded-full bg-[#40444b] text-lg transition hover:bg-[#4f545c]"
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-bg-elevated text-lg transition hover:bg-bg-hover"
                     >
                       {emoji}
                     </button>
@@ -2061,12 +2061,12 @@ export function DmConversation({ conversationId }: DmConversationProps) {
               </div>
             )}
             {pendingAttachments.length > 0 && (
-              <div className="flex flex-wrap gap-2 rounded-[1.4rem] border border-[#40444b] bg-[#2f3136] px-3 py-3 shadow-sm">
+              <div className="flex flex-wrap gap-2 rounded-[1.4rem] border border-line bg-bg-subtle px-3 py-3 shadow-sm">
                 {pendingAttachments.map((attachment) => (
                   <div
                     key={attachment.id}
                     data-testid="dm-pending-attachment"
-                    className="flex min-w-[15rem] items-center gap-3 rounded-2xl border border-[#4f545c] bg-[#40444b] px-3 py-2.5"
+                    className="flex min-w-[15rem] items-center gap-3 rounded-2xl border border-line-strong bg-bg-elevated px-3 py-2.5"
                   >
                     {attachment.previewUrl ? (
                       <img
@@ -2078,16 +2078,16 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                         className="h-14 w-14 shrink-0 rounded-xl object-cover"
                       />
                     ) : (
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-[#4f545c] bg-[#2f3136] text-[11px] font-bold tracking-wide text-[#f2f3f5]">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-line-strong bg-bg-subtle text-[11px] font-bold tracking-wide text-fg">
                         {getPendingAttachmentKindLabel(attachment.file)}
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-center gap-2">
-                        <span className="rounded-full bg-[rgba(240,215,76,0.14)] px-2 py-0.5 text-[10px] font-bold tracking-wide text-[#f0d74c]">
+                        <span className="rounded-pill bg-warning/15 px-2 py-0.5 text-[10px] font-bold tracking-wide text-warning">
                           {getPendingAttachmentKindLabel(attachment.file)}
                         </span>
-                        <span className="text-[11px] font-medium text-[#b5bac1]">
+                        <span className="text-[11px] font-medium text-fg-muted">
                           {attachment.status === 'uploading'
                             ? `Uploading ${Math.round(attachment.progress * 100)}%`
                             : attachment.status === 'uploaded'
@@ -2097,17 +2097,17 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                                 : 'Ready to send'}
                         </span>
                       </div>
-                      <p className="max-w-[13rem] truncate text-sm font-medium text-[#f2f3f5]">
+                      <p className="max-w-[13rem] truncate text-sm font-medium text-fg">
                         {attachment.file.name}
                       </p>
-                      <p className="text-xs text-[#b5bac1]">
+                      <p className="text-xs text-fg-muted">
                         {formatPendingFileSize(attachment.file.size)}
                         {attachment.errorMessage ? ` · ${attachment.errorMessage}` : ''}
                       </p>
                       {attachment.status === 'uploading' ? (
-                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-bg-hover">
                           <div
-                            className="h-full rounded-full bg-sky-300 transition-[width]"
+                            className="h-full rounded-pill bg-accent transition-[width]"
                             style={{ width: `${Math.max(4, Math.round(attachment.progress * 100))}%` }}
                           />
                         </div>
@@ -2123,14 +2123,14 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                                   : item,
                               ));
                             }}
-                            className="rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-[11px] font-semibold text-amber-100 hover:bg-amber-300/20"
+                            className="rounded-pill border border-warning/40 bg-warning/10 px-3 py-1 text-[11px] font-semibold text-warning hover:bg-warning/20"
                           >
                             Retry
                           </button>
                           <button
                             type="button"
                             onClick={() => removePendingAttachment(attachment.id)}
-                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold text-white/72 hover:bg-white/[0.08]"
+                            className="rounded-pill border border-line bg-bg-subtle px-3 py-1 text-[11px] font-semibold text-fg-muted hover:bg-bg-hover hover:text-fg"
                           >
                             Remove
                           </button>
@@ -2140,7 +2140,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                     <button
                       type="button"
                       onClick={() => removePendingAttachment(attachment.id)}
-                      className="shrink-0 rounded-full p-1 text-[#b5bac1] hover:bg-white/10 hover:text-white"
+                      className="shrink-0 rounded-pill p-1 text-fg-muted hover:bg-bg-hover hover:text-fg"
                       title={t('attachment.remove')}
                     >
                       <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -2154,9 +2154,9 @@ export function DmConversation({ conversationId }: DmConversationProps) {
             {isDraggingAttachments ? (
               <div
                 data-testid="dm-composer-drop-overlay"
-                className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-[1.8rem] border-2 border-dashed border-[#5865f2] bg-[#5865f2]/10"
+                className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-[1.8rem] border-2 border-dashed border-accent bg-accent/10"
               >
-                <div className="rounded-2xl border border-white/10 bg-[#202225]/80 px-4 py-3 text-center shadow-xl backdrop-blur">
+                <div className="rounded-lg border border-line bg-bg-elevated px-4 py-3 text-center shadow-[var(--shadow-2)]">
                   <p className="text-sm font-semibold text-white">{t('attachment.dropPrompt')}</p>
                 </div>
               </div>
@@ -2174,7 +2174,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 data-testid="dm-composer-attachment-button"
                 type="button"
                 onClick={handleAttachmentButtonClick}
-                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-[#40444b] bg-[#40444b] text-[#b5bac1] transition-colors hover:bg-[#4f545c] hover:text-white"
+                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-line bg-bg-elevated text-fg-muted transition-colors hover:bg-bg-hover hover:text-white"
                 title={t('attachment.add')}
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
@@ -2199,13 +2199,13 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 }}
                 placeholder={t('dm.placeholder')}
                 rows={1}
-                className="max-h-36 min-h-[3.5rem] flex-1 resize-none rounded-[1.6rem] border border-[#40444b] bg-[#40444b] px-4 py-4 text-sm text-[#f2f3f5] placeholder:text-[#8e9297] focus:border-[#5865f2] focus:outline-none"
+                className="max-h-36 min-h-[3.5rem] flex-1 resize-none rounded-[1.6rem] border border-line bg-bg-elevated px-4 py-4 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none"
               />
               <button
                 data-testid="dm-composer-emoji-button"
                 type="button"
                 onClick={() => setShowEmojiPicker((prev) => !prev)}
-                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-[#40444b] bg-[#40444b] text-xl text-[#b5bac1] transition-colors hover:bg-[#4f545c] hover:text-white"
+                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-line bg-bg-elevated text-xl text-fg-muted transition-colors hover:bg-bg-hover hover:text-white"
               >
                 {showEmojiPicker ? '⌨️' : '😊'}
               </button>
@@ -2213,7 +2213,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 data-testid="dm-send-button"
                 onClick={handleSend}
                 disabled={(!body.trim() && !hasPendingAttachments) || sendMessage.isPending || hasFailedAttachments}
-                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-[#4752c4] bg-[#5865f2] text-white transition-colors hover:bg-[#4752c4] disabled:opacity-50"
+                className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-full border border-accent-strong bg-accent text-white transition-colors hover:bg-accent-strong disabled:opacity-50"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
@@ -2226,17 +2226,17 @@ export function DmConversation({ conversationId }: DmConversationProps) {
 
       {showPromoteDialog && (
         <div
-          className="absolute inset-0 z-40 flex items-center justify-center bg-[#203040]/45 px-4"
+          className="absolute inset-0 z-40 flex items-center justify-center bg-fg/25 px-4"
           data-testid="dm-promote-dialog"
         >
           <div
-            className="w-full max-w-md rounded-[1.75rem] border border-white/70 bg-white p-5 shadow-2xl"
+            className="w-full max-w-md rounded-lg border border-line bg-bg-elevated p-5 shadow-[var(--shadow-3)]"
             data-testid="dm-promote-dialog-panel"
           >
-            <h3 className="text-lg font-semibold text-[#203040]">{t('dm.promoteTitle')}</h3>
-            <p className="mt-2 text-sm text-[#607384]">{t('dm.promoteConfirm')}</p>
+            <h3 className="text-lg font-semibold text-fg">{t('dm.promoteTitle')}</h3>
+            <p className="mt-2 text-sm text-fg-muted">{t('dm.promoteConfirm')}</p>
 
-            <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.16em] text-[#607384]">
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.16em] text-fg-muted">
               {t('dm.promoteCommunityName')}
             </label>
             <input
@@ -2244,10 +2244,10 @@ export function DmConversation({ conversationId }: DmConversationProps) {
               onChange={(event) => setPromotionCommunityName(event.target.value)}
               placeholder={t('dm.promoteCommunityPlaceholder')}
               data-testid="dm-promote-community-name-input"
-              className="mt-2 w-full rounded-2xl border border-[#d9e3ea] px-4 py-3 text-sm text-[#203040] outline-none transition focus:border-[#5c7996]"
+              className="mt-2 w-full rounded-md border border-line bg-bg-subtle px-4 py-3 text-sm text-fg outline-none transition focus:border-accent"
             />
 
-            <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.16em] text-[#607384]">
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.16em] text-fg-muted">
               {t('dm.promoteChannelName')}
             </label>
             <input
@@ -2255,7 +2255,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
               onChange={(event) => setPromotionChannelName(event.target.value)}
               placeholder={t('dm.promoteChannelPlaceholder')}
               data-testid="dm-promote-channel-name-input"
-              className="mt-2 w-full rounded-2xl border border-[#d9e3ea] px-4 py-3 text-sm text-[#203040] outline-none transition focus:border-[#5c7996]"
+              className="mt-2 w-full rounded-md border border-line bg-bg-subtle px-4 py-3 text-sm text-fg outline-none transition focus:border-accent"
             />
 
             <div className="mt-5 flex justify-end gap-2">
@@ -2263,7 +2263,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 type="button"
                 onClick={() => setShowPromoteDialog(false)}
                 data-testid="dm-promote-cancel-button"
-                className="rounded-full border border-[#d9e3ea] px-4 py-2 text-sm font-medium text-[#4b6278]"
+                className="rounded-pill border border-line bg-bg-subtle px-4 py-2 text-sm font-medium text-fg-muted hover:bg-bg-hover hover:text-fg"
               >
                 {t('common.cancel')}
               </button>
@@ -2276,7 +2276,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                   !promotionChannelName.trim()
                 }
                 data-testid="dm-promote-submit-button"
-                className="rounded-full border border-[#ebd451] bg-[#fee500] px-4 py-2 text-sm font-semibold text-[#20262d] disabled:opacity-60"
+                className="rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-60"
               >
                 {promoteConversation.isPending ? t('dm.promoting') : t('dm.promoteSubmit')}
               </button>
@@ -2287,12 +2287,12 @@ export function DmConversation({ conversationId }: DmConversationProps) {
 
       {promotedConflictTarget && (
         <div
-          className="absolute inset-0 z-40 flex items-center justify-center bg-[#203040]/45 px-4"
+          className="absolute inset-0 z-40 flex items-center justify-center bg-fg/25 px-4"
           data-testid="dm-promoted-conflict-dialog"
         >
-          <div className="w-full max-w-md rounded-[1.75rem] border border-white/70 bg-white p-5 shadow-2xl">
-            <h3 className="text-lg font-semibold text-[#203040]">{t('dm.promotedConflictTitle')}</h3>
-            <p className="mt-2 text-sm text-[#607384]">
+          <div className="w-full max-w-md rounded-lg border border-line bg-bg-elevated p-5 shadow-[var(--shadow-3)]">
+            <h3 className="text-lg font-semibold text-fg">{t('dm.promotedConflictTitle')}</h3>
+            <p className="mt-2 text-sm text-fg-muted">
               {t('dm.promotedConflictBody', {
                 community: promotedConflictTarget.community.name,
                 channel: promotedConflictTarget.channel.name,
@@ -2304,7 +2304,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                 type="button"
                 onClick={() => setPromotedConflictTarget(null)}
                 data-testid="dm-promoted-conflict-cancel-button"
-                className="rounded-full border border-[#d9e3ea] px-4 py-2 text-sm font-medium text-[#4b6278]"
+                className="rounded-pill border border-line bg-bg-subtle px-4 py-2 text-sm font-medium text-fg-muted hover:bg-bg-hover hover:text-fg"
               >
                 {t('common.cancel')}
               </button>
@@ -2318,7 +2318,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                   }
                 }}
                 data-testid="dm-promoted-conflict-open-channel-button"
-                className="rounded-full border border-[#ebd451] bg-[#fee500] px-4 py-2 text-sm font-semibold text-[#20262d]"
+                className="rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] hover:bg-accent-strong"
               >
                 {t('dm.goToCurrentChannel')}
               </button>
@@ -2328,12 +2328,12 @@ export function DmConversation({ conversationId }: DmConversationProps) {
       )}
 
       {errorDialogMessage && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#203040]/45 px-4">
-          <div className="w-full max-w-md rounded-[1.75rem] border border-white/70 bg-white p-5 shadow-2xl">
-            <h3 className="text-lg font-semibold text-[#203040]">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-fg/25 px-4">
+          <div className="w-full max-w-md rounded-lg border border-line bg-bg-elevated p-5 shadow-[var(--shadow-3)]">
+            <h3 className="text-lg font-semibold text-fg">
               {errorDialogTitle ?? t('common.error')}
             </h3>
-            <p className="mt-2 text-sm text-[#607384]">{errorDialogMessage}</p>
+            <p className="mt-2 text-sm text-fg-muted">{errorDialogMessage}</p>
 
             <div className="mt-5 flex justify-end">
               <button
@@ -2342,7 +2342,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
                   setErrorDialogTitle(null);
                   setErrorDialogMessage(null);
                 }}
-                className="rounded-full border border-[#ebd451] bg-[#fee500] px-4 py-2 text-sm font-semibold text-[#20262d]"
+                className="rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] hover:bg-accent-strong"
               >
                 {t('common.confirm')}
               </button>

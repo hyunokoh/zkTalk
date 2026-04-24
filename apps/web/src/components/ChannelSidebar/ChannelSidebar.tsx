@@ -28,33 +28,33 @@ import type { Channel, Category, Community } from '@zktalk/shared';
 function ChannelIcon({ type }: { type: string }) {
   if (type === 'announcement') {
     return (
-      <svg className="h-4 w-4 shrink-0 text-[#72767d]" viewBox="0 0 20 20" fill="currentColor">
+      <svg className="h-4 w-4 shrink-0 text-fg-subtle" viewBox="0 0 20 20" fill="currentColor">
         <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
       </svg>
     );
   }
   if (type === 'forum') {
     return (
-      <svg className="h-4 w-4 shrink-0 text-[#72767d]" viewBox="0 0 20 20" fill="currentColor">
+      <svg className="h-4 w-4 shrink-0 text-fg-subtle" viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
       </svg>
     );
   }
   if (type === 'voice') {
     return (
-      <svg className="h-4 w-4 shrink-0 text-[#72767d]" viewBox="0 0 20 20" fill="currentColor">
+      <svg className="h-4 w-4 shrink-0 text-fg-subtle" viewBox="0 0 20 20" fill="currentColor">
         <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
       </svg>
     );
   }
   // chat (default)
-  return <span className="shrink-0 text-base leading-none text-[#72767d]">#</span>;
+  return <span className="shrink-0 text-base leading-none text-fg-subtle">#</span>;
 }
 
 function SourceDmBadge({ label, title }: { label: string; title?: string }) {
   return (
     <span
-      className="rounded bg-[#4f545c] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#dcddde]"
+      className="rounded bg-bg-elevated px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-fg"
       title={title}
       aria-label={title}
     >
@@ -151,7 +151,7 @@ function CategoryGroup({
             setCollapsed(nextCollapsed);
             setCollapsedSectionState(collapseKey, nextCollapsed);
           }}
-          className="group flex w-full items-center gap-1 px-2 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-white/42 transition hover:text-white/82"
+          className="group flex w-full items-center gap-1 px-2 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-fg-subtle transition hover:text-fg-muted"
         >
           <svg
               className={`h-3 w-3 shrink-0 transition-transform ${collapsed ? '-rotate-90' : ''}`}
@@ -167,7 +167,7 @@ function CategoryGroup({
                 e.stopPropagation();
                 onAddChannel?.(category.id);
               }}
-              className="ml-auto text-[#8e9297] opacity-0 transition group-hover:opacity-100 hover:text-[#dcddde]"
+              className="ml-auto text-fg-subtle opacity-0 transition group-hover:opacity-100 hover:text-fg"
               title="Create channel"
             >
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -181,7 +181,7 @@ function CategoryGroup({
       {!collapsed && (
         <div
           className={`space-y-1 rounded-[1.25rem] transition-colors ${
-            dragTargetKey === `${categoryKey}:end` ? 'bg-white/[0.06] p-1.5' : ''
+            dragTargetKey === `${categoryKey}:end` ? 'bg-bg-hover p-1.5' : ''
           }`}
           onDragOver={(e) => {
             if (!isAdmin || !draggedChannelId) return;
@@ -238,33 +238,33 @@ function CategoryGroup({
               linkLabelParts.push(t('voice.recentChannel'));
             }
 
-            const className = `rounded px-2 py-1.5 text-sm transition-colors ${
+            const className = `rounded-md px-2 py-1.5 text-sm transition-colors ${
               isLockedChannel
-                ? 'border border-amber-400/20 bg-amber-400/5 text-amber-100/90'
+                ? 'border border-warning/25 bg-warning/10 text-warning'
                 : isActive
-                  ? 'border border-sky-300/30 bg-[linear-gradient(180deg,rgba(67,99,201,0.28),rgba(22,37,72,0.34))] text-white shadow-[0_14px_30px_rgba(7,14,28,0.28)]'
+                  ? 'border border-accent bg-accent-soft text-accent'
                   : isHighlightedVoiceChannel
-                    ? 'border border-white/6 bg-white/[0.04] text-[#f2f3f5] hover:bg-white/[0.07]'
+                    ? 'border border-line bg-bg-subtle text-fg hover:bg-bg-hover'
                     : hasUnread
-                      ? 'border border-white/6 font-semibold text-[#e5edf8] hover:bg-white/[0.06]'
-                      : 'border border-transparent text-white/56 hover:bg-white/[0.05] hover:text-[#e5edf8]'
+                      ? 'border border-line font-semibold text-fg hover:bg-bg-hover'
+                      : 'border border-transparent text-fg-muted hover:bg-bg-hover hover:text-fg'
             } ${draggedChannelId === channel.id ? 'opacity-50' : ''} ${
-              dragTargetKey === itemTargetKey ? 'ring-1 ring-inset ring-sky-300/60' : ''
+              dragTargetKey === itemTargetKey ? 'ring-1 ring-inset ring-accent' : ''
             }`;
 
             const content = (
               <>
                 <div className="flex items-center gap-1.5">
                   {isAdmin && canViewChannel && (
-                    <span className="shrink-0 cursor-grab text-xs tracking-tight text-gray-500">⋮⋮</span>
+                    <span className="shrink-0 cursor-grab text-xs tracking-tight text-fg-subtle">⋮⋮</span>
                   )}
                   {isLiveVoiceChannel ? (
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-green-400 shadow-[0_0_0_3px_rgba(74,222,128,0.12)]" />
+                    <span className="h-2 w-2 shrink-0 rounded-pill bg-success" />
                   ) : isRecentVoiceChannel ? (
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-indigo-300 shadow-[0_0_0_3px_rgba(165,180,252,0.12)]" />
+                    <span className="h-2 w-2 shrink-0 rounded-pill bg-agent" />
                   ) : null}
                   {isLockedChannel ? (
-                    <svg className="h-4 w-4 shrink-0 text-amber-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <svg className="h-4 w-4 shrink-0 text-warning" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path
                         fillRule="evenodd"
                         d="M6 8V6a4 4 0 118 0v2a2 2 0 012 2v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5a2 2 0 012-2zm6-2a2 2 0 10-4 0v2h4V6z"
@@ -294,50 +294,50 @@ function CategoryGroup({
                     <SourceDmBadge label={sourceDmLabel} title={sourceDmLabel} />
                   ) : null}
                   {isLockedChannel && (
-                    <span className="ml-auto rounded-full border border-amber-300/30 bg-amber-300/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-100">
+                    <span className="ml-auto rounded-pill border border-warning/30 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-warning">
                       {t('channel.lockedBadge')}
                     </span>
                   )}
                   {isRecentVoiceChannel && (
-                    <span className="rounded-full bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-indigo-300">
+                    <span className="rounded-pill bg-agent-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-agent">
                       {t('voice.recentChannel')}
                     </span>
                   )}
                   {isLiveVoiceChannel && (
-                    <span className="rounded-full bg-green-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-green-300">
+                    <span className="rounded-pill bg-success/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-success">
                       {t('voice.liveNow')}
                     </span>
                   )}
                   {isLiveVoiceChannel && (
-                    <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-[10px] font-semibold text-gray-200">
+                    <span className="rounded-pill bg-bg-elevated px-1.5 py-0.5 text-[10px] font-semibold text-fg">
                       {voiceParticipantCount}
                     </span>
                   )}
                   {hasMentions && (
-                    <span className="ml-auto flex h-4 min-w-[1rem] shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    <span className="ml-auto flex h-4 min-w-[1rem] shrink-0 items-center justify-center rounded-pill bg-danger px-1 text-[10px] font-bold text-[color:var(--on-accent)]">
                       {unread.mentions}
                     </span>
                   )}
                   {hasUnread && !hasMentions && (
-                    <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-white" />
+                    <span className="ml-auto h-2 w-2 shrink-0 rounded-pill bg-accent" />
                   )}
                 </div>
                 {showSourceDmMatch && (
-                  <div className="pl-[2.1rem] pt-1 text-[11px] font-medium text-[#7f96a8]">
+                  <div className="pl-[2.1rem] pt-1 text-[11px] font-medium text-fg-muted">
                     {sourceDmMatchLabel(sourceDmName)}
                   </div>
                 )}
                 {voiceStatusLabel && (
                   <div
                     className={`pl-[2.1rem] pt-1 text-[11px] font-medium ${
-                      isLiveVoiceChannel ? 'text-green-300' : 'text-indigo-300'
+                      isLiveVoiceChannel ? 'text-success' : 'text-agent'
                     }`}
                   >
                     {voiceStatusLabel}
                   </div>
                 )}
                 {isLockedChannel && lockedCopy && (
-                  <div className="pl-[2.1rem] pt-1 text-[11px] font-medium text-amber-100/80">
+                  <div className="pl-[2.1rem] pt-1 text-[11px] font-medium text-warning">
                     {lockedCopy}
                   </div>
                 )}
@@ -714,28 +714,28 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
   }, [community.id]);
 
   return (
-    <aside className="flex h-full w-full flex-col border-r border-white/6 bg-[linear-gradient(180deg,rgba(13,22,35,0.96),rgba(10,17,28,0.98))] text-white shadow-[12px_0_42px_rgba(2,8,23,0.28)]">
+    <aside className="flex h-full w-full flex-col border-r border-line bg-bg text-fg">
       {/* Community header */}
-      <div className="shrink-0 border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_85%)] px-4 pb-4 pt-5">
-        <div className="rounded-[1.6rem] border border-white/8 bg-white/[0.03] px-4 py-4 shadow-[0_22px_48px_rgba(2,8,23,0.22)] backdrop-blur-sm">
+      <div className="shrink-0 border-b border-line px-4 pb-4 pt-5">
+        <div className="rounded-md border border-line bg-bg-subtle px-4 py-4 shadow-[var(--shadow-1)]">
           <div className="flex min-w-0 items-start gap-3">
             <div className="flex min-w-0 flex-1 flex-col">
               <div className="flex min-w-0 items-center gap-1.5">
-                <div className="truncate text-[1rem] font-semibold tracking-[-0.01em] text-white">{community.name}</div>
-                <svg className="h-4 w-4 shrink-0 text-white/38" viewBox="0 0 20 20" fill="currentColor">
+                <div className="truncate text-[1rem] font-semibold tracking-[-0.01em] text-fg">{community.name}</div>
+                <svg className="h-4 w-4 shrink-0 text-fg-subtle" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                 </svg>
               </div>
-              <p className="mt-1 text-xs leading-5 text-white/52">{t('channel.sidebarSubtitle')}</p>
+              <p className="mt-1 text-xs leading-5 text-fg-muted">{t('channel.sidebarSubtitle')}</p>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-white/72">
+                <span className="rounded-pill border border-line bg-bg px-2.5 py-1 text-fg-muted">
                   {memberCount === 1
                     ? t('discover.member', { count: String(memberCount) })
                     : t('discover.members', { count: String(memberCount) })}
                 </span>
                 {onlineCount > 0 ? (
-                  <span className="flex items-center gap-1 rounded-full border border-emerald-400/18 bg-emerald-400/10 px-2.5 py-1 text-emerald-200">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  <span className="flex items-center gap-1 rounded-pill border border-success/30 bg-success/10 px-2.5 py-1 text-success">
+                    <span className="h-2 w-2 rounded-pill bg-success" />
                     {onlineCount}
                   </span>
                 ) : null}
@@ -744,7 +744,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
             <div className="flex shrink-0 items-center gap-1">
               <Link
                 href={`/communities/${community.slug}/settings`}
-                className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-white/60 transition hover:bg-white/[0.09] hover:text-white"
+                className="rounded-md border border-line bg-bg p-2 text-fg-muted transition hover:bg-bg-hover hover:text-fg"
                 title={t('settings.communitySettings')}
               >
                 <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -755,7 +755,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
                 <button
                   type="button"
                   onClick={() => onAddChannel?.(null)}
-                  className="rounded-xl border border-sky-300/20 bg-sky-400/10 p-2 text-sky-200 transition hover:bg-sky-400/18 hover:text-white"
+                  className="rounded-md border border-accent/30 bg-accent-soft p-2 text-accent transition hover:bg-accent hover:text-[color:var(--on-accent)]"
                   title={t('channel.create')}
                 >
                   <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -772,7 +772,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
       <div className="flex-1 overflow-y-auto px-3 py-3">
         <div className="px-1 pb-4">
           <div className="relative">
-            <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -780,7 +780,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={t('channel.sidebarSearchPlaceholder')}
-              className="w-full rounded-2xl border border-white/8 bg-white/[0.04] py-2.5 pl-10 pr-3 text-sm text-[#dbdee1] placeholder:text-white/34 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] outline-none transition focus:border-sky-300/40 focus:bg-white/[0.07]"
+              className="w-full rounded-md border border-line bg-bg-subtle py-2.5 pl-10 pr-3 text-sm text-fg placeholder:text-fg-subtle outline-none transition focus:border-accent"
               aria-label={t('channel.sidebarSearchPlaceholder')}
             />
           </div>
@@ -788,17 +788,17 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
         {lockedChannelPrompt && (
           <div
             data-testid="channel-sidebar-locked-prompt"
-            className="mb-4 rounded-[1.5rem] border border-amber-300/20 bg-amber-400/10 px-4 py-4 text-amber-50 shadow-[0_18px_40px_rgba(2,8,23,0.18)]"
+            className="mb-4 rounded-md border border-warning/25 bg-warning/10 px-4 py-4 text-warning shadow-[var(--shadow-1)]"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100/70">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-warning">
                   {t('channel.lockedPromptTitle')}
                 </p>
-                <p className="mt-1 text-sm font-semibold text-amber-50">
+                <p className="mt-1 text-sm font-semibold text-fg">
                   {lockedChannelPrompt.channelName}
                 </p>
-                <p className="mt-2 text-xs leading-5 text-amber-100/85">
+                <p className="mt-2 text-xs leading-5 text-fg-muted">
                   {t(
                     lockedChannelPromptPresentation?.lockedPromptBodyKey ??
                       'channel.lockedPromptJoinBody',
@@ -811,7 +811,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
                   setLockedChannelPrompt(null);
                   joinCommunityMutation.reset();
                 }}
-                className="rounded-full border border-amber-100/20 px-2 py-1 text-[11px] font-medium text-amber-100/75 transition hover:bg-white/10 hover:text-white"
+                className="rounded-pill border border-line px-2 py-1 text-[11px] font-medium text-fg-muted transition hover:bg-bg-hover hover:text-fg"
               >
                 {t('common.close')}
               </button>
@@ -826,7 +826,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
                     onChannelClick?.();
                     router.push('/');
                   }}
-                  className="rounded-xl bg-amber-200 px-3 py-2 text-sm font-semibold text-amber-950 transition hover:bg-white"
+                  className="rounded-md bg-warning px-3 py-2 text-sm font-semibold text-[color:var(--on-accent)] transition hover:opacity-90"
                 >
                   {t('channel.lockedPromptInviteAction')}
                 </button>
@@ -836,7 +836,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
                   data-testid="channel-sidebar-locked-prompt-join"
                   onClick={() => joinCommunityMutation.mutate(lockedChannelPrompt)}
                   disabled={joinCommunityMutation.isPending}
-                  className="rounded-xl bg-amber-200 px-3 py-2 text-sm font-semibold text-amber-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-md bg-warning px-3 py-2 text-sm font-semibold text-[color:var(--on-accent)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {joinCommunityMutation.isPending
                     ? t('channel.lockedPromptJoining')
@@ -845,18 +845,18 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
               )}
             </div>
             {joinCommunityMutation.isError && lockedChannelPrompt.lockedReason === 'join_required' && (
-              <p className="mt-2 text-xs text-amber-100/90">
+              <p className="mt-2 text-xs text-warning">
                 {t('channel.lockedPromptJoinFailed')}
               </p>
             )}
           </div>
         )}
         {sortedVoiceChannels.length > 0 && (
-          <div className="mb-4 rounded-[1.5rem] border border-white/8 bg-white/[0.03] px-3 py-3 shadow-[0_18px_40px_rgba(2,8,23,0.18)]">
-            <div className="px-1 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-white/42">
+          <div className="mb-4 rounded-md border border-line bg-bg-subtle px-3 py-3 shadow-[var(--shadow-1)]">
+            <div className="px-1 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-fg-subtle">
               {t('voice.quickJoinTitle')}
             </div>
-            <p className="px-1 pb-3 text-xs leading-5 text-white/48">{t('voice.quickJoinBody')}</p>
+            <p className="px-1 pb-3 text-xs leading-5 text-fg-muted">{t('voice.quickJoinBody')}</p>
             <div className="space-y-0.5">
                 {sortedVoiceChannels.map((channel) => {
                   const voiceParticipantCount = voiceParticipantCounts[channel.id] ?? 0;
@@ -871,27 +871,27 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
                   return (
                     <div
                       key={channel.id}
-                      className="rounded-2xl border border-white/6 px-3 py-2.5 transition-colors hover:bg-white/[0.05]"
+                      className="rounded-md border border-line px-3 py-2.5 transition-colors hover:bg-bg-hover"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
                           <Link
                             href={`/communities/${community.slug}/channels/${channel.id}`}
                             onClick={onChannelClick}
-                            className="flex items-center gap-1.5 text-sm font-medium text-[#e6edf8] hover:text-white"
+                            className="flex items-center gap-1.5 text-sm font-medium text-fg hover:text-white"
                           >
                             <ChannelIcon type={channel.type} />
                             <span className="truncate">{channel.name}</span>
                           </Link>
                           {voiceStatusLabel && (
-                            <p className={`mt-0.5 text-[11px] ${isLiveVoiceChannel ? 'text-green-400' : 'text-indigo-300'}`}>
+                            <p className={`mt-0.5 text-[11px] ${isLiveVoiceChannel ? 'text-success' : 'text-agent'}`}>
                               {voiceStatusLabel}
                             </p>
                           )}
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           {isLiveVoiceChannel ? (
-                            <span className="rounded-full bg-green-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-green-300">
+                            <span className="rounded-pill bg-success/20 px-1.5 py-0.5 text-[10px] font-semibold text-success">
                               {voiceParticipantCount}
                             </span>
                           ) : null}
@@ -909,7 +909,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
           </div>
         )}
         {isAdmin && (
-          <p className="px-2 pb-3 text-[11px] leading-5 text-white/34">
+          <p className="px-2 pb-3 text-[11px] leading-5 text-fg-subtle">
             {t('channel.dragHint')}
           </p>
         )}
@@ -1018,17 +1018,17 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
         })}
 
         {channels.length === 0 && !normalizedSearchQuery && (
-          <p className="px-2 py-6 text-center text-xs text-white/34">{t('channel.noChannels')}</p>
+          <p className="px-2 py-6 text-center text-xs text-fg-subtle">{t('channel.noChannels')}</p>
         )}
         {channels.length > 0 && normalizedSearchQuery && Array.from(grouped.values()).every((entries) => entries.length === 0) && (
-          <p className="px-2 py-6 text-center text-xs text-white/34">{t('channel.searchEmpty')}</p>
+          <p className="px-2 py-6 text-center text-xs text-fg-subtle">{t('channel.searchEmpty')}</p>
         )}
 
         {/* Events link */}
-        <div className="mt-4 border-t border-white/8 pt-3">
+        <div className="mt-4 border-t border-line pt-3">
           <Link
             href={`/communities/${community.slug}/events`}
-            className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-3 text-sm text-white/64 transition hover:bg-white/[0.06] hover:text-[#e6edf8]"
+            className="flex items-center gap-2 rounded-md border border-line bg-bg-subtle px-3 py-3 text-sm text-fg-muted transition hover:bg-bg-hover hover:text-fg"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />

@@ -64,7 +64,8 @@ function getBodyToRender(body: string, expanded: boolean): string {
 }
 
 function getBodyClassToRender(isAuthor: boolean, body: string, expanded: boolean): string {
-  const tone = isAuthor ? 'text-white' : 'text-[#e4edf9]';
+  // Self bubble uses --on-accent (white on blue); other bubbles use --fg.
+  const tone = isAuthor ? 'text-[color:var(--on-accent)]' : 'text-fg';
   const clamp = !isLongMessage(body) || expanded ? '' : 'max-h-[20rem] overflow-hidden';
   return `${clamp} text-sm leading-7 ${tone}`.trim();
 }
@@ -87,12 +88,14 @@ function getButtonA11yToRender(expanded: boolean): string {
 
 function getButtonClassToRender(isAuthor: boolean): string {
   return isAuthor
-    ? 'mt-2 inline-flex w-fit items-center rounded-full border border-white/18 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-white/16'
-    : 'mt-2 inline-flex w-fit items-center rounded-full border border-white/12 bg-white/[0.05] px-3 py-1 text-[11px] font-semibold text-[#dbe6f6] transition hover:bg-white/[0.08]';
+    ? 'mt-2 inline-flex w-fit items-center rounded-pill border border-white/30 bg-white/15 px-3 py-1 text-[11px] font-semibold text-[color:var(--on-accent)] transition hover:bg-white/25'
+    : 'mt-2 inline-flex w-fit items-center rounded-pill border border-line bg-bg-hover px-3 py-1 text-[11px] font-semibold text-fg-muted transition hover:border-line-strong hover:text-fg';
 }
 
 function getMetaClassToRender(isAuthor: boolean): string {
-  return isAuthor ? 'mt-2 text-[11px] text-white/72' : 'mt-2 text-[11px] text-white/46';
+  return isAuthor
+    ? 'mt-2 text-[11px] text-[color:var(--on-accent)]/75'
+    : 'mt-2 text-[11px] text-fg-subtle';
 }
 
 function getInitialExpandedForBody(body: string): boolean {
@@ -762,20 +765,20 @@ export function MessageItem({
   if (message.messageType === 'system') {
     return (
       <div className="my-3 flex items-center gap-4 px-4 py-1">
-        <div className="flex-1 border-t border-white/10" />
-        <span className="shrink-0 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1 text-[11px] font-medium text-white/40">
+        <div className="flex-1 border-t border-line" />
+        <span className="shrink-0 rounded-pill border border-line bg-bg-subtle px-3 py-1 text-[11px] font-medium text-fg-muted">
           {message.bodyMarkdown}
         </span>
-        <div className="flex-1 border-t border-white/10" />
+        <div className="flex-1 border-t border-line" />
       </div>
     );
   }
 
   if (message.isDeleted) {
     return (
-      <div className="group relative flex px-4 py-1 hover:bg-white/[0.02]">
+      <div className="group relative flex px-4 py-1 hover:bg-bg-hover">
         <div className="mr-3 w-10 shrink-0" />
-        <p className="text-sm italic text-white/30">{t('message.deleted')}</p>
+        <p className="text-sm italic text-fg-subtle">{t('message.deleted')}</p>
       </div>
     );
   }
@@ -783,18 +786,21 @@ export function MessageItem({
   const displayName = author?.displayName ?? t('misc.unknownUser');
   const avatarUrl = author?.avatarUrl ?? null;
   const isActionBarVisible = showActions && !isEditing;
+  // Telegram-minimal bubble tones (design-system.md §7.1):
+  //   self  → accent background, on-accent text
+  //   other → bg-subtle, fg text
   const bubbleTone = isAuthor
-    ? 'border-[#6b84ff]/28 bg-[linear-gradient(180deg,rgba(88,101,242,0.94),rgba(62,82,212,0.94))] text-white shadow-[0_18px_40px_rgba(45,63,180,0.32)]'
-    : 'border-white/10 bg-[linear-gradient(180deg,rgba(20,29,44,0.96),rgba(11,18,29,0.98))] text-[#e4edf9] shadow-[0_16px_34px_rgba(2,8,23,0.24)]';
+    ? 'border-transparent bg-accent text-[color:var(--on-accent)] shadow-[var(--shadow-1)]'
+    : 'border-line bg-bg-subtle text-fg shadow-[var(--shadow-1)]';
   const replyTone = isAuthor
-    ? 'border-white/14 bg-white/10 text-white/78'
-    : 'border-white/8 bg-white/[0.03] text-white/52';
+    ? 'border-white/25 bg-white/15 text-[color:var(--on-accent)]/85'
+    : 'border-line bg-bg-hover text-fg-muted';
   const sideMeta = (
-    <div className={`shrink-0 self-end pb-0.5 text-[11px] leading-tight text-white/34 ${isAuthor ? 'text-right' : 'text-left'}`}>
+    <div className={`shrink-0 self-end pb-0.5 text-[11px] leading-tight text-fg-subtle ${isAuthor ? 'text-right' : 'text-left'}`}>
       {reactions.length === 0 && unreadCount != null && unreadCount > 0 ? <div>{Math.min(99, unreadCount)}</div> : null}
       <div>{new Date(message.createdAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
       {offlineStatus ? (
-        <div className={`${offlineStatus === 'failed' ? 'text-red-200' : 'text-amber-100'}`}>
+        <div className={`${offlineStatus === 'failed' ? 'text-danger' : 'text-warning'}`}>
           {offlineStatus === 'failed' ? t('offline.failed') : t('offline.queued')}
         </div>
       ) : null}
@@ -808,7 +814,7 @@ export function MessageItem({
       data-testid="message-row"
       data-message-id={message.id}
       tabIndex={0}
-      className={`group relative flex rounded-[1.6rem] px-4 py-1 ${startsGroup ? 'mt-4' : 'mt-1'} transition hover:bg-white/[0.025]`}
+      className={`group relative flex rounded-lg px-4 py-1 ${startsGroup ? 'mt-4' : 'mt-1'} transition hover:bg-bg-hover`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
       onFocusCapture={handleRowFocusCapture}
@@ -831,12 +837,12 @@ export function MessageItem({
             <button
               ref={nameRef}
               onClick={handleNameClick}
-              className="text-sm font-semibold text-white hover:underline"
+              className="text-sm font-semibold text-fg hover:underline"
             >
               {displayName}
             </button>
             {isEncrypted && (
-              <span className="inline-flex items-center text-green-500" title={t('e2ee.channelEnabled')}>
+              <span className="inline-flex items-center text-success" title={t('e2ee.channelEnabled')}>
                 <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                 </svg>
@@ -857,8 +863,8 @@ export function MessageItem({
 
         {/* Inline reply preview */}
         {parentMessage && (
-          <div className={`mb-2 flex items-center gap-2 rounded-[1rem] border px-3 py-2 text-xs ${replyTone}`}>
-            <span className={`font-semibold ${isAuthor ? 'text-white' : 'text-[#dcddde]'}`}>
+          <div className={`mb-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs ${replyTone}`}>
+            <span className={`font-semibold ${isAuthor ? 'text-[color:var(--on-accent)]' : 'text-fg'}`}>
               {parentAuthor?.displayName ?? 'Unknown'}
             </span>
             <span className="truncate">
@@ -875,21 +881,21 @@ export function MessageItem({
               value={editBody}
               onChange={(e) => setEditBody(e.target.value)}
               onKeyDown={handleEditKeyDown}
-              className="w-full resize-none rounded border border-[#040405] bg-[#40444b] px-3 py-2 text-sm text-[#dcddde] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full resize-none rounded-md border border-line bg-bg-subtle px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
               rows={2}
               autoFocus
             />
-            <div className="mt-1 flex items-center gap-2 text-xs text-[#72767d]">
+            <div className="mt-1 flex items-center gap-2 text-xs text-fg-muted">
               <span>
                 {t('message.escToCancel')}{' '}
-                <button onClick={() => { setIsEditing(false); setEditBody(message.bodyMarkdown); }} className="text-indigo-400 hover:underline">
+                <button onClick={() => { setIsEditing(false); setEditBody(message.bodyMarkdown); }} className="text-accent hover:underline">
                   {t('common.cancel')}
                 </button>
               </span>
               <span>&middot;</span>
               <span>
                 {t('message.enterToSave')}{' '}
-                <button data-testid="message-edit-save-button" onClick={handleEditSubmit} className="text-indigo-400 hover:underline">
+                <button data-testid="message-edit-save-button" onClick={handleEditSubmit} className="text-accent hover:underline">
                   {t('common.save')}
                 </button>
               </span>
@@ -903,13 +909,13 @@ export function MessageItem({
                 <div className="relative inline-flex max-w-[min(44rem,100%)]">
                   {startsGroup ? (
                     <span
-                      className={`absolute bottom-2 h-2.5 w-2.5 rotate-45 ${isAuthor ? '-right-1 border-b border-r border-[#6b84ff]/28 bg-[#4b61dc]' : '-left-1 border-b border-l border-white/10 bg-[#101a2a]'}`}
+                      className={`absolute bottom-2 h-2.5 w-2.5 rotate-45 ${isAuthor ? '-right-1 bg-accent' : '-left-1 border-b border-l border-line bg-bg-subtle'}`}
                     />
                   ) : null}
-                  <div className={`inline-flex max-w-[min(44rem,100%)] flex-col rounded-[1.35rem] border px-4 py-3 shadow-sm backdrop-blur-sm ${bubbleTone}`}>
+                  <div className={`inline-flex max-w-[min(44rem,100%)] flex-col rounded-bubble border px-4 py-3 ${bubbleTone}`}>
                   {p2pFile ? (
                     <div>
-                      <p className={`mb-1 text-xs ${isAuthor ? 'text-white/70' : 'text-white/40'}`}>{t('p2p.fileShared')}</p>
+                      <p className={`mb-1 text-xs ${isAuthor ? 'text-[color:var(--on-accent)]/80' : 'text-fg-muted'}`}>{t('p2p.fileShared')}</p>
                       <P2PFileCard
                         fileId={p2pFile.fileId}
                         fileName={p2pFile.fileName}
@@ -919,11 +925,11 @@ export function MessageItem({
                       />
                     </div>
                   ) : isEncrypted && decryptError ? (
-                    <div className="text-sm italic text-red-400">
+                    <div className="text-sm italic text-danger">
                       {t('e2ee.decryptFailed')}
                     </div>
                   ) : isEncrypted && !decryptedBody ? (
-                    <div className={`text-sm italic ${isAuthor ? 'text-white/75' : 'text-white/42'}`}>
+                    <div className={`text-sm italic ${isAuthor ? 'text-[color:var(--on-accent)]/80' : 'text-fg-subtle'}`}>
                       {t('e2ee.decrypting')}
                     </div>
                   ) : (
@@ -961,33 +967,33 @@ export function MessageItem({
           <div
             data-testid="message-translation-panel"
             data-translation-variant={translationVariant ?? undefined}
-            className={`mt-2 rounded-[1rem] border px-3 py-3 ${
+            className={`mt-2 rounded-md border px-3 py-3 ${
               translationVariant === 'manual'
-                ? 'border-sky-300/28 bg-sky-400/10'
-                : 'border-emerald-300/20 bg-emerald-400/10'
+                ? 'border-accent/30 bg-accent-soft'
+                : 'border-success/25 bg-success/10'
             }`}
           >
             <div
               className={`flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
-                translationVariant === 'manual' ? 'text-sky-100/90' : 'text-emerald-100/85'
+                translationVariant === 'manual' ? 'text-accent' : 'text-success'
               }`}
             >
               <span>{translatedLabel}</span>
               {showManualTranslation ? (
                 <button
                   onClick={() => setShowManualTranslation(false)}
-                  className="ml-1 text-sky-300 hover:underline"
+                  className="ml-1 text-accent hover:underline"
                 >
                   {t('translate.showOriginal')}
                 </button>
               ) : null}
             </div>
-            <div className="mt-1 text-sm text-[#dcddde]">{visibleTranslatedText}</div>
+            <div className="mt-1 text-sm text-fg">{visibleTranslatedText}</div>
           </div>
         )}
         {translationStatusLabel ? (
-          <div className="mt-2 rounded-[1rem] border border-amber-300/18 bg-amber-300/10 px-3 py-3 text-sm text-amber-50">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-100/80">
+          <div className="mt-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-3 text-sm text-fg">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-warning">
               {translationStatusLabel}
             </div>
             {translationStatusIssue ? <div className="mt-1">{translationStatusIssue}</div> : null}
@@ -1003,10 +1009,10 @@ export function MessageItem({
                 <button
                   key={r.emoji}
                   onClick={() => toggleReaction(r.emoji)}
-                  className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                  className={`flex items-center gap-1 rounded-pill border px-2.5 py-1 text-xs transition-colors ${
                     isOwnReaction
-                      ? 'border-sky-300/30 bg-sky-300/14 text-sky-100'
-                      : 'border-white/10 bg-white/[0.03] text-[#dcddde] hover:border-white/18'
+                      ? 'border-accent bg-accent-soft text-accent'
+                      : 'border-line bg-bg-subtle text-fg-muted hover:border-line-strong hover:text-fg'
                   }`}
                 >
                   <span>{r.emoji}</span>
@@ -1022,29 +1028,29 @@ export function MessageItem({
       {isActionBarVisible && (
         <div
           ref={actionMenuRef}
-          className="absolute right-4 -top-4 z-10 flex items-center gap-0.5 rounded-2xl border border-white/10 bg-[#0d1827]/94 p-1 shadow-[0_22px_50px_rgba(2,8,23,0.42)] backdrop-blur-xl"
+          className="absolute right-4 -top-4 z-10 flex items-center gap-0.5 rounded-lg border border-line bg-bg-elevated p-1 shadow-[var(--shadow-2)]"
         >
           {/* Emoji reaction picker */}
           <div className="relative" ref={emojiPickerRef}>
             <button
               data-testid="message-reaction-button"
               onClick={() => setShowEmojiPicker((prev) => !prev)}
-              className="rounded-xl p-1.5 text-white/52 hover:bg-white/10 hover:text-white"
+              className="rounded-md p-1.5 text-fg-muted hover:bg-bg-hover hover:text-fg"
               title={t('reaction.add')}
             >
               <span className="text-sm leading-none">{'\u{1F60A}'}</span>
             </button>
             {showEmojiPicker && (
-              <div className="absolute right-0 z-50 mt-1 rounded-2xl border border-white/10 bg-[#0f1a2b]/96 p-2 shadow-[0_24px_50px_rgba(2,8,23,0.44)] backdrop-blur-xl">
+              <div className="absolute right-0 z-50 mt-1 rounded-lg border border-line bg-bg-elevated p-2 shadow-[var(--shadow-3)]">
                 {customEmojis && customEmojis.length > 0 && (
                   <div className="mb-2">
-                    <p className="mb-1 text-xs font-medium text-[#72767d]">{t('emoji.custom')}</p>
+                    <p className="mb-1 text-xs font-medium text-fg-muted">{t('emoji.custom')}</p>
                     <div className="flex flex-wrap gap-1">
                       {customEmojis.map((ce) => (
                         <button
                           key={ce.id}
                           onClick={() => toggleReaction(`:${ce.name}:`)}
-                          className="rounded p-1 hover:bg-white/10"
+                          className="rounded p-1 hover:bg-bg-hover"
                           title={`:${ce.name}:`}
                         >
                           <Image
@@ -1065,7 +1071,7 @@ export function MessageItem({
                     <button
                       key={emoji}
                       onClick={() => toggleReaction(emoji)}
-                      className="rounded p-1 text-lg hover:bg-white/10"
+                      className="rounded p-1 text-lg hover:bg-bg-hover"
                     >
                       {emoji}
                     </button>
@@ -1080,7 +1086,7 @@ export function MessageItem({
             <button
               data-testid="message-reply-button"
               onClick={handleInlineReply}
-              className="rounded-xl p-1.5 text-white/52 hover:bg-white/10 hover:text-white"
+              className="rounded-md p-1.5 text-fg-muted hover:bg-bg-hover hover:text-fg"
               title={t('message.reply')}
             >
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1095,7 +1101,7 @@ export function MessageItem({
                 data-testid="message-ai-reply-draft-button"
                 onClick={handleRequestAiReplyDraft}
                 disabled={!aiActionsEnabled}
-                className="rounded-xl p-1.5 text-indigo-200/72 hover:bg-indigo-400/14 hover:text-indigo-100 disabled:cursor-not-allowed disabled:opacity-45"
+                className="rounded-md p-1.5 text-agent hover:bg-agent-soft hover:text-agent-strong disabled:cursor-not-allowed disabled:opacity-45"
                 title={[t('ai.replyDraftFromMessage'), aiActionTitleSuffix].filter(Boolean).join(' · ')}
               >
                 <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1106,7 +1112,7 @@ export function MessageItem({
                 data-testid="message-ai-rewrite-draft-button"
                 onClick={handleRequestAiRewriteDraft}
                 disabled={!aiActionsEnabled}
-                className="rounded-xl p-1.5 text-indigo-200/72 hover:bg-indigo-400/14 hover:text-indigo-100 disabled:cursor-not-allowed disabled:opacity-45"
+                className="rounded-md p-1.5 text-agent hover:bg-agent-soft hover:text-agent-strong disabled:cursor-not-allowed disabled:opacity-45"
                 title={[t('ai.rewriteDraftFromMessage'), aiActionTitleSuffix].filter(Boolean).join(' · ')}
               >
                 <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1117,10 +1123,10 @@ export function MessageItem({
                 <span
                   className={
                     aiRuntimePresentation.tone === 'live'
-                      ? 'rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-100'
+                      ? 'rounded-pill border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-success'
                       : aiRuntimePresentation.tone === 'mock'
-                        ? 'rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-100'
-                        : 'rounded-full border border-rose-300/20 bg-rose-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-rose-100'
+                        ? 'rounded-pill border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-warning'
+                        : 'rounded-pill border border-danger/30 bg-danger/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-danger'
                   }
                   title={aiRuntimePresentation.description}
                 >
@@ -1130,7 +1136,7 @@ export function MessageItem({
             </div>
           ) : null}
           {AI_MESSAGE_ACTIONS_VISIBLE && onRequestAiAction ? (
-            <p className="mt-2 max-w-[20rem] text-[11px] leading-4 text-white/46">
+            <p className="mt-2 max-w-[20rem] text-[11px] leading-4 text-fg-subtle">
               {[aiRuntimePresentation?.description, selectedMessageAiScopeHint]
                 .filter(Boolean)
                 .join(' ')}
@@ -1142,7 +1148,7 @@ export function MessageItem({
             data-testid="message-thread-button"
             onClick={handleReplyInThread}
             disabled={createThreadMutation.isPending}
-            className="rounded-xl p-1.5 text-white/52 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md p-1.5 text-fg-muted hover:bg-bg-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-50"
             title={t('message.replyInThread')}
           >
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1155,7 +1161,7 @@ export function MessageItem({
               data-testid="message-ai-translate-inline-button"
               onClick={() => void handleRequestAiInlineTranslation()}
               disabled={!aiActionsEnabled || isManualTranslating || isAutoTranslating}
-              className="rounded-xl p-1.5 text-indigo-200/72 hover:bg-indigo-400/14 hover:text-indigo-100 disabled:cursor-not-allowed disabled:opacity-45"
+              className="rounded-md p-1.5 text-agent hover:bg-agent-soft hover:text-agent-strong disabled:cursor-not-allowed disabled:opacity-45"
               title={[t('translate.translate'), aiActionTitleSuffix].filter(Boolean).join(' · ')}
             >
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1166,7 +1172,7 @@ export function MessageItem({
             <button
               onClick={handleTranslate}
               disabled={isManualTranslating || isAutoTranslating}
-              className="rounded p-1.5 text-[#96989d] hover:bg-white/10 hover:text-[#dcddde] disabled:opacity-50"
+              className="rounded-md p-1.5 text-fg-muted hover:bg-bg-hover hover:text-fg disabled:opacity-50"
               title={t('translate.translate')}
             >
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1178,7 +1184,7 @@ export function MessageItem({
           {/* Copy */}
           <button
             onClick={handleCopyMessage}
-            className="rounded-xl p-1.5 text-white/52 hover:bg-white/10 hover:text-white"
+            className="rounded-md p-1.5 text-fg-muted hover:bg-bg-hover hover:text-fg"
             title={t('message.copyMessage')}
           >
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1191,7 +1197,7 @@ export function MessageItem({
             data-testid="message-bookmark-button"
             onClick={() => bookmarkMutation.mutate()}
             disabled={bookmarkMutation.isPending}
-            className="rounded-xl p-1.5 text-white/52 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md p-1.5 text-fg-muted hover:bg-bg-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-50"
             title={t('bookmark.add')}
           >
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1215,7 +1221,7 @@ export function MessageItem({
             <button
               data-testid="message-edit-button"
               onClick={() => setIsEditing(true)}
-              className="rounded-xl p-1.5 text-white/52 hover:bg-white/10 hover:text-white"
+              className="rounded-md p-1.5 text-fg-muted hover:bg-bg-hover hover:text-fg"
               title={t('message.editMessage')}
             >
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1228,7 +1234,7 @@ export function MessageItem({
             <button
               type="button"
               onClick={onRetryOfflineMessage}
-              className="rounded-xl p-1.5 text-amber-200 hover:bg-amber-400/18 hover:text-amber-100"
+              className="rounded-md p-1.5 text-warning hover:bg-warning/10"
               title={t('offline.retry')}
             >
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1241,7 +1247,7 @@ export function MessageItem({
             <button
               type="button"
               onClick={onRemoveOfflineMessage}
-              className="rounded-xl p-1.5 text-red-300 hover:bg-red-500/18 hover:text-red-200"
+              className="rounded-md p-1.5 text-danger hover:bg-danger/10"
               title={t('attachment.remove')}
             >
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1255,7 +1261,7 @@ export function MessageItem({
             <button
               data-testid="message-delete-button"
               onClick={() => deleteMutation.mutate()}
-              className="rounded-xl p-1.5 text-red-300 hover:bg-red-500/18 hover:text-red-200"
+              className="rounded-md p-1.5 text-danger hover:bg-danger/10"
               title={t('message.deleteMessage')}
             >
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">

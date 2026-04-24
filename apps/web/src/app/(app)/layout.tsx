@@ -322,9 +322,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07111d]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(74,144,226,0.2),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(88,101,242,0.18),transparent_28%),linear-gradient(180deg,#07111d_0%,#0b1727_100%)]" />
-        <div className="relative z-10 rounded-[2rem] border border-white/10 bg-white/[0.05] px-6 py-4 text-sm font-medium text-white/72 shadow-[0_24px_60px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg">
+        <div className="relative z-10 rounded-lg border border-line bg-bg-subtle px-6 py-4 text-sm font-medium text-fg-muted shadow-[var(--shadow-2)]">
           {t('common.loading')}
         </div>
       </div>
@@ -365,14 +364,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-[#07111d] text-white">
+    <div className="relative flex h-screen overflow-hidden bg-bg text-fg">
       <DesktopLocalMachineBridgeAutoConnect ownerUserId={user?.id} />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(58,94,190,0.24),transparent_26%),radial-gradient(circle_at_80%_0%,rgba(67,193,255,0.14),transparent_22%),linear-gradient(180deg,#07111d_0%,#09121f_32%,#0c1626_100%)]" />
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-[24rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_40%)] opacity-70" />
       {/* Mobile hamburger button */}
       <button
         onClick={toggleSidebar}
-        className="fixed left-3 top-3 z-50 flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-[#0f1a2b]/92 text-white/78 shadow-[0_16px_38px_rgba(2,8,23,0.44)] backdrop-blur-xl transition hover:bg-[#152235] hover:text-white md:hidden"
+        className="fixed left-3 top-3 z-50 flex h-11 w-11 items-center justify-center rounded-md border border-line bg-bg-elevated text-fg-muted shadow-[var(--shadow-2)] transition hover:bg-bg-hover hover:text-fg md:hidden"
         aria-label="Toggle navigation"
       >
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -383,7 +380,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-[#020617]/70 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-fg/40 md:hidden"
           onClick={closeSidebar}
         />
       )}
@@ -416,7 +413,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           aria-label="Resize navigation rail"
           title="Resize navigation rail"
         >
-          <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/8 transition hover:bg-white/30" />
+          <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-line transition hover:bg-line-strong" />
         </button>
       </div>
 

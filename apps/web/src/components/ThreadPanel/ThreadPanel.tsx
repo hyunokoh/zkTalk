@@ -106,11 +106,14 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
   const thread = threadData?.thread;
 
   return (
-    <aside data-testid="thread-panel" className="flex w-96 flex-col border-l border-gray-800 bg-gray-900">
+    <aside
+      data-testid="thread-panel"
+      className="flex w-[320px] flex-col border-l border-line bg-bg"
+    >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
+      <div className="flex h-14 items-center justify-between border-b border-line px-4">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-gray-100">
+          <h3 className="truncate text-sm font-semibold text-fg">
             {thread?.title ?? t('thread.title')}
           </h3>
         </div>
@@ -120,10 +123,10 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
           <button
             onClick={() => followMutation.mutate(!isFollowing)}
             disabled={followMutation.isPending}
-            className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+            className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
               isFollowing
-                ? 'bg-indigo-600/20 text-indigo-400'
-                : 'text-gray-400 hover:text-gray-200'
+                ? 'bg-accent-soft text-accent'
+                : 'text-fg-muted hover:bg-bg-hover hover:text-fg'
             }`}
             title={isFollowing ? t('thread.unfollowThread') : t('thread.followThread')}
           >
@@ -138,7 +141,7 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
           <button
             data-testid="thread-panel-close"
             onClick={closeThread}
-            className="rounded p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-200"
+            className="rounded-md p-1 text-fg-muted hover:bg-bg-hover hover:text-fg"
           >
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -172,7 +175,7 @@ export function ThreadPanel({ channelId }: ThreadPanelProps) {
           aiRuntime={aiRuntime}
         />
       ) : (
-        <div className="border-t border-gray-800 px-4 py-3 text-sm text-gray-400">
+        <div className="border-t border-line px-4 py-3 text-sm text-fg-muted">
           {t('thread.readOnlyMessage')}
         </div>
       )}
