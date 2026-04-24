@@ -5,6 +5,9 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**"]
     },
+    "@zktalk/desktop#build": {
+      "dependsOn": ["@zktalk/web#build"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
