@@ -68,12 +68,12 @@ export default function DiscoverPage() {
   const communities = useMemo(() => discoverQuery.data ?? [], [discoverQuery.data]);
 
   return (
-    <div className="flex-1 overflow-y-auto" data-testid="discover-page">
+    <div className="flex-1 overflow-y-auto bg-bg" data-testid="discover-page">
       <div className="mx-auto max-w-5xl p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-white">{t('discover.title')}</h1>
-            <p className="mt-1 text-sm text-[#96989d]">{t('discover.listSubtitle')}</p>
+            <h1 className="text-xl font-semibold text-fg">{t('discover.title')}</h1>
+            <p className="mt-1 text-sm text-fg-muted">{t('discover.listSubtitle')}</p>
           </div>
           <div className="flex w-full flex-col gap-3 lg:max-w-2xl lg:flex-row">
             <input
@@ -83,12 +83,12 @@ export default function DiscoverPage() {
                 setFeedback('');
               }}
               placeholder={t('discover.searchPlaceholder')}
-              className="min-w-0 flex-1 rounded-xl border border-[#202225] bg-[#1e1f22] px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-[#72767d] focus:border-[#5865f2]"
+              className="min-w-0 flex-1 rounded-xl border border-line bg-bg-subtle px-4 py-3 text-sm text-fg outline-none transition-colors placeholder:text-fg-subtle focus:border-accent"
             />
             <select
               value={sort}
               onChange={(event) => setSort(event.target.value as 'members' | 'newest')}
-              className="rounded-xl border border-[#202225] bg-[#1e1f22] px-4 py-3 text-sm text-white outline-none transition-colors focus:border-[#5865f2]"
+              className="rounded-xl border border-line bg-bg-subtle px-4 py-3 text-sm text-fg outline-none transition-colors focus:border-accent"
             >
               <option value="members">{t('discover.sortMembers')}</option>
               <option value="newest">{t('discover.sortNewest')}</option>
@@ -97,7 +97,7 @@ export default function DiscoverPage() {
         </div>
 
         {feedback ? (
-          <p className="mt-4 text-sm text-rose-300" data-testid="discover-feedback">{feedback}</p>
+          <p className="mt-4 text-sm text-danger" data-testid="discover-feedback">{feedback}</p>
         ) : null}
 
         <div className="mt-6">
@@ -115,10 +115,10 @@ export default function DiscoverPage() {
                 return (
                   <div
                     key={community.id}
-                    className="rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(19,28,42,0.98),rgba(11,18,29,0.98))] p-5 shadow-[0_18px_42px_rgba(2,8,23,0.22)]"
+                    className="rounded-2xl border border-line bg-bg-elevated p-5 transition-colors hover:border-line-strong"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-indigo-600 text-lg font-bold text-white">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-bg-subtle text-lg font-semibold text-fg">
                         {community.iconUrl ? (
                           <Image
                             src={icon.src ?? community.iconUrl}
@@ -133,8 +133,8 @@ export default function DiscoverPage() {
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h2 className="truncate text-base font-semibold text-white">{community.name}</h2>
-                        <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-[#8fa1b5]">
+                        <h2 className="truncate text-base font-semibold text-fg">{community.name}</h2>
+                        <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-fg-subtle">
                           {community.memberCount === 1
                             ? t('discover.member', { count: String(community.memberCount) })
                             : t('discover.members', { count: String(community.memberCount) })}
@@ -142,7 +142,7 @@ export default function DiscoverPage() {
                       </div>
                     </div>
 
-                    <p className="mt-4 line-clamp-3 min-h-[3.75rem] text-sm leading-6 text-[#b5c0cf]">
+                    <p className="mt-4 line-clamp-3 min-h-[3.75rem] text-sm leading-6 text-fg-muted">
                       {community.description || t('discover.listSubtitle')}
                     </p>
 
@@ -151,13 +151,13 @@ export default function DiscoverPage() {
                         type="button"
                         onClick={() => joinMutation.mutate(community)}
                         disabled={joinMutation.isPending}
-                        className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-50"
+                        className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-strong disabled:opacity-50"
                       >
                         {t('discover.join')}
                       </button>
                       <Link
                         href={`/communities/${community.slug}`}
-                        className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+                        className="rounded-xl border border-line bg-bg-subtle px-4 py-2 text-sm font-medium text-fg transition-colors hover:bg-bg-hover"
                       >
                         {t('community.open')}
                       </Link>

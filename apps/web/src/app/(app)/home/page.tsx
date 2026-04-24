@@ -134,12 +134,12 @@ export default function HomePage() {
   }, [inviteInput, normalizeInviteCode, router]);
 
   return (
-    <div className="flex flex-1 flex-col bg-[#36393f]">
-      <header className="border-b border-[#202225] px-6 py-4 pl-14 md:pl-6">
+    <div className="flex flex-1 flex-col bg-bg">
+      <header className="border-b border-line px-6 py-4 pl-14 md:pl-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <h1 className="text-lg font-bold text-white">{t('community.yours')}</h1>
-            <p className="mt-1 text-sm text-[#9ca3af]">{t('home.desktopInviteBody')}</p>
+            <h1 className="text-lg font-semibold text-fg">{t('community.yours')}</h1>
+            <p className="mt-1 text-sm text-fg-muted">{t('home.desktopInviteBody')}</p>
           </div>
           <div className="flex flex-col gap-3 xl:min-w-[420px] xl:max-w-[560px] xl:flex-1 xl:items-end">
             <form
@@ -150,22 +150,22 @@ export default function HomePage() {
                 value={inviteInput}
                 onChange={(event) => setInviteInput(event.target.value)}
                 placeholder={t('home.desktopInvitePlaceholder')}
-                className="min-w-0 flex-1 rounded-xl border border-[#202225] bg-[#1e1f22] px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-[#72767d] focus:border-[#5865f2]"
+                className="min-w-0 flex-1 rounded-xl border border-line bg-bg-subtle px-4 py-3 text-sm text-fg outline-none transition-colors placeholder:text-fg-subtle focus:border-accent"
               />
               <button
                 type="submit"
-                className="rounded-xl bg-[#5865f2] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#4752c4]"
+                className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-strong"
               >
                 {t('community.joinInviteCta')}
               </button>
             </form>
             <div className="flex w-full items-center justify-between gap-3 xl:max-w-[560px]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8e9297]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-subtle">
                 {t('app.desktopPasteInvite')}
               </p>
               <Link
                 href="/communities/new"
-                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+                className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-strong"
               >
                 {t('community.createCommunity')}
               </Link>
@@ -185,7 +185,7 @@ export default function HomePage() {
               action={(
                 <Link
                   href="/communities/new"
-                  className="inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+                  className="inline-block rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-strong"
                 >
                   {t('community.createCommunity')}
                 </Link>
@@ -205,9 +205,9 @@ export default function HomePage() {
                     onDragStart={() => handleDragStart(index)}
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDrop={handleDrop}
-                    className="group flex items-center gap-4 rounded-md px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
+                    className="group flex items-center gap-4 rounded-lg px-3 py-2.5 transition-colors hover:bg-bg-hover"
                   >
-                    <span className="flex cursor-grab items-center text-[#4f545c] opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing">
+                    <span className="flex cursor-grab items-center text-fg-subtle opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing">
                       <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
                         <circle cx="5" cy="4" r="1.2" /><circle cx="5" cy="8" r="1.2" /><circle cx="5" cy="12" r="1.2" />
                         <circle cx="11" cy="4" r="1.2" /><circle cx="11" cy="8" r="1.2" /><circle cx="11" cy="12" r="1.2" />
@@ -218,7 +218,7 @@ export default function HomePage() {
                       data-testid={`home-community-link-${community.slug}`}
                       className="flex flex-1 items-center gap-4 overflow-hidden"
                     >
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-base font-bold text-white">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-bg-subtle text-base font-semibold text-fg">
                         {community.iconUrl ? (
                           <Image
                             src={communityIcon.src ?? community.iconUrl}
@@ -233,14 +233,14 @@ export default function HomePage() {
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-[#dcddde]">{community.name}</h3>
+                        <h3 className="font-semibold text-fg">{community.name}</h3>
                         {community.description && (
-                          <p className="truncate text-sm text-[#96989d]">
+                          <p className="truncate text-sm text-fg-muted">
                             {community.description}
                           </p>
                         )}
                       </div>
-                      <span className="text-xs text-[#72767d]">
+                      <span className="text-xs text-fg-subtle">
                         {community.visibility === 'public'
                           ? t('community.public')
                           : community.visibility === 'invite_only'
