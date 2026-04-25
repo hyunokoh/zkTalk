@@ -776,7 +776,13 @@ export function MessageItem({
   }
 
   const displayName = author?.displayName ?? t('misc.unknownUser');
-  const avatarUrl = author?.avatarUrl ?? null;
+  // For your own messages, prefer the live currentUser fields over the
+  // author payload that was snapshot when the message was created. That
+  // way changing your profile picture (or display name) updates every
+  // existing message bubble without invalidating the message cache.
+  const avatarUrl = isAuthor
+    ? currentUser?.avatarUrl ?? author?.avatarUrl ?? null
+    : author?.avatarUrl ?? null;
   const isActionBarVisible = showActions && !isEditing;
   // Telegram-minimal bubble tones (design-system.md §7.1):
   //   self  → accent background, on-accent text
