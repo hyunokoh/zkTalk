@@ -41,35 +41,121 @@ function buildInstructionFromCommand(command) {
 }
 
 function collectReadableCodexOutput(stdout) {
-  const lines = String(stdout ?? '')
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+  // Mirror of packages/shared/src/utils/codex-output.ts. The desktop agent
+  // bridge runs as plain Electron Node and can't import the TS shared
+  // package without bundling, so the same logic lives here. Keep the two
+  // copies in sync — the test (`agent-ai-driver.test.js`) covers parity.
+  const raw = String(stdout ?? '');
+  if (!raw.trim()) return '';
+
+  const lines = raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const readable = [];
+  const startedCommands = new Map();
+  let parsedAny = false;
+
+  const pushAgentLine = (text) => {
+    const trimmed = String(text ?? '').trim();
+    if (trimmed) readable.push(trimmed);
+  };
+
+  const pushCommandResult = (command, output, exitCode) => {
+    const trimmedOutput = String(output ?? '').trim();
+    const status =
+      typeof exitCode === 'number' && exitCode !== 0 ? ` (exit ${exitCode})` : '';
+    const blockBody = trimmedOutput ? `\n${trimmedOutput}` : '';
+    readable.push(`\n\`\`\`text\n$ ${String(command).trim()}${status}${blockBody}\n\`\`\``);
+  };
+
+  const recoverPartialCommandLine = (line) => {
+    if (!line.startsWith('{')) return null;
+    const cmdMatch = line.match(/"command":"((?:\\.|[^"\\])*)"/);
+    const outMatch = line.match(/"aggregated_output":"((?:\\.|[^"\\])*)/);
+    if (!cmdMatch && !outMatch) return null;
+    const unescape = (s) =>
+      s
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+    const command = cmdMatch ? unescape(cmdMatch[1]) : '';
+    const output = outMatch ? unescape(outMatch[1]) : '';
+    const truncatedNote = output ? '\n[…output truncated]' : '';
+    const cmdLine = command ? `$ ${command}` : '$ (command unavailable)';
+    return `\n\`\`\`text\n${cmdLine}\n${output}${truncatedNote}\n\`\`\``;
+  };
 
   for (const line of lines) {
+    let event = null;
     try {
-      const parsed = JSON.parse(line);
-      const candidates = [
-        parsed.message,
-        parsed.text,
-        parsed.content,
-        parsed.delta,
-        parsed.output,
-        parsed.summary,
-        parsed.result,
-      ];
-      for (const candidate of candidates) {
-        if (typeof candidate === 'string' && candidate.trim()) {
-          readable.push(candidate.trim());
-        }
-      }
+      event = JSON.parse(line);
     } catch (_) {
-      readable.push(line);
+      const recovered = recoverPartialCommandLine(line);
+      readable.push(recovered || line);
+      continue;
     }
+    if (!event || typeof event !== 'object') continue;
+    parsedAny = true;
+
+    if (
+      (event.type === 'item.completed' || event.type === 'item.started') &&
+      event.item &&
+      typeof event.item === 'object'
+    ) {
+      const item = event.item;
+      const itemId = item.id || '';
+
+      if (item.type === 'agent_message' && typeof item.text === 'string') {
+        pushAgentLine(item.text);
+        continue;
+      }
+
+      if (item.type === 'command_execution') {
+        const cmd = typeof item.command === 'string' ? item.command : '';
+        if (event.type === 'item.started') {
+          if (cmd && itemId) startedCommands.set(itemId, cmd);
+          continue;
+        }
+        const startedCmd = itemId ? startedCommands.get(itemId) : undefined;
+        startedCommands.delete(itemId);
+        const finalCmd = cmd || startedCmd || '@@command';
+        pushCommandResult(finalCmd, item.aggregated_output ?? '', item.exit_code ?? null);
+        continue;
+      }
+    }
+
+    if (
+      event.type === 'thread.started' ||
+      event.type === 'turn.started' ||
+      event.type === 'turn.completed'
+    ) {
+      continue;
+    }
+
+    const legacyCandidates = [
+      event.message,
+      event.text,
+      event.content,
+      event.delta,
+      event.output,
+      event.summary,
+      event.result,
+    ];
+    let pushed = false;
+    for (const candidate of legacyCandidates) {
+      if (typeof candidate === 'string' && candidate.trim()) {
+        pushAgentLine(candidate);
+        pushed = true;
+      }
+    }
+    if (pushed) continue;
   }
 
-  return readable.length > 0 ? readable.join('\n') : String(stdout ?? '').trim();
+  if (readable.length === 0) {
+    return parsedAny ? '' : raw.trim();
+  }
+
+  return readable.join('\n').trim();
 }
 
 function classifyCodexFailure(error, stderr) {

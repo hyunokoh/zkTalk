@@ -353,6 +353,8 @@ const en = {
   'agents.result.approve': 'Approve',
   'agents.result.reject': 'Reject',
   'agents.result.decisionFailed': 'Decision failed',
+  'agents.result.emptyAiReply': '(no response from the agent)',
+  'agents.result.agentErrorLabel': 'Agent reported an error',
 
   // Moderation
   'mod.title': 'Moderation',

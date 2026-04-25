@@ -354,6 +354,8 @@ const ko: Record<string, string> = {
   'agents.result.approve': '승인',
   'agents.result.reject': '거부',
   'agents.result.decisionFailed': '승인/거부에 실패했습니다',
+  'agents.result.emptyAiReply': '(에이전트에게서 응답이 없습니다)',
+  'agents.result.agentErrorLabel': '에이전트가 오류를 보고했습니다',
 
   // Moderation
   'mod.title': '관리',
