@@ -87,7 +87,11 @@ async function translateViaAgent(
   });
 
   const startedAt = Date.now();
-  const TIMEOUT_MS = 60_000;
+  // Auto-translate fans out one queued codex command per visible message
+  // — five rapid calls can stack 30+ seconds of wait time before our
+  // command even starts running. 180s gives the queue room to drain
+  // without the user seeing a misleading "unavailable" toast.
+  const TIMEOUT_MS = 180_000;
   const POLL_INTERVAL_MS = 750;
   // eslint-disable-next-line no-constant-condition
   while (true) {
