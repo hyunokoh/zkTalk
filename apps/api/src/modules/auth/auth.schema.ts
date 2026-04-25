@@ -24,7 +24,9 @@ export {
 
 export const UpdateProfileSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
-  bio: z.string().max(500).optional(),
+  // Allow `null` so the client can clear an existing bio. Without this the
+  // ProfileEditor sends `null` for cleared text and the server rejects it.
+  bio: z.string().max(500).nullable().optional(),
   avatarUrl: z.string().url().max(2048).nullable().optional(),
   username: z.string().min(2).max(32).regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores and hyphens').optional(),
 }).strict();
