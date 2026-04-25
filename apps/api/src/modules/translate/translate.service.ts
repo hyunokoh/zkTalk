@@ -1,7 +1,15 @@
 import { isProductionEnv } from '../../lib/env.js';
+import * as agentsService from '../agents/agents.service.js';
+import * as agentsRepo from '../agents/agents.repository.js';
 
 export type TranslationRuntimeStatus = 'available' | 'mock' | 'disabled' | 'unavailable';
-export type TranslationRuntimeProvider = 'google-translate' | 'anthropic' | 'mock' | 'unset';
+export type TranslationRuntimeProvider =
+  | 'google-translate'
+  | 'anthropic'
+  | 'agent-codex'
+  | 'agent-claude'
+  | 'mock'
+  | 'unset';
 
 export interface TranslationRuntimeSummary {
   status: TranslationRuntimeStatus;
@@ -38,10 +46,109 @@ function getDisabledTranslationResult(): TranslateTextResult {
   };
 }
 
+/**
+ * Queue a translate command on the user's first online AI-capable Agent
+ * device, then poll its status until the codex/claude run finishes.
+ *
+ * Latency: typically 5–15 seconds because codex's full-thought roundtrip
+ * is slow. Acceptable for opt-in auto-translate but never for inline UX.
+ */
+async function translateViaAgent(
+  userId: string,
+  text: string,
+  targetLang: string,
+): Promise<TranslateTextResult | null> {
+  const { devices, agentsByDevice } = await agentsService.listDevices(userId);
+  const candidate = devices.find((device) => {
+    if (device.userId !== userId) return false;
+    if (device.state !== 'online' && device.state !== 'busy') return false;
+    const agents = agentsByDevice[device.id] ?? [];
+    return agents.some(
+      (agent) =>
+        agent.isEnabled && (agent.agentSlug === 'codex' || agent.agentSlug === 'claude'),
+    );
+  });
+  if (!candidate) return null;
+
+  const agentSlug =
+    (agentsByDevice[candidate.id] ?? []).find((a) => a.isEnabled && a.agentSlug === 'codex')
+      ? 'codex'
+      : 'claude';
+
+  const prompt =
+    `Translate the following text into ${targetLang}. Reply with ONLY the translated ` +
+    `text, no preamble, no quotation marks, no explanation.\n\n${text}`;
+
+  const queued = await agentsService.queueCommand(userId, {
+    deviceSlug: candidate.slug,
+    agentSlug,
+    args: prompt,
+    rawCommand: prompt,
+  });
+
+  const startedAt = Date.now();
+  const TIMEOUT_MS = 60_000;
+  const POLL_INTERVAL_MS = 750;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    if (Date.now() - startedAt > TIMEOUT_MS) {
+      return {
+        translatedText: null,
+        runtime: {
+          status: 'unavailable',
+          provider: agentSlug === 'codex' ? 'agent-codex' : 'agent-claude',
+          issue: `Agent translation exceeded ${TIMEOUT_MS}ms — try a shorter input or fall back to a cloud provider.`,
+        },
+      };
+    }
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    const current = await agentsRepo.findCommandById(queued.id);
+    if (!current) continue;
+    if (current.status === 'completed') {
+      // Re-use the codex JSONL extractor from the shared package — same one
+      // the chat bubble uses — so single-line responses come back clean.
+      const { collectReadableCodexOutput } = await import('@zktalk/shared');
+      const cleaned = collectReadableCodexOutput(current.stdoutTrunc).trim();
+      return {
+        translatedText: cleaned || null,
+        runtime: {
+          status: cleaned ? 'available' : 'unavailable',
+          provider: agentSlug === 'codex' ? 'agent-codex' : 'agent-claude',
+          ...(cleaned ? {} : { issue: 'Agent returned an empty response.' }),
+        },
+      };
+    }
+    if (
+      current.status === 'failed' ||
+      current.status === 'rejected' ||
+      current.status === 'timeout' ||
+      current.status === 'cancelled'
+    ) {
+      return {
+        translatedText: null,
+        runtime: {
+          status: 'unavailable',
+          provider: agentSlug === 'codex' ? 'agent-codex' : 'agent-claude',
+          issue: `Agent translation ${current.status}.`,
+        },
+      };
+    }
+  }
+}
+
 export async function translateText(
   text: string,
   targetLang: string,
+  options: { userId?: string; useAgentForTranslation?: boolean } = {},
 ): Promise<TranslateTextResult> {
+  // Opt-in: route through the user's local AI agent first when the
+  // setting is on. Falls through to cloud providers only if the agent
+  // path returned null (no eligible device available right now).
+  if (options.useAgentForTranslation && options.userId) {
+    const agentResult = await translateViaAgent(options.userId, text, targetLang);
+    if (agentResult) return agentResult;
+  }
+
   const apiKey = process.env.TRANSLATION_API_KEY;
   const aiKey = process.env.AI_API_KEY;
 

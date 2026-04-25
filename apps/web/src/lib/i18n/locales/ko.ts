@@ -365,6 +365,12 @@ const ko: Record<string, string> = {
   'agents.threads.renameAria': '대화 이름 변경',
   'agents.threads.deleteAria': '대화 삭제',
   'agents.threads.deleteConfirm': '이 대화를 삭제하시겠습니까? 안의 명령들은 기본 대화로 이동합니다.',
+  'settings.aiPage.useAgentForTranslation.title': '내 에이전트 디바이스로 번역하기',
+  'settings.aiPage.useAgentForTranslation.description':
+    '/api/translate 요청을 클라우드 제공자 대신 기본 에이전트 디바이스의 codex/claude로 라우팅합니다. API 키가 필요 없지만, 에이전트가 생각해야 하므로 번역 한 건당 5–15초 걸립니다.',
+  'settings.aiPage.useAgentForTranslation.latencyNote':
+    '클라우드 번역보다 훨씬 느립니다. 인라인 UX보다는 가끔 쓰는 자동 번역에 적합합니다.',
+  'settings.aiPage.useAgentForTranslation.error': '설정을 저장하지 못했습니다. 다시 시도하세요.',
 
   // Moderation
   'mod.title': '관리',

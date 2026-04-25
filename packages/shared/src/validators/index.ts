@@ -478,6 +478,7 @@ export const UserSettingsSchema = z.object({
   collapsedSections: z.record(z.string(), z.boolean()),
   lastVisited: LastVisitedLocationSchema.nullable(),
   translationDisplay: TranslationDisplayPreferenceSchema,
+  useAgentForTranslation: z.boolean(),
   updatedAt: z.string().datetime(),
 });
 
@@ -487,6 +488,7 @@ export const UpdateUserSettingsSchema = z
     collapsedSections: z.record(z.string(), z.boolean()).optional(),
     lastVisited: LastVisitedLocationSchema.nullable().optional(),
     translationDisplay: TranslationDisplayPreferenceSchema.optional(),
+    useAgentForTranslation: z.boolean().optional(),
   })
   .strict();
 

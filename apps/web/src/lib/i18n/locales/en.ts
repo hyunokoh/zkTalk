@@ -364,6 +364,12 @@ const en = {
   'agents.threads.renameAria': 'Rename thread',
   'agents.threads.deleteAria': 'Delete thread',
   'agents.threads.deleteConfirm': 'Delete this thread? Commands inside it will move to the default thread.',
+  'settings.aiPage.useAgentForTranslation.title': 'Translate via my Agent device',
+  'settings.aiPage.useAgentForTranslation.description':
+    'Route every /api/translate request through codex/claude on your default Agent device instead of the cloud provider. No API key needed, but each translation takes 5–15 seconds because the agent has to think it through.',
+  'settings.aiPage.useAgentForTranslation.latencyNote':
+    'Latency is much higher than cloud translate. Best for occasional auto-translate, not inline UX.',
+  'settings.aiPage.useAgentForTranslation.error': 'Could not save the preference. Try again.',
 
   // Moderation
   'mod.title': 'Moderation',

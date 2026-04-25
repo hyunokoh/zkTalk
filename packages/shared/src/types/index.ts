@@ -270,6 +270,14 @@ export interface UserSettings {
   collapsedSections: Record<string, boolean>;
   lastVisited: LastVisitedLocation | null;
   translationDisplay: TranslationDisplayPreference;
+  /**
+   * When true, /api/translate routes through the user's default Agent device
+   * (codex/claude on their Mac) instead of the cloud provider configured in
+   * the environment. Useful when you don't want to pay per-token for cloud
+   * AI but already have a local agent. Latency is much higher (5–15s vs
+   * <1s) so opt-in only.
+   */
+  useAgentForTranslation: boolean;
   updatedAt: string;
 }
 
@@ -278,6 +286,7 @@ export interface UpdateUserSettingsInput {
   collapsedSections?: Record<string, boolean>;
   lastVisited?: LastVisitedLocation | null;
   translationDisplay?: TranslationDisplayPreference;
+  useAgentForTranslation?: boolean;
 }
 
 export interface LocalMachine {

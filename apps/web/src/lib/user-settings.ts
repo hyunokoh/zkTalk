@@ -107,6 +107,10 @@ export async function saveTranslationDisplay(
   return patchUserSettings({ translationDisplay });
 }
 
+export async function saveUseAgentForTranslation(useAgentForTranslation: boolean): Promise<UserSettings> {
+  return patchUserSettings({ useAgentForTranslation });
+}
+
 export function getCollapsedSectionState(key: string): boolean {
   return Boolean(getCachedCollapsedSections()[key]);
 }

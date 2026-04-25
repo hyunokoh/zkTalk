@@ -22,7 +22,11 @@ import {
   getLocalMachineCommandCopyKey,
   getLocalMachineCommandTone,
 } from '@/lib/local-machine-command-copy';
-import { fetchUserSettings, saveTranslationDisplay } from '@/lib/user-settings';
+import {
+  fetchUserSettings,
+  saveTranslationDisplay,
+  saveUseAgentForTranslation,
+} from '@/lib/user-settings';
 import {
   getTranslationDisplayPreset,
   getSelectedMessageAiBehavior,
@@ -254,6 +258,76 @@ function AgentBridgeToggleCard({
         ) : null}
       </div>
       {error ? <div className="mt-2 text-sm text-danger">{error}</div> : null}
+    </div>
+  );
+}
+
+interface UseAgentForTranslationToggleProps {
+  t: (key: string, params?: Record<string, string | number>) => string;
+  userSettings: { useAgentForTranslation?: boolean } | null;
+  onSaved: () => void;
+}
+
+function UseAgentForTranslationToggle({
+  t,
+  userSettings,
+  onSaved,
+}: UseAgentForTranslationToggleProps) {
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const enabled = userSettings?.useAgentForTranslation === true;
+
+  const handleToggle = async () => {
+    if (isPending) return;
+    setError(null);
+    setIsPending(true);
+    try {
+      await saveUseAgentForTranslation(!enabled);
+      onSaved();
+    } catch {
+      setError(t('settings.aiPage.useAgentForTranslation.error'));
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return (
+    <div
+      data-testid="use-agent-for-translation-card"
+      className="mt-4 rounded-2xl border border-line bg-bg-elevated/40 p-4"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-fg">
+            {t('settings.aiPage.useAgentForTranslation.title')}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-fg-muted">
+            {t('settings.aiPage.useAgentForTranslation.description')}
+          </p>
+        </div>
+        <button
+          type="button"
+          data-testid="use-agent-for-translation-toggle"
+          onClick={() => void handleToggle()}
+          disabled={isPending}
+          aria-pressed={enabled}
+          role="switch"
+          aria-checked={enabled}
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-60 ${
+            enabled ? 'bg-accent' : 'bg-bg-subtle'
+          }`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+              enabled ? 'translate-x-5' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
+      <p className="mt-2 text-[11px] leading-5 text-fg-subtle">
+        {t('settings.aiPage.useAgentForTranslation.latencyNote')}
+      </p>
+      {error ? <div className="mt-2 text-xs text-danger">{error}</div> : null}
     </div>
   );
 }
@@ -729,6 +803,12 @@ export default function AISettingsPage() {
             {translationPresetError ? (
               <div className="mt-2 text-sm text-danger">{translationPresetError}</div>
             ) : null}
+
+            <UseAgentForTranslationToggle
+              t={t}
+              userSettings={userSettings ?? null}
+              onSaved={() => void refetchUserSettings()}
+            />
           </div>
 
           <div

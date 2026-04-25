@@ -40,6 +40,7 @@ export const userSettings = pgTable('user_settings', {
   collapsedSections: text('collapsed_sections').notNull().default('{}'),
   lastVisited: text('last_visited'),
   translationDisplay: text('translation_display').notNull().default('{"uiLocale":"en","mode":"manual_only","targetLanguage":null,"readableLanguages":[]}'),
+  useAgentForTranslation: boolean('use_agent_for_translation').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

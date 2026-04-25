@@ -678,6 +678,7 @@ export async function getSettings(userId: string) {
     })(),
     lastVisited,
     translationDisplay: parseTranslationDisplay(settings.translationDisplay),
+    useAgentForTranslation: settings.useAgentForTranslation,
     updatedAt: settings.updatedAt.toISOString(),
   };
 }
@@ -700,6 +701,7 @@ export async function updateSettings(
       targetLanguage: string | null;
       readableLanguages: string[];
     };
+    useAgentForTranslation?: boolean;
   },
 ) {
   const sanitizedLastVisited = data.lastVisited === undefined
@@ -725,6 +727,7 @@ export async function updateSettings(
     })(),
     lastVisited,
     translationDisplay: parseTranslationDisplay(settings.translationDisplay),
+    useAgentForTranslation: settings.useAgentForTranslation,
     updatedAt: settings.updatedAt.toISOString(),
   };
 }
