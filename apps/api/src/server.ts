@@ -63,6 +63,8 @@ import zkIdentityRoutes from './modules/zk-identity/zk-identity.routes.js';
 import pushTokenRoutes from './modules/push-token/push-token.routes.js';
 import agentsRoutes from './modules/agents/agents.routes.js';
 import businessCardRoutes from './modules/business-card/business-card.routes.js';
+import apiKeyRoutes from './modules/api-key/api-key.routes.js';
+import publicApiRoutes from './modules/public-api/public-api.routes.js';
 
 const app = Fastify({
   disableRequestLogging: true,
@@ -294,6 +296,8 @@ await app.register(zkIdentityRoutes);
 await app.register(pushTokenRoutes);
 await app.register(agentsRoutes);
 await app.register(businessCardRoutes);
+await app.register(apiKeyRoutes);
+await app.register(publicApiRoutes);
 
 const port = getServerPort();
 const host = process.env.HOST || '0.0.0.0';

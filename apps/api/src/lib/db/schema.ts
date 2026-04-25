@@ -747,6 +747,30 @@ export const commandExecutions = pgTable('command_executions', {
  *   - `extractedAt` is set when the OCR pipeline (future) populates the
  *     structured fields automatically; null means hand-entered.
  */
+/**
+ * Public API keys — let an external program or AI agent authenticate
+ * to zkTalk on behalf of a user. The plaintext key is shown once at
+ * creation; only `key_hash` (SHA-256 of the secret part) is stored.
+ * `key_prefix` is the human-readable prefix (zk_live_xxxxxxxx) used
+ * for display so users can identify a key without seeing the secret.
+ * Scopes are a string array like ['messages:read', 'messages:write'].
+ */
+export const apiKeys = pgTable('api_keys', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  keyPrefix: text('key_prefix').notNull(),
+  keyHash: text('key_hash').notNull(),
+  scopes: text('scopes').array().notNull().default([]),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('api_keys_key_hash_idx').on(t.keyHash),
+  index('api_keys_user_idx').on(t.userId),
+]);
+
 export const businessCards = pgTable('business_cards', {
   id: text('id').primaryKey(),
   ownerUserId: text('owner_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),

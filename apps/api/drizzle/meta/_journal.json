@@ -134,6 +134,20 @@
       "when": 1775258614699,
       "tag": "0018_hot_fantastic_four",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1777120430664,
+      "tag": "0019_workable_princess_powerful",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1777136268792,
+      "tag": "0020_dashing_namora",
+      "breakpoints": true
     }
   ]
 }

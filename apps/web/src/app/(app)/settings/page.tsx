@@ -337,6 +337,16 @@ export default function SettingsPage() {
               </div>
               <span className="text-lg text-fg-muted">{'›'}</span>
             </Link>
+            <Link
+              href="/settings/api-keys"
+              className="flex items-center justify-between rounded-[1rem] px-4 py-4 transition hover:bg-bg-hover"
+            >
+              <div>
+                <p className="text-base font-semibold text-fg">{t('apiKeys.title')}</p>
+                <p className="mt-1 text-sm text-fg-muted">{t('apiKeys.cardBody')}</p>
+              </div>
+              <span className="text-lg text-fg-muted">{'›'}</span>
+            </Link>
           </div>
         </section>
       </div>
