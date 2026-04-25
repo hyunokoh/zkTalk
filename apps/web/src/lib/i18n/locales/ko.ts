@@ -356,6 +356,15 @@ const ko: Record<string, string> = {
   'agents.result.decisionFailed': '승인/거부에 실패했습니다',
   'agents.result.emptyAiReply': '(에이전트에게서 응답이 없습니다)',
   'agents.result.agentErrorLabel': '에이전트가 오류를 보고했습니다',
+  'agents.threads.title': '대화',
+  'agents.threads.new': '새 대화',
+  'agents.threads.newAria': '새 대화 시작',
+  'agents.threads.defaultLabel': '기본 대화',
+  'agents.threads.defaultSubtitle': '특정 대화에 묶이지 않은 명령들',
+  'agents.threads.untitled': '제목 없는 대화',
+  'agents.threads.renameAria': '대화 이름 변경',
+  'agents.threads.deleteAria': '대화 삭제',
+  'agents.threads.deleteConfirm': '이 대화를 삭제하시겠습니까? 안의 명령들은 기본 대화로 이동합니다.',
 
   // Moderation
   'mod.title': '관리',

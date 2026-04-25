@@ -17,6 +17,12 @@ export interface CommandComposerProps {
    * agent is installed on the current device.
    */
   defaultAiAgentSlug?: string;
+  /**
+   * If set, every command queued through this composer is tagged with this
+   * agent_thread_id so the device page can filter by thread. Null means the
+   * legacy "default thread" (commands with no agent_thread_id assigned).
+   */
+  agentThreadId?: string | null;
 }
 
 type InputMode = 'natural' | 'slash';
@@ -128,6 +134,7 @@ export function CommandComposer({
   agents,
   disabled,
   defaultAiAgentSlug = 'codex',
+  agentThreadId = null,
 }: CommandComposerProps) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -155,11 +162,16 @@ export function CommandComposer({
         verb: parsed.verb ?? undefined,
         args: parsed.args || undefined,
         rawCommand,
+        agentThreadId: agentThreadId ?? undefined,
       });
     },
     onSuccess: () => {
       setValue('');
       queryClient.invalidateQueries({ queryKey: ['agent-commands', device.id] });
+      // Thread metadata (lastMessageAt, generated title) updates server-side
+      // when the command lands; refresh the sidebar so the active thread
+      // floats to the top.
+      queryClient.invalidateQueries({ queryKey: ['agent-threads', device.id] });
     },
   });
 

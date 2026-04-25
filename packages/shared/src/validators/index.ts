@@ -576,6 +576,7 @@ export const QueueCommandSchema = z
     rawCommand: z.string().min(1).max(4096),
     channelId: z.string().nullable().optional(),
     dmConversationId: z.string().nullable().optional(),
+    agentThreadId: z.string().nullable().optional(),
   })
   .strict()
   .refine((v) => Boolean(v.deviceSlug ?? v.deviceId), {

@@ -31,6 +31,11 @@ import { CommandComposer } from '@/components/CommandComposer';
 import { CommandResultBubble } from '@/components/CommandResultBubble';
 import { DeviceNameEditor } from '@/components/DeviceNameEditor';
 import {
+  AgentThreadList,
+  DEFAULT_THREAD,
+  type ActiveThreadKey,
+} from '@/components/AgentThreadList';
+import {
   readDefaultDeviceId,
   subscribeDefaultDeviceId,
   writeDefaultDeviceId,
@@ -63,9 +68,16 @@ export default function AgentDevicePage() {
     staleTime: 15_000,
   });
 
+  const [activeThreadId, setActiveThreadId] = useState<ActiveThreadKey>(DEFAULT_THREAD);
+
   const commandsQuery = useQuery<CommandExecution[]>({
-    queryKey: ['agent-commands', deviceId],
-    queryFn: () => fetchCommands({ deviceId, limit: 100 }),
+    queryKey: ['agent-commands', deviceId, activeThreadId],
+    queryFn: () =>
+      fetchCommands({
+        deviceId,
+        threadId: activeThreadId === DEFAULT_THREAD ? null : activeThreadId,
+        limit: 100,
+      }),
     enabled: Boolean(deviceId),
     staleTime: 5_000,
     refetchInterval: 5_000,
@@ -134,6 +146,12 @@ export default function AgentDevicePage() {
     >
       <AgentDeviceSidebar activeDeviceId={deviceId} />
 
+      <AgentThreadList
+        deviceId={deviceId}
+        activeThreadId={activeThreadId}
+        onSelectThread={setActiveThreadId}
+      />
+
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center gap-3 border-b border-line bg-bg px-6">
           <span className="agent-pill">
@@ -186,7 +204,11 @@ export default function AgentDevicePage() {
           )}
         </div>
 
-        <CommandComposer device={device} agents={agents} />
+        <CommandComposer
+          device={device}
+          agents={agents}
+          agentThreadId={activeThreadId === DEFAULT_THREAD ? null : activeThreadId}
+        />
       </div>
     </section>
   );

@@ -183,9 +183,20 @@ export async function queueCommand(
     );
   }
 
+  // Validate the optional thread belongs to this user + device.
+  let agentThreadId: string | null = null;
+  if (input.agentThreadId) {
+    const thread = await repo.findThreadById(input.agentThreadId);
+    if (!thread || thread.userId !== userId || thread.deviceId !== device.id) {
+      throw AppError.notFound('Agent thread not found', 'AGENT_THREAD_NOT_FOUND');
+    }
+    agentThreadId = thread.id;
+  }
+
   const command = await repo.createCommand({
     requesterUserId: userId,
     deviceId: device.id,
+    agentThreadId,
     agentSlug: input.agentSlug,
     verb: input.verb ?? agent.defaultVerb,
     args: input.args ?? '',
@@ -205,12 +216,54 @@ export async function queueCommand(
 
 export async function listRecentCommands(
   userId: string,
-  opts: { deviceId?: string; limit?: number } = {},
+  opts: { deviceId?: string; threadId?: string | null; limit?: number } = {},
 ): Promise<CommandExecution[]> {
   if (opts.deviceId) {
     await getOwnedDevice(userId, opts.deviceId);
   }
   return repo.listCommandsByRequester(userId, opts);
+}
+
+// ── Agent threads ─────────────────────────────────────────────────────
+
+export async function listThreads(userId: string, deviceId: string) {
+  await getOwnedDevice(userId, deviceId);
+  return repo.listThreadsByUserDevice(userId, deviceId);
+}
+
+export async function createThread(
+  userId: string,
+  deviceId: string,
+  title?: string,
+) {
+  await getOwnedDevice(userId, deviceId);
+  return repo.createThread({ userId, deviceId, title });
+}
+
+async function getOwnedThread(userId: string, threadId: string) {
+  const thread = await repo.findThreadById(threadId);
+  if (!thread || thread.userId !== userId) {
+    throw AppError.notFound('Agent thread not found', 'AGENT_THREAD_NOT_FOUND');
+  }
+  return thread;
+}
+
+export async function renameThread(
+  userId: string,
+  threadId: string,
+  title?: string,
+) {
+  await getOwnedThread(userId, threadId);
+  const updated = await repo.updateThread(threadId, { title: title ?? '' });
+  if (!updated) {
+    throw AppError.notFound('Agent thread not found', 'AGENT_THREAD_NOT_FOUND');
+  }
+  return updated;
+}
+
+export async function deleteThread(userId: string, threadId: string) {
+  await getOwnedThread(userId, threadId);
+  await repo.deleteThread(threadId);
 }
 
 export async function getCommand(userId: string, commandId: string): Promise<CommandExecution> {

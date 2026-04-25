@@ -1,13 +1,15 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { db } from '../../lib/db/index.js';
 import {
   agentDevices,
+  agentThreads,
   deviceAgents,
   commandExecutions,
 } from '../../lib/db/schema.js';
 import type {
   AgentDevice,
+  AgentThread,
   CommandApprovalDecision,
   CommandApprovalPolicy,
   CommandExecution,
@@ -22,6 +24,7 @@ import type {
 type AgentDeviceRow = typeof agentDevices.$inferSelect;
 type DeviceAgentRow = typeof deviceAgents.$inferSelect;
 type CommandExecutionRow = typeof commandExecutions.$inferSelect;
+type AgentThreadRow = typeof agentThreads.$inferSelect;
 
 function parseJsonArray<T>(raw: string | null, fallback: T[]): T[] {
   if (!raw) return fallback;
@@ -80,6 +83,7 @@ export function hydrateCommand(row: CommandExecutionRow): CommandExecution {
     id: row.id,
     requesterUserId: row.requesterUserId,
     deviceId: row.deviceId,
+    agentThreadId: row.agentThreadId,
     agentSlug: row.agentSlug,
     verb: row.verb,
     args: row.args,
@@ -289,16 +293,23 @@ export async function upsertDeviceAgent(input: {
 
 export async function listCommandsByRequester(
   userId: string,
-  opts: { deviceId?: string; limit?: number } = {},
+  opts: { deviceId?: string; threadId?: string | null; limit?: number } = {},
 ): Promise<CommandExecution[]> {
   const limit = Math.min(Math.max(opts.limit ?? 50, 1), 200);
-  const filter = opts.deviceId
-    ? and(eq(commandExecutions.requesterUserId, userId), eq(commandExecutions.deviceId, opts.deviceId))
-    : eq(commandExecutions.requesterUserId, userId);
+  const filters = [eq(commandExecutions.requesterUserId, userId)];
+  if (opts.deviceId) {
+    filters.push(eq(commandExecutions.deviceId, opts.deviceId));
+  }
+  if (opts.threadId === null) {
+    // Explicit "default thread": commands with no agent_thread_id assigned.
+    filters.push(isNull(commandExecutions.agentThreadId));
+  } else if (typeof opts.threadId === 'string') {
+    filters.push(eq(commandExecutions.agentThreadId, opts.threadId));
+  }
   const rows = await db
     .select()
     .from(commandExecutions)
-    .where(filter)
+    .where(and(...filters))
     .orderBy(desc(commandExecutions.queuedAt))
     .limit(limit);
   return rows.map(hydrateCommand);
@@ -326,6 +337,7 @@ export async function findCommandById(id: string): Promise<CommandExecution | nu
 export async function createCommand(input: {
   requesterUserId: string;
   deviceId: string;
+  agentThreadId?: string | null;
   agentSlug: string;
   verb: string;
   args: string;
@@ -342,6 +354,7 @@ export async function createCommand(input: {
       id,
       requesterUserId: input.requesterUserId,
       deviceId: input.deviceId,
+      agentThreadId: input.agentThreadId ?? null,
       agentSlug: input.agentSlug,
       verb: input.verb,
       args: input.args,
@@ -352,7 +365,91 @@ export async function createCommand(input: {
       approvalPolicy: input.approvalPolicy ? JSON.stringify(input.approvalPolicy) : null,
     })
     .returning();
+  if (input.agentThreadId) {
+    // Bump lastMessageAt so the thread float-to-top works on next list.
+    await db
+      .update(agentThreads)
+      .set({ lastMessageAt: new Date(), updatedAt: new Date() })
+      .where(eq(agentThreads.id, input.agentThreadId));
+  }
   return hydrateCommand(row);
+}
+
+// ── Agent threads ─────────────────────────────────────────────────────
+
+export function hydrateThread(row: AgentThreadRow): AgentThread {
+  return {
+    id: row.id,
+    userId: row.userId,
+    deviceId: row.deviceId,
+    title: row.title,
+    isDefault: row.isDefault,
+    archivedAt: row.archivedAt ? row.archivedAt.toISOString() : null,
+    lastMessageAt: row.lastMessageAt ? row.lastMessageAt.toISOString() : null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export async function listThreadsByUserDevice(
+  userId: string,
+  deviceId: string,
+): Promise<AgentThread[]> {
+  const rows = await db
+    .select()
+    .from(agentThreads)
+    .where(and(eq(agentThreads.userId, userId), eq(agentThreads.deviceId, deviceId)))
+    .orderBy(desc(sql`coalesce(${agentThreads.lastMessageAt}, ${agentThreads.createdAt})`));
+  return rows.map(hydrateThread);
+}
+
+export async function findThreadById(id: string): Promise<AgentThread | null> {
+  const [row] = await db
+    .select()
+    .from(agentThreads)
+    .where(eq(agentThreads.id, id))
+    .limit(1);
+  return row ? hydrateThread(row) : null;
+}
+
+export async function createThread(input: {
+  userId: string;
+  deviceId: string;
+  title?: string;
+  isDefault?: boolean;
+}): Promise<AgentThread> {
+  const id = uuidv7();
+  const [row] = await db
+    .insert(agentThreads)
+    .values({
+      id,
+      userId: input.userId,
+      deviceId: input.deviceId,
+      title: input.title ?? '',
+      isDefault: input.isDefault ?? false,
+      lastMessageAt: new Date(),
+    })
+    .returning();
+  return hydrateThread(row);
+}
+
+export async function updateThread(
+  id: string,
+  patch: { title?: string; archivedAt?: Date | null },
+): Promise<AgentThread | null> {
+  const updates: Partial<typeof agentThreads.$inferInsert> = { updatedAt: new Date() };
+  if (typeof patch.title === 'string') updates.title = patch.title;
+  if (patch.archivedAt !== undefined) updates.archivedAt = patch.archivedAt;
+  const [row] = await db
+    .update(agentThreads)
+    .set(updates)
+    .where(eq(agentThreads.id, id))
+    .returning();
+  return row ? hydrateThread(row) : null;
+}
+
+export async function deleteThread(id: string): Promise<void> {
+  await db.delete(agentThreads).where(eq(agentThreads.id, id));
 }
 
 export async function updateCommandStatus(

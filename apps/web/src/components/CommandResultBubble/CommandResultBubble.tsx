@@ -111,7 +111,16 @@ function AiAgentTurn({ command, canApprove }: BubbleSharedProps) {
   // codex JSONL format may still contain raw `{"type":"item.completed",...}`
   // lines. Re-extract on display so old commands also read naturally.
   const reply = collectReadableCodexOutput(command.stdoutTrunc).trim();
-  const errMsg = (command.stderrTrunc ?? '').trim();
+  const rawErr = (command.stderrTrunc ?? '').trim();
+  // Codex/claude write a lot of noise (warnings, telemetry hints, etc.) to
+  // stderr even on success. Only surface stderr when the run actually failed
+  // — otherwise it's just visual clutter for a working reply.
+  const errMsg =
+    command.status === 'failed' ||
+    command.status === 'timeout' ||
+    command.status === 'rejected'
+      ? rawErr
+      : '';
   const isPending =
     command.status === 'queued' ||
     command.status === 'approved' ||

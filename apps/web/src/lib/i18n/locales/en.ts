@@ -355,6 +355,15 @@ const en = {
   'agents.result.decisionFailed': 'Decision failed',
   'agents.result.emptyAiReply': '(no response from the agent)',
   'agents.result.agentErrorLabel': 'Agent reported an error',
+  'agents.threads.title': 'Threads',
+  'agents.threads.new': 'New chat',
+  'agents.threads.newAria': 'Start a new chat',
+  'agents.threads.defaultLabel': 'Default thread',
+  'agents.threads.defaultSubtitle': 'Anything not pinned to a thread',
+  'agents.threads.untitled': 'Untitled chat',
+  'agents.threads.renameAria': 'Rename thread',
+  'agents.threads.deleteAria': 'Delete thread',
+  'agents.threads.deleteConfirm': 'Delete this thread? Commands inside it will move to the default thread.',
 
   // Moderation
   'mod.title': 'Moderation',

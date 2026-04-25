@@ -677,10 +677,34 @@ export const deviceAgents = pgTable('device_agents', {
   index('device_agents_device_idx').on(t.deviceId),
 ]);
 
+/**
+ * Agent threads — a per-device conversation grouping so a user can have
+ * multiple parallel chats with the same AI agent (codex/claude). NULL on
+ * command_executions.agent_thread_id keeps backward compat for rows
+ * written before threads existed; the UI groups those into a "기본 대화"
+ * default thread.
+ */
+export const agentThreads = pgTable('agent_threads', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  deviceId: text('device_id').notNull().references(() => agentDevices.id, { onDelete: 'cascade' }),
+  title: text('title').notNull().default(''),
+  // Optional pin for the user's "default" thread per device.
+  isDefault: boolean('is_default').notNull().default(false),
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
+  lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('agent_threads_user_device_idx').on(t.userId, t.deviceId),
+  index('agent_threads_device_idx').on(t.deviceId),
+]);
+
 export const commandExecutions = pgTable('command_executions', {
   id: text('id').primaryKey(),
   requesterUserId: text('requester_user_id').notNull().references(() => users.id),
   deviceId: text('device_id').notNull().references(() => agentDevices.id),
+  agentThreadId: text('agent_thread_id').references(() => agentThreads.id, { onDelete: 'set null' }),
   agentSlug: text('agent_slug').notNull(),
   verb: text('verb').notNull(),
   args: text('args').notNull().default(''),
@@ -702,6 +726,7 @@ export const commandExecutions = pgTable('command_executions', {
   index('command_executions_requester_idx').on(t.requesterUserId),
   index('command_executions_device_idx').on(t.deviceId),
   index('command_executions_channel_idx').on(t.channelId),
+  index('command_executions_thread_idx').on(t.agentThreadId),
   index('command_executions_status_idx').on(t.status),
   index('command_executions_queued_at_idx').on(t.queuedAt),
 ]);

@@ -1,6 +1,7 @@
 import { api } from '@/lib/api';
 import type {
   AgentDevice,
+  AgentThread,
   CommandExecution,
   DeviceAgent,
   DeviceHeartbeatSummary,
@@ -73,16 +74,51 @@ export async function registerDeviceAgent(
 }
 
 export async function fetchCommands(
-  opts: { deviceId?: string; limit?: number } = {},
+  opts: { deviceId?: string; threadId?: string | null; limit?: number } = {},
 ): Promise<CommandExecution[]> {
   const params = new URLSearchParams();
   if (opts.deviceId) params.set('deviceId', opts.deviceId);
+  if (opts.threadId === null) params.set('threadId', '__default__');
+  else if (typeof opts.threadId === 'string') params.set('threadId', opts.threadId);
   if (opts.limit) params.set('limit', String(opts.limit));
   const qs = params.toString();
   const res = await api<{ commands: CommandExecution[] }>(
     `/api/commands${qs ? `?${qs}` : ''}`,
   );
   return res.commands;
+}
+
+// ── Agent threads ─────────────────────────────────────────────────────
+
+export async function fetchAgentThreads(deviceId: string): Promise<AgentThread[]> {
+  const res = await api<{ threads: AgentThread[] }>(`/api/devices/${deviceId}/threads`);
+  return res.threads;
+}
+
+export async function createAgentThread(
+  deviceId: string,
+  title?: string,
+): Promise<AgentThread> {
+  const res = await api<{ thread: AgentThread }>(`/api/devices/${deviceId}/threads`, {
+    method: 'POST',
+    body: title ? { title } : {},
+  });
+  return res.thread;
+}
+
+export async function renameAgentThread(
+  threadId: string,
+  title: string,
+): Promise<AgentThread> {
+  const res = await api<{ thread: AgentThread }>(`/api/agent-threads/${threadId}`, {
+    method: 'PATCH',
+    body: { title },
+  });
+  return res.thread;
+}
+
+export async function deleteAgentThread(threadId: string): Promise<void> {
+  await api(`/api/agent-threads/${threadId}`, { method: 'DELETE' });
 }
 
 export async function queueCommand(input: QueueCommandInput): Promise<CommandExecution> {

@@ -104,13 +104,67 @@ export default async function agentsRoutes(app: FastifyInstance) {
     '/api/commands',
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const q = request.query as { deviceId?: string; limit?: string };
+      const q = request.query as { deviceId?: string; threadId?: string; limit?: string };
       const limit = q.limit ? Number(q.limit) : undefined;
+      const threadId =
+        q.threadId === '__default__' ? null : (q.threadId || undefined);
       const commands = await agentsService.listRecentCommands(request.user.id, {
         deviceId: q.deviceId,
+        threadId,
         limit: Number.isFinite(limit) ? limit : undefined,
       });
       return reply.send({ commands });
+    },
+  );
+
+  // ── Threads ────────────────────────────────────────────────────────
+
+  app.get<{ Params: { deviceId: string } }>(
+    '/api/devices/:deviceId/threads',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const threads = await agentsService.listThreads(
+        request.user.id,
+        request.params.deviceId,
+      );
+      return reply.send({ threads });
+    },
+  );
+
+  app.post<{ Params: { deviceId: string } }>(
+    '/api/devices/:deviceId/threads',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const body = (request.body ?? {}) as { title?: string };
+      const thread = await agentsService.createThread(
+        request.user.id,
+        request.params.deviceId,
+        body.title,
+      );
+      return reply.status(201).send({ thread });
+    },
+  );
+
+  app.patch<{ Params: { threadId: string } }>(
+    '/api/agent-threads/:threadId',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const body = (request.body ?? {}) as { title?: string };
+      const thread = await agentsService.renameThread(
+        request.user.id,
+        request.params.threadId,
+        body.title,
+      );
+      return reply.send({ thread });
+    },
+  );
+
+  app.delete<{ Params: { threadId: string } }>(
+    '/api/agent-threads/:threadId',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      await agentsService.deleteThread(request.user.id, request.params.threadId);
+      return reply.status(204).send();
     },
   );
 

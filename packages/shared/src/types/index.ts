@@ -429,10 +429,24 @@ export interface CommandApprovalDecision {
   at: string;
 }
 
+export interface AgentThread {
+  id: string;
+  userId: string;
+  deviceId: string;
+  title: string;
+  isDefault: boolean;
+  archivedAt: string | null;
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CommandExecution {
   id: string;
   requesterUserId: string;
   deviceId: string;
+  /** Per-device conversation grouping. Null = legacy "default" thread. */
+  agentThreadId: string | null;
   agentSlug: string;
   verb: string;
   args: string;
@@ -477,4 +491,5 @@ export interface QueueCommandInput {
   rawCommand: string;
   channelId?: string | null;
   dmConversationId?: string | null;
+  agentThreadId?: string | null;
 }
