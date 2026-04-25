@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { authenticate } from '../../middleware/auth.js';
 import * as aiService from './ai.service.js';
+import * as authService from '../auth/auth.service.js';
 
 const SummarizeBodySchema = z.object({
   messageCount: z.number().int().min(3).max(200).optional(),
@@ -34,10 +35,13 @@ export default async function aiRoutes(app: FastifyInstance) {
     ) => {
       const { channelId } = request.params;
       const body = SummarizeBodySchema.parse(request.body);
+      const userId = request.user.id;
+      const settings = await authService.getSettings(userId);
 
       const result = await aiService.summarizeChannel(
         channelId,
         body.messageCount,
+        { userId, useAgentForAi: settings.useAgentForAi },
       );
 
       return reply.send(result);
@@ -53,7 +57,12 @@ export default async function aiRoutes(app: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const body = ChatBodySchema.parse(request.body);
-      const result = await aiService.chatWithAI(body.messages);
+      const userId = request.user.id;
+      const settings = await authService.getSettings(userId);
+      const result = await aiService.chatWithAI(body.messages, {
+        userId,
+        useAgentForAi: settings.useAgentForAi,
+      });
       return reply.send(result);
     },
   );

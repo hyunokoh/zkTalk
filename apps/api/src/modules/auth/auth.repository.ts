@@ -243,6 +243,7 @@ export async function upsertUserSettings(
       readableLanguages: string[];
     };
     useAgentForTranslation?: boolean;
+    useAgentForAi?: boolean;
   },
 ) {
   const existing = await getUserSettings(userId);
@@ -281,6 +282,8 @@ export async function upsertUserSettings(
 
   const useAgentForTranslation =
     data.useAgentForTranslation ?? existing?.useAgentForTranslation ?? false;
+  const useAgentForAi =
+    data.useAgentForAi ?? existing?.useAgentForAi ?? false;
 
   const values = {
     communityOrder: JSON.stringify(communityOrder),
@@ -288,6 +291,7 @@ export async function upsertUserSettings(
     lastVisited,
     translationDisplay,
     useAgentForTranslation,
+    useAgentForAi,
     updatedAt: now,
   };
 
@@ -298,6 +302,7 @@ export async function upsertUserSettings(
     lastVisited,
     translationDisplay,
     useAgentForTranslation,
+    useAgentForAi,
     createdAt: now,
     updatedAt: now,
   };

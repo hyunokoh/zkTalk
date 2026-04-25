@@ -479,6 +479,7 @@ export const UserSettingsSchema = z.object({
   lastVisited: LastVisitedLocationSchema.nullable(),
   translationDisplay: TranslationDisplayPreferenceSchema,
   useAgentForTranslation: z.boolean(),
+  useAgentForAi: z.boolean(),
   updatedAt: z.string().datetime(),
 });
 
@@ -489,6 +490,7 @@ export const UpdateUserSettingsSchema = z
     lastVisited: LastVisitedLocationSchema.nullable().optional(),
     translationDisplay: TranslationDisplayPreferenceSchema.optional(),
     useAgentForTranslation: z.boolean().optional(),
+    useAgentForAi: z.boolean().optional(),
   })
   .strict();
 

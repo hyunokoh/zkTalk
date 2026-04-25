@@ -370,6 +370,12 @@ const en = {
   'settings.aiPage.useAgentForTranslation.latencyNote':
     'Latency is much higher than cloud translate. Best for occasional auto-translate, not inline UX.',
   'settings.aiPage.useAgentForTranslation.error': 'Could not save the preference. Try again.',
+  'settings.aiPage.useAgentForAi.title': 'Use my Agent device for all AI features',
+  'settings.aiPage.useAgentForAi.description':
+    'Channel summary, AI assistant chat, and other LLM-backed features go through codex/claude on your default Agent device. Replaces the cloud AI provider configured in the environment, including the built-in mock fallback.',
+  'settings.aiPage.useAgentForAi.latencyNote':
+    'Each AI call takes 5–15 seconds because the agent has to think it through. Cloud calls are <1s.',
+  'settings.aiPage.useAgentForAi.error': 'Could not save the preference. Try again.',
 
   // Moderation
   'mod.title': 'Moderation',

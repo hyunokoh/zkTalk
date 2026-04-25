@@ -679,6 +679,7 @@ export async function getSettings(userId: string) {
     lastVisited,
     translationDisplay: parseTranslationDisplay(settings.translationDisplay),
     useAgentForTranslation: settings.useAgentForTranslation,
+    useAgentForAi: settings.useAgentForAi,
     updatedAt: settings.updatedAt.toISOString(),
   };
 }
@@ -702,6 +703,7 @@ export async function updateSettings(
       readableLanguages: string[];
     };
     useAgentForTranslation?: boolean;
+    useAgentForAi?: boolean;
   },
 ) {
   const sanitizedLastVisited = data.lastVisited === undefined
@@ -728,6 +730,7 @@ export async function updateSettings(
     lastVisited,
     translationDisplay: parseTranslationDisplay(settings.translationDisplay),
     useAgentForTranslation: settings.useAgentForTranslation,
+    useAgentForAi: settings.useAgentForAi,
     updatedAt: settings.updatedAt.toISOString(),
   };
 }

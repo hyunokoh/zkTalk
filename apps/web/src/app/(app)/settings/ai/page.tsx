@@ -25,6 +25,7 @@ import {
 import {
   fetchUserSettings,
   saveTranslationDisplay,
+  saveUseAgentForAi,
   saveUseAgentForTranslation,
 } from '@/lib/user-settings';
 import {
@@ -268,24 +269,57 @@ interface UseAgentForTranslationToggleProps {
   onSaved: () => void;
 }
 
-function UseAgentForTranslationToggle({
+function UseAgentForTranslationToggle(props: UseAgentForTranslationToggleProps) {
+  return (
+    <UseAgentSettingToggle
+      t={props.t}
+      enabled={props.userSettings?.useAgentForTranslation === true}
+      onToggle={(next) => saveUseAgentForTranslation(next)}
+      onSaved={props.onSaved}
+      titleKey="settings.aiPage.useAgentForTranslation.title"
+      descriptionKey="settings.aiPage.useAgentForTranslation.description"
+      latencyKey="settings.aiPage.useAgentForTranslation.latencyNote"
+      errorKey="settings.aiPage.useAgentForTranslation.error"
+      testIdSuffix="translation"
+    />
+  );
+}
+
+interface UseAgentSettingToggleProps {
+  t: (key: string, params?: Record<string, string | number>) => string;
+  enabled: boolean;
+  onToggle: (next: boolean) => Promise<unknown>;
+  onSaved: () => void;
+  titleKey: string;
+  descriptionKey: string;
+  latencyKey: string;
+  errorKey: string;
+  testIdSuffix: string;
+}
+
+function UseAgentSettingToggle({
   t,
-  userSettings,
+  enabled,
+  onToggle,
   onSaved,
-}: UseAgentForTranslationToggleProps) {
+  titleKey,
+  descriptionKey,
+  latencyKey,
+  errorKey,
+  testIdSuffix,
+}: UseAgentSettingToggleProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const enabled = userSettings?.useAgentForTranslation === true;
 
   const handleToggle = async () => {
     if (isPending) return;
     setError(null);
     setIsPending(true);
     try {
-      await saveUseAgentForTranslation(!enabled);
+      await onToggle(!enabled);
       onSaved();
     } catch {
-      setError(t('settings.aiPage.useAgentForTranslation.error'));
+      setError(t(errorKey));
     } finally {
       setIsPending(false);
     }
@@ -293,21 +327,17 @@ function UseAgentForTranslationToggle({
 
   return (
     <div
-      data-testid="use-agent-for-translation-card"
+      data-testid={`use-agent-${testIdSuffix}-card`}
       className="mt-4 rounded-2xl border border-line bg-bg-elevated/40 p-4"
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-fg">
-            {t('settings.aiPage.useAgentForTranslation.title')}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-fg-muted">
-            {t('settings.aiPage.useAgentForTranslation.description')}
-          </p>
+          <p className="text-sm font-semibold text-fg">{t(titleKey)}</p>
+          <p className="mt-1 text-xs leading-5 text-fg-muted">{t(descriptionKey)}</p>
         </div>
         <button
           type="button"
-          data-testid="use-agent-for-translation-toggle"
+          data-testid={`use-agent-${testIdSuffix}-toggle`}
           onClick={() => void handleToggle()}
           disabled={isPending}
           aria-pressed={enabled}
@@ -324,11 +354,31 @@ function UseAgentForTranslationToggle({
           />
         </button>
       </div>
-      <p className="mt-2 text-[11px] leading-5 text-fg-subtle">
-        {t('settings.aiPage.useAgentForTranslation.latencyNote')}
-      </p>
+      <p className="mt-2 text-[11px] leading-5 text-fg-subtle">{t(latencyKey)}</p>
       {error ? <div className="mt-2 text-xs text-danger">{error}</div> : null}
     </div>
+  );
+}
+
+interface UseAgentForAiToggleProps {
+  t: (key: string, params?: Record<string, string | number>) => string;
+  userSettings: { useAgentForAi?: boolean } | null;
+  onSaved: () => void;
+}
+
+function UseAgentForAiToggle(props: UseAgentForAiToggleProps) {
+  return (
+    <UseAgentSettingToggle
+      t={props.t}
+      enabled={props.userSettings?.useAgentForAi === true}
+      onToggle={(next) => saveUseAgentForAi(next)}
+      onSaved={props.onSaved}
+      titleKey="settings.aiPage.useAgentForAi.title"
+      descriptionKey="settings.aiPage.useAgentForAi.description"
+      latencyKey="settings.aiPage.useAgentForAi.latencyNote"
+      errorKey="settings.aiPage.useAgentForAi.error"
+      testIdSuffix="ai"
+    />
   );
 }
 
@@ -594,6 +644,12 @@ export default function AISettingsPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <section className="space-y-4">
           <AgentBridgeToggleCard t={t} />
+
+          <UseAgentForAiToggle
+            t={t}
+            userSettings={userSettings ?? null}
+            onSaved={() => void refetchUserSettings()}
+          />
 
           <ToggleCard
             title={t('settings.aiPage.toggle.assistant.title')}

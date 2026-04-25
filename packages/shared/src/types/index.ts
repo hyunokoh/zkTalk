@@ -278,6 +278,13 @@ export interface UserSettings {
    * <1s) so opt-in only.
    */
   useAgentForTranslation: boolean;
+  /**
+   * When true, all general AI calls (channel summary, AI assistant chat,
+   * etc. — anything that goes through ai.service.callAI) route to the
+   * user's local Agent device when AI_PROVIDER is unset or returns mock.
+   * Same opt-in latency tradeoff as useAgentForTranslation.
+   */
+  useAgentForAi: boolean;
   updatedAt: string;
 }
 
@@ -287,6 +294,7 @@ export interface UpdateUserSettingsInput {
   lastVisited?: LastVisitedLocation | null;
   translationDisplay?: TranslationDisplayPreference;
   useAgentForTranslation?: boolean;
+  useAgentForAi?: boolean;
 }
 
 export interface LocalMachine {

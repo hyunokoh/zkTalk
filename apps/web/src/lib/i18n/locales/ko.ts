@@ -371,6 +371,12 @@ const ko: Record<string, string> = {
   'settings.aiPage.useAgentForTranslation.latencyNote':
     '클라우드 번역보다 훨씬 느립니다. 인라인 UX보다는 가끔 쓰는 자동 번역에 적합합니다.',
   'settings.aiPage.useAgentForTranslation.error': '설정을 저장하지 못했습니다. 다시 시도하세요.',
+  'settings.aiPage.useAgentForAi.title': '모든 AI 기능에 내 에이전트 디바이스 사용',
+  'settings.aiPage.useAgentForAi.description':
+    '채널 요약, AI 어시스턴트 챗 등 LLM 기반 기능을 기본 에이전트 디바이스의 codex/claude로 라우팅합니다. 환경 변수의 클라우드 AI 제공자(및 기본 mock 응답)를 대체합니다.',
+  'settings.aiPage.useAgentForAi.latencyNote':
+    '에이전트가 생각해야 하므로 AI 호출당 5–15초 걸립니다. 클라우드는 1초 미만입니다.',
+  'settings.aiPage.useAgentForAi.error': '설정을 저장하지 못했습니다. 다시 시도하세요.',
 
   // Moderation
   'mod.title': '관리',

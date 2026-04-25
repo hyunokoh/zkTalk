@@ -3,6 +3,8 @@ import { db } from '../../lib/db/index.js';
 import { messages, users } from '../../lib/db/schema.js';
 import { AppError } from '../../lib/errors.js';
 import { isProductionEnv } from '../../lib/env.js';
+import * as agentsService from '../agents/agents.service.js';
+import * as agentsRepo from '../agents/agents.repository.js';
 
 interface MessageForSummary {
   author: string;
@@ -251,7 +253,85 @@ export function getOpenRouterKey(): string {
   return '';
 }
 
-async function callAI(prompt: string, systemInstruction?: string): Promise<string> {
+/**
+ * Send `prompt` (and an optional system instruction) to the user's local
+ * AI agent — the same codex/claude device they registered through the
+ * desktop bridge. Queues a command, polls every 750ms for completion (up
+ * to 90s), and folds the JSONL stdout through collectReadableCodexOutput
+ * so single-line replies come back clean. Returns null when no eligible
+ * device exists right now or the run failed; callers fall back to the
+ * cloud chain in that case.
+ */
+async function callAIViaAgent(
+  userId: string,
+  prompt: string,
+  systemInstruction: string | undefined,
+): Promise<string | null> {
+  const { devices, agentsByDevice } = await agentsService.listDevices(userId);
+  const device = devices.find((d) => {
+    if (d.userId !== userId) return false;
+    if (d.state !== 'online' && d.state !== 'busy') return false;
+    const agents = agentsByDevice[d.id] ?? [];
+    return agents.some(
+      (a) => a.isEnabled && (a.agentSlug === 'codex' || a.agentSlug === 'claude'),
+    );
+  });
+  if (!device) return null;
+
+  const agentSlug =
+    (agentsByDevice[device.id] ?? []).find((a) => a.isEnabled && a.agentSlug === 'codex')
+      ? 'codex'
+      : 'claude';
+
+  const fullPrompt = systemInstruction
+    ? `${systemInstruction}\n\n${prompt}`
+    : prompt;
+
+  const queued = await agentsService.queueCommand(userId, {
+    deviceSlug: device.slug,
+    agentSlug,
+    args: fullPrompt,
+    rawCommand: fullPrompt,
+  });
+
+  const startedAt = Date.now();
+  const TIMEOUT_MS = 90_000;
+  const POLL_INTERVAL_MS = 750;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    if (Date.now() - startedAt > TIMEOUT_MS) return null;
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    const current = await agentsRepo.findCommandById(queued.id);
+    if (!current) continue;
+    if (current.status === 'completed') {
+      const { collectReadableCodexOutput } = await import('@zktalk/shared');
+      const cleaned = collectReadableCodexOutput(current.stdoutTrunc).trim();
+      return cleaned || null;
+    }
+    if (
+      current.status === 'failed' ||
+      current.status === 'rejected' ||
+      current.status === 'timeout' ||
+      current.status === 'cancelled'
+    ) {
+      return null;
+    }
+  }
+}
+
+async function callAI(
+  prompt: string,
+  systemInstruction?: string,
+  options: { userId?: string; useAgentForAi?: boolean } = {},
+): Promise<string> {
+  // Opt-in: when the user has "use my Agent device for AI" turned on AND
+  // they're authenticated, try their local agent first. Falls through to
+  // the cloud chain on null (no eligible device, timeout, or failure).
+  if (options.useAgentForAi && options.userId) {
+    const agentReply = await callAIViaAgent(options.userId, prompt, systemInstruction);
+    if (agentReply) return agentReply;
+  }
+
   const provider = getConfiguredAIProvider();
 
   if (provider === 'openrouter') {
@@ -345,8 +425,14 @@ _Note: Set AI_PROVIDER plus the matching provider key env var for real AI summar
 export async function summarizeChannel(
   channelId: string,
   messageCount = 50,
+  options: { userId?: string; useAgentForAi?: boolean } = {},
 ): Promise<{ summary: string }> {
-  assertAIRuntimeAvailable();
+  // When the user routes through their own Agent device, the cloud
+  // runtime gate doesn't apply — codex/claude on their Mac is the
+  // backend, regardless of what AI_PROVIDER is set to.
+  if (!options.useAgentForAi) {
+    assertAIRuntimeAvailable();
+  }
   const msgs = await fetchRecentMessages(channelId, messageCount);
 
   if (msgs.length < 3) {
@@ -355,7 +441,7 @@ export async function summarizeChannel(
 
   const prompt = buildPrompt(msgs);
   const systemInstruction = 'You are a helpful assistant. Summarize the following chat conversation concisely. Identify the main topics discussed, any decisions made, and any action items. Keep the summary brief (3-5 bullet points). Respond in the same language as the conversation.';
-  const summary = await callAI(prompt, systemInstruction);
+  const summary = await callAI(prompt, systemInstruction, options);
 
   if (!summary) {
     throw AppError.badRequest('AI service is not available. Please check AI provider configuration.');
@@ -366,8 +452,11 @@ export async function summarizeChannel(
 
 export async function chatWithAI(
   messages: ChatMessage[],
+  options: { userId?: string; useAgentForAi?: boolean } = {},
 ): Promise<{ reply: string }> {
-  assertAIRuntimeAvailable();
+  if (!options.useAgentForAi) {
+    assertAIRuntimeAvailable();
+  }
   // Build conversation context for Gemini
   const systemMsg = messages.find(m => m.role === 'system');
   const conversationMessages = messages.filter(m => m.role !== 'system');
@@ -381,7 +470,7 @@ export async function chatWithAI(
     return `${roleLabel}: ${m.content}`;
   }).join('\n\n');
 
-  const reply = await callAI(contentParts, systemInstruction);
+  const reply = await callAI(contentParts, systemInstruction, options);
 
   if (!reply) {
     throw AppError.badRequest('AI service is not available. Please check API key configuration.');

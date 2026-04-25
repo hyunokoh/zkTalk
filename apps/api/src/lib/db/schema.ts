@@ -41,6 +41,7 @@ export const userSettings = pgTable('user_settings', {
   lastVisited: text('last_visited'),
   translationDisplay: text('translation_display').notNull().default('{"uiLocale":"en","mode":"manual_only","targetLanguage":null,"readableLanguages":[]}'),
   useAgentForTranslation: boolean('use_agent_for_translation').notNull().default(false),
+  useAgentForAi: boolean('use_agent_for_ai').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
