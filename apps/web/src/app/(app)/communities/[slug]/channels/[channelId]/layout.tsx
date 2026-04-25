@@ -186,7 +186,7 @@ export default function ChannelLayout({
                 data-testid="channel-layout-join-community"
                 onClick={() => joinCommunityMutation.mutate()}
                 disabled={joinCommunityMutation.isPending}
-                className="rounded-xl bg-warning px-3 py-2 text-sm font-semibold text-warning transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-warning px-3 py-2 text-sm font-semibold text-white transition hover:bg-warning/85 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {joinCommunityMutation.isPending
                   ? t('channel.lockedPromptJoining')
@@ -290,7 +290,7 @@ export default function ChannelLayout({
             <button
               data-testid="channel-header-pins-button"
               onClick={() => setShowPinned(!showPinned)}
-              className={`rounded-md p-1.5 hover:bg-bg-hover ${showPinned ? 'text-white' : 'text-fg-subtle hover:text-fg'}`}
+              className={`rounded-md p-1.5 hover:bg-bg-hover ${showPinned ? 'bg-bg-hover text-fg' : 'text-fg-subtle hover:text-fg'}`}
               title={t('pin.pinned')}
             >
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -304,7 +304,7 @@ export default function ChannelLayout({
                 type="button"
                 data-testid="channel-header-overflow-button"
                 onClick={() => setShowHeaderOverflow((prev) => !prev)}
-                className={`rounded-md p-1.5 hover:bg-bg-hover ${showHeaderOverflow ? 'text-white' : 'text-fg-subtle hover:text-fg'}`}
+                className={`rounded-md p-1.5 hover:bg-bg-hover ${showHeaderOverflow ? 'bg-bg-hover text-fg' : 'text-fg-subtle hover:text-fg'}`}
                 title={t('message.moreActions')}
                 aria-expanded={showHeaderOverflow}
               >

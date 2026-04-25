@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { CommandExecution, CommandExecutionStatus } from '@zktalk/shared';
 import { decideCommand } from '@/lib/api-agents';
+import { useTranslation } from '@/lib/i18n';
 
 export interface CommandResultBubbleProps {
   command: CommandExecution;
@@ -11,26 +12,30 @@ export interface CommandResultBubbleProps {
   canApprove?: boolean;
 }
 
-function statusLabel(status: CommandExecutionStatus): string {
+function statusKey(status: CommandExecutionStatus): string {
   switch (status) {
     case 'queued':
-      return 'Queued';
+      return 'agents.result.status.queued';
     case 'awaiting_approval':
-      return 'Awaiting approval';
+      return 'agents.result.status.awaitingApproval';
     case 'approved':
-      return 'Approved';
+      return 'agents.result.status.approved';
     case 'running':
-      return 'Running';
+      return 'agents.result.status.running';
     case 'completed':
-      return 'Completed';
+      return 'agents.result.status.completed';
     case 'failed':
-      return 'Failed';
+      return 'agents.result.status.failed';
     case 'rejected':
-      return 'Rejected';
+      return 'agents.result.status.rejected';
     case 'timeout':
-      return 'Timed out';
+      return 'agents.result.status.timeout';
     case 'cancelled':
-      return 'Cancelled';
+      return 'agents.result.status.cancelled';
+    default:
+      // Server may add new states later; degrade to the raw value rather
+      // than rendering `undefined`.
+      return String(status);
   }
 }
 
@@ -63,6 +68,7 @@ export function CommandResultBubble({ command, canApprove }: CommandResultBubble
   const [outputExpanded, setOutputExpanded] = useState(false);
   const [errorExpanded, setErrorExpanded] = useState(false);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const decisionMutation = useMutation({
     mutationFn: async (decision: 'approved' | 'rejected') => {
@@ -73,8 +79,10 @@ export function CommandResultBubble({ command, canApprove }: CommandResultBubble
     },
   });
 
-  const hasStdout = Boolean(command.stdoutTrunc && command.stdoutTrunc.length > 0);
-  const hasStderr = Boolean(command.stderrTrunc && command.stderrTrunc.length > 0);
+  const stdout = command.stdoutTrunc ?? '';
+  const stderr = command.stderrTrunc ?? '';
+  const hasStdout = stdout.length > 0;
+  const hasStderr = stderr.length > 0;
   const showApprovalBar =
     canApprove && command.status === 'awaiting_approval' && !decisionMutation.isPending;
 
@@ -85,11 +93,11 @@ export function CommandResultBubble({ command, canApprove }: CommandResultBubble
     >
       <header className="flex flex-wrap items-center gap-2 text-[11px] text-fg-subtle">
         <span className={`font-semibold uppercase tracking-[0.06em] ${statusToneClass(command.status)}`}>
-          {statusLabel(command.status)}
+          {t(statusKey(command.status))}
         </span>
         {command.exitCode !== null ? (
           <span className="rounded-pill bg-bg-hover px-2 py-0.5 font-mono text-[10px] text-fg-muted">
-            exit {command.exitCode}
+            {t('agents.result.exit', { code: command.exitCode })}
           </span>
         ) : null}
         <span className="ml-auto tabular-nums">{formatTime(command.queuedAt)}</span>
@@ -110,14 +118,14 @@ export function CommandResultBubble({ command, canApprove }: CommandResultBubble
             className="flex w-full items-center gap-1.5 text-left text-[11px] font-medium text-fg-muted hover:text-fg"
           >
             <span>{outputExpanded ? '▾' : '▸'}</span>
-            <span>stdout</span>
+            <span>{t('agents.result.stdout')}</span>
             <span className="text-fg-subtle">
-              ({command.stdoutTrunc!.length} chars)
+              {t('agents.result.charsCount', { count: stdout.length })}
             </span>
           </button>
           {outputExpanded ? (
             <pre className="mt-1 max-h-64 overflow-auto rounded-sm bg-bg-subtle p-2 font-mono text-[12px] leading-[18px] text-fg">
-              {command.stdoutTrunc}
+              {stdout}
             </pre>
           ) : null}
         </div>
@@ -131,14 +139,14 @@ export function CommandResultBubble({ command, canApprove }: CommandResultBubble
             className="flex w-full items-center gap-1.5 text-left text-[11px] font-medium text-danger hover:opacity-80"
           >
             <span>{errorExpanded ? '▾' : '▸'}</span>
-            <span>stderr</span>
+            <span>{t('agents.result.stderr')}</span>
             <span className="text-fg-subtle">
-              ({command.stderrTrunc!.length} chars)
+              {t('agents.result.charsCount', { count: stderr.length })}
             </span>
           </button>
           {errorExpanded ? (
             <pre className="mt-1 max-h-64 overflow-auto rounded-sm border border-danger bg-bg-subtle p-2 font-mono text-[12px] leading-[18px] text-fg">
-              {command.stderrTrunc}
+              {stderr}
             </pre>
           ) : null}
         </div>
@@ -150,7 +158,7 @@ export function CommandResultBubble({ command, canApprove }: CommandResultBubble
           className="flex items-center gap-2 border-t border-line pt-2"
         >
           <span className="text-[11px] text-fg-muted">
-            This command needs your approval before it runs.
+            {t('agents.result.approvalPrompt')}
           </span>
           <div className="ml-auto flex gap-2">
             <button
@@ -159,7 +167,7 @@ export function CommandResultBubble({ command, canApprove }: CommandResultBubble
               disabled={decisionMutation.isPending}
               className="h-7 rounded-md border border-line px-3 text-[12px] font-medium text-fg-muted hover:border-line-strong hover:text-fg disabled:opacity-50"
             >
-              Reject
+              {t('agents.result.reject')}
             </button>
             <button
               type="button"
@@ -167,7 +175,7 @@ export function CommandResultBubble({ command, canApprove }: CommandResultBubble
               disabled={decisionMutation.isPending}
               className="h-7 rounded-md bg-accent px-3 text-[12px] font-semibold text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-50"
             >
-              Approve
+              {t('agents.result.approve')}
             </button>
           </div>
         </div>
@@ -175,7 +183,7 @@ export function CommandResultBubble({ command, canApprove }: CommandResultBubble
 
       {decisionMutation.isError ? (
         <p className="text-[11px] text-danger">
-          {(decisionMutation.error as Error)?.message || 'Decision failed'}
+          {(decisionMutation.error as Error)?.message || t('agents.result.decisionFailed')}
         </p>
       ) : null}
     </article>

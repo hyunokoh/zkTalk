@@ -35,8 +35,10 @@ const THEME_BOOT_SCRIPT = `
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // Tokenized surface from `globals.css` — light is primary; `dark` class
-    // or `prefers-color-scheme: dark` swap the CSS variables.
-    <html lang="en">
+    // or `prefers-color-scheme: dark` swap the CSS variables. The boot
+    // script below mutates this element's class/data-theme/style before
+    // hydration, so we suppress the expected mismatch warning.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           // eslint-disable-next-line react/no-danger

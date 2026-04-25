@@ -266,12 +266,12 @@ export function MemberActionMenu({
               onClick={handleConfirm}
               disabled={modAction.isPending}
               data-testid="member-action-confirm-button"
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-50 ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
                 confirmAction === 'ban'
-                  ? 'bg-danger hover:bg-danger/85'
+                  ? 'bg-danger text-white hover:bg-danger/85'
                   : confirmAction === 'kick'
-                    ? 'bg-danger hover:bg-danger/85'
-                    : 'bg-warning hover:bg-warning/85'
+                    ? 'bg-danger text-white hover:bg-danger/85'
+                    : 'bg-warning text-fg hover:bg-warning/85'
               }`}
             >
               {modAction.isPending ? t('memberAction.processing') : t('common.confirm')}

@@ -32,7 +32,7 @@ export function LinkPreview({ url }: LinkPreviewProps) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="mt-2 flex overflow-hidden rounded-[1rem] border border-line bg-bg-subtle shadow-sm transition-colors hover:bg-white"
+      className="mt-2 flex overflow-hidden rounded-[1rem] border border-line bg-bg-subtle shadow-sm transition-colors hover:bg-bg-elevated"
     >
       {data.image && (
         <div className="h-24 w-24 shrink-0 border-r border-line">

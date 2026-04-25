@@ -91,7 +91,7 @@ export function BookmarkList() {
 
   return (
     <div data-testid="bookmarks-page" className="flex flex-1 flex-col">
-      <div className="border-b border-line bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_100%)] px-5 py-5 md:px-8">
+      <div className="border-b border-line bg-bg-subtle/40 px-5 py-5 md:px-8">
         <div className="mx-auto w-full max-w-5xl">
           <h2 className="text-xl font-bold text-fg">{t('bookmark.title')}</h2>
           <p className="mt-1 text-sm text-fg-muted">{t('bookmark.empty')}</p>
@@ -128,7 +128,7 @@ export function BookmarkList() {
                       router.push(href);
                     }
                   }}
-                  className="rounded-2xl border border-line bg-[linear-gradient(180deg,rgba(19,28,42,0.98),rgba(11,18,29,0.98))] px-4 py-4 text-left shadow-[0_18px_42px_rgba(2,8,23,0.18)] transition hover:border-line hover:bg-bg-hover"
+                  className="rounded-2xl border border-line bg-bg-elevated px-4 py-4 text-left shadow-[var(--shadow-2)] transition hover:border-line-strong hover:bg-bg-hover"
                 >
                   <div className="flex items-start gap-3">
                     <UserAvatar

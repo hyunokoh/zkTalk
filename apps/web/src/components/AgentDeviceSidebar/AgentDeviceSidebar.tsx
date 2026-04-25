@@ -26,24 +26,29 @@ function dotClassFor(state: DeviceState): string {
     case 'online':
       return 'dot-online';
     case 'busy':
+    case 'degraded':
       return 'dot-busy';
+    case 'suspended':
+      return 'dot-offline opacity-40';
+    case 'offline':
     default:
       return 'dot-offline';
   }
 }
 
-function stateLabel(state: DeviceState): string {
+function stateKey(state: DeviceState): string {
   switch (state) {
     case 'online':
-      return 'Online';
+      return 'agents.device.state.online';
     case 'busy':
-      return 'Busy';
+      return 'agents.device.state.busy';
     case 'degraded':
-      return 'Degraded';
+      return 'agents.device.state.degraded';
     case 'suspended':
-      return 'Suspended';
+      return 'agents.device.state.suspended';
+    case 'offline':
     default:
-      return 'Offline';
+      return 'agents.device.state.offline';
   }
 }
 
@@ -77,7 +82,10 @@ export function AgentDeviceSidebar({ activeDeviceId }: { activeDeviceId?: string
           {t('agents.title')}
         </span>
         <span className="ml-auto text-[11px] font-medium uppercase tracking-[0.08em] text-fg-subtle">
-          {devices.length} {devices.length === 1 ? 'device' : 'devices'}
+          {t(
+            devices.length === 1 ? 'agents.device.deviceCount' : 'agents.device.devicesCount',
+            { count: devices.length },
+          )}
         </span>
       </header>
 
@@ -92,7 +100,7 @@ export function AgentDeviceSidebar({ activeDeviceId }: { activeDeviceId?: string
           }`}
         >
           <span className="h-1.5 w-1.5 rounded-pill bg-fg-subtle" aria-hidden="true" />
-          Dashboard
+          {t('agents.device.dashboard')}
         </Link>
 
         {isLoading ? (
@@ -168,6 +176,7 @@ function DeviceRow({
   isDefault: boolean;
   onToggleDefault: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <li className="group/device-row relative">
       <Link
@@ -188,7 +197,7 @@ function DeviceRow({
         <span className="flex flex-1 flex-col min-w-0">
           <span className="truncate font-medium text-fg">{device.name}</span>
           <span className="truncate text-[11px] text-fg-muted">
-            {stateLabel(device.state)} · {device.slug}
+            {t(stateKey(device.state))} · {device.slug}
           </span>
         </span>
         <span

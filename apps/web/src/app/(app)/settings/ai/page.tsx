@@ -687,7 +687,7 @@ export default function AISettingsPage() {
                     onChange={(event) => setTargetLanguageInput(event.target.value)}
                     placeholder="pt-BR"
                     disabled={translationMode === 'manual_only'}
-                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-fg outline-none transition placeholder:text-fg focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-fg outline-none transition placeholder:text-fg-subtle focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </label>
                 <label className="space-y-2 text-sm text-fg-muted">
@@ -700,7 +700,7 @@ export default function AISettingsPage() {
                     onChange={(event) => setReadableLanguagesInput(event.target.value)}
                     placeholder="en, ko, zh-Hant"
                     disabled={translationMode === 'target_language_all'}
-                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-fg outline-none transition placeholder:text-fg focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-xl border border-line bg-bg-elevated/60 px-3 py-2 text-sm text-fg outline-none transition placeholder:text-fg-subtle focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </label>
               </div>

@@ -63,7 +63,10 @@ export default function AgentsPage() {
           </span>
           <span className="text-[13px] text-fg-muted">{t('agents.subtitle')}</span>
           <span className="ml-auto text-[11px] font-medium uppercase tracking-[0.08em] text-fg-subtle">
-            {devices.length} {devices.length === 1 ? 'device' : 'devices'}
+            {t(
+              devices.length === 1 ? 'agents.device.deviceCount' : 'agents.device.devicesCount',
+              { count: devices.length },
+            )}
           </span>
         </header>
 

@@ -48,7 +48,7 @@ export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
               onClick={() => setActiveTab(tab.value)}
               className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeTab === tab.value
-                  ? 'text-white'
+                  ? 'text-fg'
                   : 'text-fg-muted hover:text-fg'
               }`}
             >

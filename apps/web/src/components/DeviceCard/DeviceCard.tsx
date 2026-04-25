@@ -8,19 +8,21 @@ import {
   subscribeDefaultDeviceId,
   writeDefaultDeviceId,
 } from '@/lib/default-device';
+import { useTranslation } from '@/lib/i18n';
 
-function stateLabel(state: DeviceState): string {
+function stateKey(state: DeviceState): string {
   switch (state) {
     case 'online':
-      return 'Online';
+      return 'agents.device.state.online';
     case 'busy':
-      return 'Busy';
+      return 'agents.device.state.busy';
     case 'degraded':
-      return 'Degraded';
+      return 'agents.device.state.degraded';
     case 'suspended':
-      return 'Suspended';
+      return 'agents.device.state.suspended';
+    case 'offline':
     default:
-      return 'Offline';
+      return 'agents.device.state.offline';
   }
 }
 
@@ -29,7 +31,11 @@ function dotClassFor(state: DeviceState): string {
     case 'online':
       return 'dot-online';
     case 'busy':
+    case 'degraded':
       return 'dot-busy';
+    case 'suspended':
+      return 'dot-offline opacity-40';
+    case 'offline':
     default:
       return 'dot-offline';
   }
@@ -47,18 +53,20 @@ function formatBytes(n: number): string {
   return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
-function formatRelative(iso: string | null): string {
-  if (!iso) return '—';
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return '—';
-  const diff = Date.now() - t;
+type Translator = (key: string, params?: Record<string, string | number>) => string;
+
+function formatRelative(iso: string | null, t: Translator): string {
+  if (!iso) return t('agents.device.dash');
+  const ts = new Date(iso).getTime();
+  if (Number.isNaN(ts)) return t('agents.device.dash');
+  const diff = Date.now() - ts;
   const mins = Math.round(diff / 60_000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t('agents.device.justNow');
+  if (mins < 60) return t('agents.device.minutesAgo', { count: mins });
   const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('agents.device.hoursAgo', { count: hours });
   const days = Math.round(hours / 24);
-  return `${days}d ago`;
+  return t('agents.device.daysAgo', { count: days });
 }
 
 export interface DeviceCardProps {
@@ -67,6 +75,7 @@ export interface DeviceCardProps {
 }
 
 export function DeviceCard({ device, agents }: DeviceCardProps) {
+  const { t } = useTranslation();
   const heartbeat = device.heartbeat;
   const cpuPct = heartbeat ? Math.round(heartbeat.cpu * 100) : null;
   const ramUsed = heartbeat ? formatBytes(heartbeat.ramUsed) : null;
@@ -74,6 +83,7 @@ export function DeviceCard({ device, agents }: DeviceCardProps) {
   const ramPct = heartbeat && heartbeat.ramTotal > 0
     ? Math.round((heartbeat.ramUsed / heartbeat.ramTotal) * 100)
     : null;
+  const dash = t('agents.device.dash');
 
   const [defaultDeviceId, setDefaultDeviceId] = useState<string | null>(null);
   useEffect(() => {
@@ -108,14 +118,14 @@ export function DeviceCard({ device, agents }: DeviceCardProps) {
               <span
                 data-testid={`device-card-default-${device.slug}`}
                 className="rounded-pill bg-warning/20 px-1.5 text-[10px] font-semibold uppercase tracking-wider text-warning"
-                title="Default device"
+                title={t('agents.device.defaultDevice')}
               >
-                ★ default
+                ★ {t('agents.device.defaultDevice')}
               </span>
             ) : null}
           </div>
           <p className="truncate text-[12px] text-fg-muted">
-            {stateLabel(device.state)} · {device.platform} · /{device.slug}
+            {t(stateKey(device.state))} · {device.platform} · /{device.slug}
           </p>
         </div>
         <button
@@ -126,7 +136,7 @@ export function DeviceCard({ device, agents }: DeviceCardProps) {
             e.stopPropagation();
             writeDefaultDeviceId(isDefault ? null : device.id);
           }}
-          aria-label={isDefault ? 'Unpin as default device' : 'Pin as default device'}
+          aria-label={t(isDefault ? 'agents.device.unpinAria' : 'agents.device.pinAria')}
           aria-pressed={isDefault}
           className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold transition ${
             isDefault
@@ -134,33 +144,33 @@ export function DeviceCard({ device, agents }: DeviceCardProps) {
               : 'text-fg-subtle opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100'
           }`}
         >
-          {isDefault ? 'Pinned' : 'Pin'}
+          {t(isDefault ? 'agents.device.pinned' : 'agents.device.pin')}
         </button>
       </header>
 
       <div className="grid grid-cols-2 gap-3 text-[12px]">
         <div className="flex flex-col gap-0.5">
-          <span className="text-fg-subtle">CPU</span>
+          <span className="text-fg-subtle">{t('agents.device.cpu')}</span>
           <span className="font-medium text-fg">
-            {cpuPct === null ? '—' : `${cpuPct}%`}
+            {cpuPct === null ? dash : `${cpuPct}%`}
           </span>
         </div>
         <div className="flex flex-col gap-0.5">
-          <span className="text-fg-subtle">RAM</span>
+          <span className="text-fg-subtle">{t('agents.device.ram')}</span>
           <span className="font-medium text-fg">
             {ramUsed && ramTotal
               ? `${ramUsed} / ${ramTotal}${ramPct !== null ? ` (${ramPct}%)` : ''}`
-              : '—'}
+              : dash}
           </span>
         </div>
         <div className="flex flex-col gap-0.5">
-          <span className="text-fg-subtle">Agents</span>
+          <span className="text-fg-subtle">{t('agents.device.agentsLabel')}</span>
           <span className="font-medium text-fg">{agents.length}</span>
         </div>
         <div className="flex flex-col gap-0.5">
-          <span className="text-fg-subtle">Heartbeat</span>
+          <span className="text-fg-subtle">{t('agents.device.heartbeat')}</span>
           <span className="font-medium text-fg">
-            {formatRelative(device.lastHeartbeatAt)}
+            {formatRelative(device.lastHeartbeatAt, t)}
           </span>
         </div>
       </div>

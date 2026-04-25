@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AgentDevice } from '@zktalk/shared';
 import { updateDevice } from '@/lib/api-agents';
+import { useTranslation } from '@/lib/i18n';
 
 const MAX_NAME_LENGTH = 60;
 
@@ -35,6 +36,7 @@ function PencilIcon({ className = 'h-3 w-3' }: { className?: string }) {
 }
 
 export function DeviceNameEditor({ device, canEdit, className }: DeviceNameEditorProps) {
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(device.name);
   const [error, setError] = useState<string | null>(null);
@@ -60,18 +62,18 @@ export function DeviceNameEditor({ device, canEdit, className }: DeviceNameEdito
       queryClient.invalidateQueries({ queryKey: ['agent-devices'] });
     },
     onError: () => {
-      setError('Could not save the new name. Try again.');
+      setError(t('agents.device.renameError'));
     },
   });
 
   const handleSave = () => {
     const trimmed = value.trim();
     if (!trimmed) {
-      setError('Name cannot be empty');
+      setError(t('agents.device.renameEmpty'));
       return;
     }
     if (trimmed.length > MAX_NAME_LENGTH) {
-      setError(`Name must be ${MAX_NAME_LENGTH} characters or fewer`);
+      setError(t('agents.device.renameTooLong', { max: MAX_NAME_LENGTH }));
       return;
     }
     if (trimmed === device.name) {
@@ -110,7 +112,7 @@ export function DeviceNameEditor({ device, canEdit, className }: DeviceNameEdito
           maxLength={MAX_NAME_LENGTH}
           disabled={mutation.isPending}
           className="h-7 w-[180px] rounded-md border border-accent bg-bg-elevated px-2 text-[13px] text-fg outline-none focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
-          aria-label="Device name"
+          aria-label={t('agents.device.rename')}
         />
         <button
           type="button"
@@ -119,7 +121,7 @@ export function DeviceNameEditor({ device, canEdit, className }: DeviceNameEdito
           disabled={mutation.isPending}
           className="rounded-md bg-accent px-2 py-1 text-[11px] font-semibold text-[color:var(--on-accent)] transition hover:bg-accent-strong disabled:opacity-60"
         >
-          {mutation.isPending ? 'Saving…' : 'Save'}
+          {mutation.isPending ? t('agents.device.renameSaving') : t('agents.device.renameSave')}
         </button>
         <button
           type="button"
@@ -128,7 +130,7 @@ export function DeviceNameEditor({ device, canEdit, className }: DeviceNameEdito
           disabled={mutation.isPending}
           className="rounded-md border border-line px-2 py-1 text-[11px] font-medium text-fg-muted transition hover:bg-bg-hover disabled:opacity-60"
         >
-          Cancel
+          {t('agents.device.renameCancel')}
         </button>
         {error ? (
           <span className="text-[11px] text-danger" data-testid="device-name-error">
@@ -150,8 +152,8 @@ export function DeviceNameEditor({ device, canEdit, className }: DeviceNameEdito
           data-testid="device-name-edit"
           onClick={() => setIsEditing(true)}
           className="inline-flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition hover:bg-bg-hover hover:text-fg"
-          aria-label="Rename device"
-          title="Rename device"
+          aria-label={t('agents.device.rename')}
+          title={t('agents.device.rename')}
         >
           <PencilIcon />
         </button>

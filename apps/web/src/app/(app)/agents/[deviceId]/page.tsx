@@ -69,6 +69,9 @@ export default function AgentDevicePage() {
     enabled: Boolean(deviceId),
     staleTime: 5_000,
     refetchInterval: 5_000,
+    // Don't poll when the tab is hidden — saves battery on the laptop and
+    // avoids a queue of refetches piling up while the user is elsewhere.
+    refetchIntervalInBackground: false,
   });
 
   const device = useMemo(
@@ -98,7 +101,7 @@ export default function AgentDevicePage() {
       <section className="flex min-h-0 flex-1 bg-bg text-fg">
         <AgentDeviceSidebar activeDeviceId={deviceId} />
         <div className="flex min-h-0 flex-1 items-center justify-center text-[13px] text-fg-muted">
-          Loading…
+          {t('agents.device.loading')}
         </div>
       </section>
     );
@@ -109,15 +112,15 @@ export default function AgentDevicePage() {
       <section className="flex min-h-0 flex-1 bg-bg text-fg">
         <AgentDeviceSidebar activeDeviceId={deviceId} />
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-12">
-          <p className="text-[14px] font-semibold text-fg">Device not found</p>
+          <p className="text-[14px] font-semibold text-fg">{t('agents.device.notFound')}</p>
           <p className="max-w-[380px] text-center text-[13px] text-fg-muted">
-            It may have been removed, or you may not have access to it.
+            {t('agents.device.notFoundBody')}
           </p>
           <Link
             href="/agents"
             className="inline-flex h-9 items-center rounded-md border border-line px-3 text-[13px] font-medium text-fg-muted hover:border-line-strong hover:text-fg"
           >
-            Back to devices
+            {t('agents.device.backToDevices')}
           </Link>
         </div>
       </section>
@@ -152,7 +155,7 @@ export default function AgentDevicePage() {
                   : 'border border-line text-fg-muted hover:bg-bg-hover hover:text-fg'
               }`}
             >
-              {isDefaultDevice ? '★ Default device' : 'Set as default'}
+              {t(isDefaultDevice ? 'agents.device.defaultBadge' : 'agents.device.setAsDefault')}
             </button>
           ) : null}
         </header>
@@ -166,7 +169,9 @@ export default function AgentDevicePage() {
           {orderedCommands.length === 0 ? (
             <div className="flex flex-1 items-center justify-center">
               <p className="max-w-[360px] text-center text-[13px] text-fg-muted">
-                No commands yet. Try{' '}
+                {t('agents.device.feedEmpty', {
+                  example: '',
+                })}
                 <code className="rounded-sm bg-bg-hover px-1 py-0.5 font-mono text-[12px] text-fg">
                   /{device.slug}.shell ls
                 </code>

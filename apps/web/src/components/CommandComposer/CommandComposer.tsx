@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'r
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AgentDevice, DeviceAgent } from '@zktalk/shared';
 import { queueCommand } from '@/lib/api-agents';
+import { useTranslation } from '@/lib/i18n';
 
 export interface CommandComposerProps {
   device: AgentDevice;
@@ -93,7 +94,9 @@ function parseCommand(
 
   const deviceSlug = parts[0] ?? '';
   const agentSlug = parts[1] ?? null;
-  const verb = parts[2] ?? null;
+  // Anything past `.<agent>.<verb>` belongs to the verb segment — joining
+  // the tail keeps `/dev.codex.fix.bug` from silently dropping `.bug`.
+  const verb = parts.length > 2 ? parts.slice(2).join('.') : null;
 
   if (deviceSlug !== currentDeviceSlug) {
     return {
@@ -129,6 +132,7 @@ export function CommandComposer({
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const installedAgentSlugs = useMemo(
     () => new Set(agents.filter((a) => a.isEnabled).map((a) => a.agentSlug)),
@@ -201,16 +205,22 @@ export function CommandComposer({
   const canSend = parsed.valid && !disabled && !mutation.isPending;
 
   const helperText = mutation.isError
-    ? (mutation.error as Error)?.message || 'Failed to queue command'
+    ? (mutation.error as Error)?.message || t('agents.composer.failedQueue')
     : parsed.reason === 'wrong_device'
-      ? `Device does not match /${device.slug}`
+      ? t('agents.composer.helperWrongDevice', { deviceSlug: device.slug })
       : parsed.reason === 'missing_agent'
-        ? `Add an agent, e.g. /${device.slug}.shell ls`
+        ? t('agents.composer.helperMissingAgent', { deviceSlug: device.slug })
         : parsed.reason === 'no_ai_agent_installed'
-          ? `No AI agent installed on ${device.name} — install codex or claude, or use /${device.slug}.shell …`
-          : parsed.mode === 'natural' && parsed.valid
-            ? `↩ sends to ${parsed.agentSlug} on ${device.name} · / for raw agent syntax`
-            : `↩ sends · Shift+↩ newline · type plain text for AI, / for raw agent`;
+          ? t('agents.composer.helperNoAiAgent', {
+              deviceName: device.name,
+              deviceSlug: device.slug,
+            })
+          : parsed.mode === 'natural' && parsed.valid && parsed.agentSlug
+            ? t('agents.composer.helperNaturalValid', {
+                agentSlug: parsed.agentSlug,
+                deviceName: device.name,
+              })
+            : t('agents.composer.helperDefault');
 
   const isNaturalMode = parsed.mode === 'natural';
 
@@ -224,7 +234,7 @@ export function CommandComposer({
         <ul
           className="absolute bottom-[calc(100%+4px)] left-4 right-4 z-10 max-h-56 overflow-auto rounded-md border border-line bg-bg-elevated py-1 shadow-[var(--shadow-2)]"
           role="listbox"
-          aria-label="Agent suggestions"
+          aria-label={t('agents.composer.suggestionsLabel')}
         >
           {suggestions.map((a) => (
             <li key={a.id}>
@@ -255,7 +265,7 @@ export function CommandComposer({
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           rows={1}
-          placeholder={`Ask ${device.name} anything… (e.g. 다운로드 폴더 정리해줘)`}
+          placeholder={t('agents.composer.placeholder', { deviceName: device.name })}
           disabled={disabled || mutation.isPending}
           className={`min-h-[40px] max-h-[160px] flex-1 resize-none rounded-md border border-line bg-bg-elevated px-3 py-2 text-[14px] leading-[20px] text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none disabled:opacity-60 ${
             isNaturalMode ? '' : 'font-mono text-[13px]'
@@ -267,7 +277,7 @@ export function CommandComposer({
           disabled={!canSend}
           className="inline-flex h-10 items-center rounded-md bg-accent px-4 text-[13px] font-semibold text-[color:var(--on-accent)] transition-colors hover:bg-accent-strong disabled:opacity-50"
         >
-          {mutation.isPending ? 'Sending…' : 'Send'}
+          {mutation.isPending ? t('agents.composer.sending') : t('agents.composer.send')}
         </button>
       </div>
 
