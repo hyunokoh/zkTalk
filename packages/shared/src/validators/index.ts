@@ -51,9 +51,11 @@ export const UpdateCategorySchema = z.object({
 export const CreateChannelSchema = z
   .object({
     name: z.string().min(1).max(100),
-    description: z.string().max(500).optional(),
+    // The CreateChannelModal sends `null` when the user leaves description
+    // empty and when no category is picked. Accept both shapes.
+    description: z.string().max(500).nullable().optional(),
     type: z.enum(['chat', 'announcement', 'forum', 'voice']).default('chat'),
-    categoryId: z.string().optional(),
+    categoryId: z.string().nullable().optional(),
     visibility: z.enum(['public', 'role_restricted']).default('public'),
     accessPolicy: z.enum(['public', 'members_only', 'invite_only', 'private']).optional(),
     slowModeSeconds: z.number().int().nonnegative().default(0),

@@ -790,9 +790,10 @@ export function MessageItem({
   const bubbleTone = isAuthor
     ? 'border-transparent bg-accent text-[color:var(--on-accent)] shadow-[var(--shadow-1)]'
     : 'border-line bg-bg-subtle text-fg shadow-[var(--shadow-1)]';
-  const replyTone = isAuthor
-    ? 'border-line bg-bg-hover text-[color:var(--on-accent)]/85'
-    : 'border-line bg-bg-hover text-fg-muted';
+  // Reply-preview pill always uses bg-bg-hover (light gray) regardless of
+  // who the message author is. Don't tint the text with `--on-accent`
+  // (which is white) on a gray pill — it renders invisible.
+  const replyTone = 'border-line bg-bg-hover text-fg-muted';
   const sideMeta = (
     <div className={`shrink-0 self-end pb-0.5 text-[11px] leading-tight text-fg-subtle ${isAuthor ? 'text-right' : 'text-left'}`}>
       {reactions.length === 0 && unreadCount != null && unreadCount > 0 ? <div>{Math.min(99, unreadCount)}</div> : null}
@@ -862,7 +863,7 @@ export function MessageItem({
         {/* Inline reply preview */}
         {parentMessage && (
           <div className={`mb-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs ${replyTone}`}>
-            <span className={`font-semibold ${isAuthor ? 'text-[color:var(--on-accent)]' : 'text-fg'}`}>
+            <span className="font-semibold text-fg">
               {parentAuthor?.displayName ?? 'Unknown'}
             </span>
             <span className="truncate">
