@@ -11,6 +11,7 @@ import { AttachmentPreview } from '@/components/AttachmentPreview/AttachmentPrev
 import { PollCard, type PollCardData } from '@/components/PollCard';
 import { ReportButton } from '@/components/ReportButton';
 import { api } from '@/lib/api';
+import { throttledTranslate } from '@/lib/translate-throttle';
 import {
   getAiRuntimePresentation,
   isAiRuntimeUsable,
@@ -340,19 +341,10 @@ export function MessageItem({
     setAutoTranslationError(false);
     setAutoTranslationRuntime(null);
 
-    void api<{
-      translatedText: string | null;
-      runtime: {
-        status: 'available' | 'mock' | 'disabled' | 'unavailable';
-        issue?: string;
-      };
-    }>('/api/translate', {
-      method: 'POST',
-      body: {
-        text: displayBody,
-        targetLang: targetLanguage,
-      },
-    })
+    void throttledTranslate(
+      { text: displayBody, targetLang: targetLanguage },
+      api,
+    )
       .then((res) => {
         if (cancelled) return;
         setAutoTranslationRuntime(res.runtime);
