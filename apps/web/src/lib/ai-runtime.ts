@@ -1,7 +1,14 @@
 import { api } from '@/lib/api';
 
 export type AIRuntimeStatus = 'configured' | 'mock' | 'disabled' | 'misconfigured';
-export type AIProvider = 'openrouter' | 'anthropic' | 'gemini' | 'mock' | 'unset';
+export type AIProvider =
+  | 'openrouter'
+  | 'anthropic'
+  | 'gemini'
+  | 'mock'
+  | 'agent-codex'
+  | 'agent-claude'
+  | 'unset';
 
 export interface AIRuntimeSummary {
   provider: AIProvider;

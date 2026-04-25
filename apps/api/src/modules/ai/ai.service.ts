@@ -106,7 +106,7 @@ export function getOpenRouterSiteUrl(): string | undefined {
   );
 }
 
-type AIProvider = 'openrouter' | 'anthropic' | 'gemini' | 'mock';
+type AIProvider = 'openrouter' | 'anthropic' | 'gemini' | 'mock' | 'agent-codex' | 'agent-claude';
 
 export interface AIRuntimeSummary {
   provider: AIProvider | 'unset';
@@ -196,6 +196,50 @@ export function getAIRuntimeSummary(): AIRuntimeSummary {
       ? { siteUrl: getOpenRouterSiteUrl() }
       : {}),
   };
+}
+
+/**
+ * Per-user runtime summary. When `useAgentForAi` is on AND the user has
+ * an online codex/claude device available, we report the runtime as the
+ * agent so the settings UI says "에이전트 codex로 동작 중" instead of
+ * "모의 AI". Otherwise falls back to the cloud summary unchanged.
+ */
+export async function getAIRuntimeSummaryForUser(
+  userId: string,
+  useAgentForAi: boolean,
+): Promise<AIRuntimeSummary> {
+  if (useAgentForAi) {
+    const { devices, agentsByDevice } = await agentsService.listDevices(userId);
+    const device = devices.find((d) => {
+      if (d.userId !== userId) return false;
+      if (d.state !== 'online' && d.state !== 'busy') return false;
+      const agents = agentsByDevice[d.id] ?? [];
+      return agents.some(
+        (a) => a.isEnabled && (a.agentSlug === 'codex' || a.agentSlug === 'claude'),
+      );
+    });
+
+    if (device) {
+      const hasCodex = (agentsByDevice[device.id] ?? []).some(
+        (a) => a.isEnabled && a.agentSlug === 'codex',
+      );
+      return {
+        provider: hasCodex ? 'agent-codex' : 'agent-claude',
+        status: 'configured',
+      };
+    }
+
+    // Setting is on but no eligible device is online right now — surface
+    // that state so the user knows why they're still seeing mock.
+    return {
+      provider: 'unset',
+      status: 'misconfigured',
+      issue:
+        'Use-agent-for-AI is on, but no online codex/claude device was found. Open the desktop app and sign in.',
+    };
+  }
+
+  return getAIRuntimeSummary();
 }
 
 function assertAIRuntimeAvailable() {

@@ -437,6 +437,10 @@ export default function AISettingsPage() {
         return 'Anthropic';
       case 'gemini':
         return 'Gemini';
+      case 'agent-codex':
+        return t('settings.aiPage.runtimeProviderAgentCodex');
+      case 'agent-claude':
+        return t('settings.aiPage.runtimeProviderAgentClaude');
       case 'mock':
         return t('settings.aiPage.runtimeProviderMock');
       case 'unset':

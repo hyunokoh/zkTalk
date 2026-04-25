@@ -529,6 +529,8 @@ const en = {
   'settings.aiPage.backToSettings': 'Back to settings',
   'settings.aiPage.runtimeProviderMock': 'Mock provider',
   'settings.aiPage.runtimeProviderUnset': 'Not configured',
+  'settings.aiPage.runtimeProviderAgentCodex': 'My agent · codex',
+  'settings.aiPage.runtimeProviderAgentClaude': 'My agent · claude',
   'settings.aiPage.toggle.assistant.title': 'AI assistant',
   'settings.aiPage.toggle.assistant.description':
     'Show the global AI assistant panel from the community rail sparkle button.',

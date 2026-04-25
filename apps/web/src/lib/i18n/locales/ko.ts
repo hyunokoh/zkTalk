@@ -529,6 +529,8 @@ const ko: Record<string, string> = {
   'settings.aiPage.backToSettings': '설정으로 돌아가기',
   'settings.aiPage.runtimeProviderMock': '모의 제공자',
   'settings.aiPage.runtimeProviderUnset': '설정되지 않음',
+  'settings.aiPage.runtimeProviderAgentCodex': '내 에이전트 · codex',
+  'settings.aiPage.runtimeProviderAgentClaude': '내 에이전트 · claude',
   'settings.aiPage.toggle.assistant.title': 'AI 어시스턴트',
   'settings.aiPage.toggle.assistant.description':
     '커뮤니티 레일의 반짝이 버튼에서 전역 AI 어시스턴트 패널을 열 수 있게 합니다.',

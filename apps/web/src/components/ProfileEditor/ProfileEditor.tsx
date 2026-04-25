@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, type ChangeEvent } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
@@ -48,6 +48,7 @@ interface ProfileEditorProps {
 
 export function ProfileEditor({ onClose }: ProfileEditorProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const fetchUser = useAuthStore((s) => s.fetchUser);
@@ -99,6 +100,15 @@ export function ProfileEditor({ onClose }: ProfileEditorProps) {
       setUser(updatedUser);
       setAvatarUrl(updatedUser.avatarUrl ?? '');
       void fetchUser();
+      // Other surfaces (friends list, DM list, channel members, inbox)
+      // render the user's avatar from React Query caches that don't watch
+      // the auth store. Invalidate them so the new picture shows up
+      // without a manual reload.
+      queryClient.invalidateQueries({ queryKey: ['friends'] });
+      queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['inbox-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['inbox'] });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
       setSuccess(true);
       setAvatarErrorMessage(null);
       setSaveErrorMessage(null);

@@ -20,8 +20,14 @@ const ChatBodySchema = z.object({
 export default async function aiRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate);
 
-  app.get('/api/ai/runtime', async (_request, reply) => {
-    return reply.send(aiService.getAIRuntimeSummary());
+  app.get('/api/ai/runtime', async (request, reply) => {
+    const userId = request.user.id;
+    const settings = await authService.getSettings(userId);
+    const summary = await aiService.getAIRuntimeSummaryForUser(
+      userId,
+      settings.useAgentForAi,
+    );
+    return reply.send(summary);
   });
 
   app.post(
