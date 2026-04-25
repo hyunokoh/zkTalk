@@ -6,6 +6,7 @@ import type { BusinessCard, CreateBusinessCardInput } from '@zktalk/shared';
 import {
   createBusinessCard,
   deleteBusinessCard,
+  extractBusinessCard,
   fetchBusinessCards,
   updateBusinessCard,
 } from '@/lib/api-business-cards';
@@ -93,6 +94,7 @@ export default function BusinessCardsPage() {
   const [form, setForm] = useState<CardFormState>(EMPTY_FORM);
   const [uploadingCardImage, setUploadingCardImage] = useState(false);
   const [uploadingPersonPhoto, setUploadingPersonPhoto] = useState(false);
+  const [extracting, setExtracting] = useState(false);
 
   const cardsQuery = useQuery({
     queryKey: ['business-cards', searchInput.trim()],
@@ -182,6 +184,33 @@ export default function BusinessCardsPage() {
     } finally {
       if (target === 'cardImageUrl') setUploadingCardImage(false);
       else setUploadingPersonPhoto(false);
+    }
+  };
+
+  const handleExtract = async () => {
+    if (!form.cardImageUrl || extracting) return;
+    setExtracting(true);
+    try {
+      const fields = await extractBusinessCard(form.cardImageUrl);
+      // Merge non-null extracted fields into the form. Existing user-typed
+      // values win — auto-extract only fills empty slots so we don't
+      // clobber a manual correction.
+      setForm((prev) => ({
+        ...prev,
+        displayName: prev.displayName || fields.displayName || '',
+        company: prev.company || fields.company || '',
+        jobTitle: prev.jobTitle || fields.jobTitle || '',
+        phone: prev.phone || fields.phone || '',
+        email: prev.email || fields.email || '',
+        address: prev.address || fields.address || '',
+        website: prev.website || fields.website || '',
+      }));
+      showToast({ tone: 'success', message: t('cards.toastExtracted') });
+    } catch (err) {
+      const message = err instanceof Error && err.message ? err.message : t('cards.toastExtractError');
+      showToast({ tone: 'error', message });
+    } finally {
+      setExtracting(false);
     }
   };
 
@@ -339,6 +368,28 @@ export default function BusinessCardsPage() {
                 testId="cards-person-photo"
               />
             </div>
+
+            {form.cardImageUrl ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-accent/30 bg-accent-soft/30 px-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-semibold text-fg">
+                    {t('cards.extractTitle')}
+                  </p>
+                  <p className="text-[11px] leading-4 text-fg-muted">
+                    {t('cards.extractHint')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  data-testid="cards-extract-button"
+                  onClick={() => void handleExtract()}
+                  disabled={extracting}
+                  className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-[12px] font-semibold text-[color:var(--on-accent)] hover:bg-accent-strong disabled:opacity-60"
+                >
+                  {extracting ? t('cards.extractRunning') : t('cards.extractButton')}
+                </button>
+              </div>
+            ) : null}
 
             <div className="grid gap-3 sm:grid-cols-2">
               {(['displayName', 'company', 'jobTitle', 'phone', 'email', 'website', 'address', 'notes'] as EditableField[]).map(

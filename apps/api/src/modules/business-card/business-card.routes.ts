@@ -1,10 +1,15 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { authenticate } from '../../middleware/auth.js';
 import {
   CreateBusinessCardSchema,
   UpdateBusinessCardSchema,
 } from '@zktalk/shared';
 import * as service from './business-card.service.js';
+
+const ExtractBodySchema = z.object({
+  imageUrl: z.string().url().max(2048),
+});
 
 export default async function businessCardRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate);
@@ -23,6 +28,15 @@ export default async function businessCardRoutes(app: FastifyInstance) {
     const body = CreateBusinessCardSchema.parse(request.body);
     const card = await service.createCard(request.user.id, body);
     return reply.status(201).send({ card });
+  });
+
+  // Read the fields off a card image with vision-capable AI. Returns null
+  // for any field the model can't see; the client merges those into the
+  // form so the user can correct or fill in by hand.
+  app.post('/api/business-cards/extract', async (request, reply) => {
+    const body = ExtractBodySchema.parse(request.body);
+    const fields = await service.extractBusinessCardFromImage(body.imageUrl);
+    return reply.send({ fields });
   });
 
   app.get<{ Params: { cardId: string } }>(

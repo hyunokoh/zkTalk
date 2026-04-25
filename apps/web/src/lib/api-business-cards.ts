@@ -41,3 +41,21 @@ export async function updateBusinessCard(
 export async function deleteBusinessCard(cardId: string): Promise<void> {
   await api(`/api/business-cards/${cardId}`, { method: 'DELETE' });
 }
+
+export interface ExtractedBusinessCardFields {
+  displayName: string | null;
+  company: string | null;
+  jobTitle: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  website: string | null;
+}
+
+export async function extractBusinessCard(imageUrl: string): Promise<ExtractedBusinessCardFields> {
+  const res = await api<{ fields: ExtractedBusinessCardFields }>(
+    '/api/business-cards/extract',
+    { method: 'POST', body: { imageUrl } },
+  );
+  return res.fields;
+}
