@@ -1329,6 +1329,28 @@ const en: Record<string, string> = {
   'backup.restoreFailedBody': 'Could not restore the backup file.',
   'backup.invalidFile':
     'Invalid backup file. The file may be corrupted or not a valid zkTalk backup.',
+
+  // Public API keys (settings → API keys)
+  'apiKeys.title': 'API keys',
+  'apiKeys.help':
+    'Create an API key for an external program — Cursor, Claude, your own scripts — to read and post messages on your account. Keys carry only the scopes you choose. Treat them like passwords.',
+  'apiKeys.newKey': 'Create a new key',
+  'apiKeys.nameLabel': 'Label',
+  'apiKeys.namePlaceholder': 'e.g. Cursor on my MacBook',
+  'apiKeys.scopesLabel': 'Scopes',
+  'apiKeys.create': 'Create key',
+  'apiKeys.creating': 'Creating…',
+  'apiKeys.activeKeys': 'Active keys',
+  'apiKeys.noKeys': 'No API keys yet.',
+  'apiKeys.lastUsed': 'Last used',
+  'apiKeys.revoke': 'Revoke',
+  'apiKeys.revokeConfirm': 'This is immediate. Programs using this key will start failing.',
+  'apiKeys.copy': 'Copy',
+  'apiKeys.dismiss': 'I have stored this key safely',
+  'apiKeys.issuedTitle': 'Copy this key now — it will not be shown again',
+  'apiKeys.issuedHint':
+    'The full secret is only visible once. After you close this banner, only the prefix is stored.',
+  'apiKeys.toastCopied': 'Key copied to clipboard',
 };
 
 export default en;

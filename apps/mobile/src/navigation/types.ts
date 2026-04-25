@@ -156,6 +156,7 @@ export type SettingsStackParamList = {
   MyQr: undefined;
   Backup: undefined;
   Bookmarks: undefined;
+  ApiKeys: undefined;
 };
 
 // Main Tab Navigator

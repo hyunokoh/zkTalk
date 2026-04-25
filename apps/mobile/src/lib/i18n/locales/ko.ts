@@ -1321,6 +1321,28 @@ const ko: Record<string, string> = {
   'backup.restoreFailedBody': '백업 파일을 복원하지 못했습니다.',
   'backup.invalidFile':
     '유효하지 않은 백업 파일입니다. 손상되었거나 zkTalk 백업 파일이 아닐 수 있어요.',
+
+  // 외부 프로그램용 API 키 (설정 → API 키)
+  'apiKeys.title': 'API 키',
+  'apiKeys.help':
+    'Cursor·Claude·자작 스크립트 같은 외부 프로그램이 내 계정으로 메시지를 읽고 쓸 수 있도록 키를 만드세요. 선택한 권한(scope)만 부여됩니다. 비밀번호처럼 다뤄 주세요.',
+  'apiKeys.newKey': '새 키 만들기',
+  'apiKeys.nameLabel': '이름',
+  'apiKeys.namePlaceholder': '예: 내 맥북의 Cursor',
+  'apiKeys.scopesLabel': '권한 (scopes)',
+  'apiKeys.create': '키 만들기',
+  'apiKeys.creating': '생성 중…',
+  'apiKeys.activeKeys': '활성 키',
+  'apiKeys.noKeys': '아직 발급된 API 키가 없습니다.',
+  'apiKeys.lastUsed': '최근 사용',
+  'apiKeys.revoke': '폐기',
+  'apiKeys.revokeConfirm': '즉시 적용됩니다. 이 키를 쓰는 프로그램은 곧바로 실패하기 시작해요.',
+  'apiKeys.copy': '복사',
+  'apiKeys.dismiss': '안전하게 보관했어요',
+  'apiKeys.issuedTitle': '지금 키를 복사하세요 — 다시 보여주지 않습니다',
+  'apiKeys.issuedHint':
+    '전체 비밀값은 이 화면에서만 볼 수 있어요. 닫으면 접두사만 남고, 모임톡도 다시 보여줄 수 없습니다.',
+  'apiKeys.toastCopied': '클립보드에 복사했어요',
 };
 
 export default ko;

@@ -1,0 +1,84 @@
+# 모임톡 mobile (Expo / React Native)
+
+Cross-platform iOS + Android client built with Expo SDK 55. Every screen
+in the web app has a mobile equivalent in `src/screens/`, including the
+new `ApiKeysScreen` for managing public-API keys (see
+[`docs/public-api.md`](../../docs/public-api.md)).
+
+## Prerequisites
+
+- Node 22 (matches the rest of the monorepo)
+- pnpm
+- For iOS: Xcode 15+ and the iOS Simulator
+- For Android: Android Studio with an emulator image
+
+## Run on a simulator
+
+From the repo root:
+
+```bash
+# Start the API + web stack the mobile app talks to
+pnpm turbo dev --filter @zktalk/api --filter @zktalk/web
+
+# In another shell, start Expo
+cd apps/mobile
+pnpm start            # opens the dev server; press i for iOS, a for Android
+```
+
+If `pnpm start` complains about dependency drift, run:
+
+```bash
+npx expo install --check
+```
+
+This patches Expo packages to the versions Expo SDK 55 expects.
+
+## Run on a physical device
+
+1. Install **Expo Go** on the phone.
+2. Make sure the phone is on the same Wi-Fi network as the dev machine.
+3. From `apps/mobile`, run `pnpm start --tunnel` and scan the QR code.
+
+The mobile API base URL is set in `app.config.js` → `extra.apiUrl`. For
+device testing it must be reachable from the phone — replace
+`http://localhost:4000` with your machine's LAN IP, e.g.
+`http://192.168.1.13:4000`.
+
+## Build for store distribution
+
+This needs Apple Developer ($99/yr) and a Google Play developer account
+($25 one-time). With Expo Application Services (EAS):
+
+```bash
+npx eas-cli@latest login
+npx eas-cli build --platform ios       # uploads to TestFlight
+npx eas-cli build --platform android   # uploads to Internal Testing
+```
+
+The first build for each platform will provision certificates
+interactively. For local builds without EAS:
+
+```bash
+pnpm ios     # requires Xcode + iOS provisioning profiles
+pnpm android # requires Android Studio + a configured keystore
+```
+
+## What's new
+
+- **`ApiKeysScreen`** — manage `/v1` API keys for external programs and
+  AI agents directly on the phone. Settings → API keys.
+- **Native contact import** — already wired via `expo-contacts` in
+  `src/lib/contacts.ts`. The mobile equivalent of the web's
+  vCard/CSV file picker, but better: it reads the OS address book
+  directly with permission.
+
+## Architecture
+
+- Navigation: `@react-navigation/native` (stack + bottom tabs)
+  - `MainTabs` → Home / DM / Friends / Discover / Settings
+  - Each tab is its own native stack (`HomeStack`, `DmStack`, etc.)
+- State: TanStack Query (server state) + Zustand (auth, i18n, etc.)
+- Storage: `expo-secure-store` for tokens, `AsyncStorage` for prefs
+- API layer: `src/lib/api.ts` — same shape as web's `apps/web/src/lib/api.ts`
+- i18n: same `(key, params) => string` contract as web, locale files in
+  `src/lib/i18n/locales/{en,ko}.ts`
