@@ -51,10 +51,26 @@ export function guessMimeTypeFromFileName(fileName: string): string {
   return MIME_MAP[getFileExtension(fileName)] ?? 'application/octet-stream';
 }
 
+// Browsers and OS share-sheets occasionally hand us non-canonical MIME
+// strings: `image/jpg` (should be image/jpeg), `IMAGE/JPEG` (uppercase),
+// `image/x-png` (legacy). Normalise so downstream consumers — including
+// the server's `mimeType.startsWith('image/')` check — never have to
+// deal with the variants.
+const MIME_ALIASES: Record<string, string> = {
+  'image/jpg': 'image/jpeg',
+  'image/pjpeg': 'image/jpeg',
+  'image/x-png': 'image/png',
+};
+
+function normalizeMimeType(raw: string): string {
+  const lower = raw.trim().toLowerCase();
+  return MIME_ALIASES[lower] ?? lower;
+}
+
 export function resolveFileMimeType(file: Pick<File, 'name' | 'type'>): string {
-  const normalizedType = file.type.trim().toLowerCase();
+  const normalizedType = normalizeMimeType(file.type ?? '');
   if (!GENERIC_MIME_TYPES.has(normalizedType)) {
-    return file.type;
+    return normalizedType;
   }
 
   return guessMimeTypeFromFileName(file.name);
