@@ -27,7 +27,7 @@
 const os = require('node:os');
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
-const { createCodexAgentDriver } = require('./agent-ai-driver');
+const { createCodexAgentDriver, createClaudeAgentDriver } = require('./agent-ai-driver');
 
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 30_000;
 const DEFAULT_DISPATCH_INTERVAL_MS = 3_000;
@@ -168,6 +168,7 @@ const BUILTIN_AGENT_DRIVERS = [
     },
   },
   createCodexAgentDriver(),
+  createClaudeAgentDriver(),
   {
     agentSlug: 'finder',
     displayName: 'Finder',

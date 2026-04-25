@@ -7,7 +7,9 @@ const {
   buildInstructionFromCommand,
   collectReadableCodexOutput,
   createCodexAgentDriver,
+  createClaudeAgentDriver,
   executeCodexInstruction,
+  executeClaudeInstruction,
 } = require('./agent-ai-driver');
 
 function createMockChild({ stdout = '', stderr = '', code = 0, error = null, delayMs = 0 } = {}) {
@@ -117,4 +119,68 @@ test('createCodexAgentDriver executes command args through injected spawn', asyn
   assert.equal(driver.agentSlug, 'codex');
   assert.equal(result.exitCode, 0);
   assert.match(result.stdoutTrunc, /driver result/);
+});
+
+test('executeClaudeInstruction invokes claude -p with the prompt', async () => {
+  let seenBin = null;
+  let seenArgs = null;
+  const result = await executeClaudeInstruction('summarize my Downloads folder', {
+    claudeBin: '/tmp/claude',
+    cwd: '/tmp',
+    spawnImpl(bin, args) {
+      seenBin = bin;
+      seenArgs = args;
+      return createMockChild({ stdout: 'Here is a summary…', code: 0 });
+    },
+  });
+
+  assert.equal(seenBin, '/tmp/claude');
+  assert.deepEqual(seenArgs, ['-p', 'summarize my Downloads folder']);
+  assert.equal(result.exitCode, 0);
+  assert.match(result.stdoutTrunc, /Here is a summary/);
+});
+
+test('executeClaudeInstruction reports missing claude binary clearly', async () => {
+  const enoent = new Error('spawn claude ENOENT');
+  enoent.code = 'ENOENT';
+  const result = await executeClaudeInstruction('work', {
+    spawnImpl() {
+      throw enoent;
+    },
+  });
+
+  assert.equal(result.exitCode, 127);
+  assert.match(result.stderrTrunc, /claude binary was not found/);
+});
+
+test('executeClaudeInstruction surfaces auth failures clearly', async () => {
+  const result = await executeClaudeInstruction('do thing', {
+    spawnImpl() {
+      return createMockChild({
+        stderr: 'Error: please run `claude login` to authenticate',
+        code: 1,
+      });
+    },
+  });
+
+  assert.equal(result.exitCode, 1);
+  assert.match(result.stderrTrunc, /please run `claude login`/);
+});
+
+test('createClaudeAgentDriver executes command args through injected spawn', async () => {
+  const driver = createClaudeAgentDriver({
+    spawnImpl() {
+      return createMockChild({ stdout: 'claude reply', code: 0 });
+    },
+  });
+  const result = await driver.execute({
+    agentSlug: 'claude',
+    args: '리스트 좀 정리해줘',
+    rawCommand: '/target.claude 리스트 좀 정리해줘',
+  });
+
+  assert.equal(driver.agentSlug, 'claude');
+  assert.equal(driver.displayName, 'Claude');
+  assert.equal(result.exitCode, 0);
+  assert.match(result.stdoutTrunc, /claude reply/);
 });

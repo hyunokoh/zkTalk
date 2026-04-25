@@ -14,7 +14,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { CommandExecution } from '@zktalk/shared';
 import {
@@ -29,6 +29,12 @@ import { AgentDeviceSidebar } from '@/components/AgentDeviceSidebar';
 import { DeviceStatusStrip } from '@/components/DeviceStatusStrip';
 import { CommandComposer } from '@/components/CommandComposer';
 import { CommandResultBubble } from '@/components/CommandResultBubble';
+import { DeviceNameEditor } from '@/components/DeviceNameEditor';
+import {
+  readDefaultDeviceId,
+  subscribeDefaultDeviceId,
+  writeDefaultDeviceId,
+} from '@/lib/default-device';
 
 function DiamondMark({ className = 'h-3 w-3' }: { className?: string }) {
   return (
@@ -69,6 +75,13 @@ export default function AgentDevicePage() {
     () => devicesQuery.data?.devices.find((d) => d.id === deviceId) ?? null,
     [devicesQuery.data?.devices, deviceId],
   );
+
+  const [defaultDeviceId, setDefaultDeviceId] = useState<string | null>(null);
+  useEffect(() => {
+    setDefaultDeviceId(readDefaultDeviceId());
+    return subscribeDefaultDeviceId((next) => setDefaultDeviceId(next));
+  }, []);
+  const isDefaultDevice = device ? defaultDeviceId === device.id : false;
 
   const agents = agentsQuery.data ?? devicesQuery.data?.agentsByDevice[deviceId] ?? [];
   const commands = commandsQuery.data ?? [];
@@ -122,11 +135,26 @@ export default function AgentDevicePage() {
         <header className="flex h-14 items-center gap-3 border-b border-line bg-bg px-6">
           <span className="agent-pill">
             <DiamondMark />
-            {device.name}
+            <DeviceNameEditor device={device} canEdit={canApprove} />
           </span>
           <span className="text-[13px] text-fg-muted">
             {t('agents.title')} · /{device.slug}
           </span>
+          {canApprove ? (
+            <button
+              type="button"
+              data-testid="agents-page-set-default"
+              onClick={() => writeDefaultDeviceId(isDefaultDevice ? null : device.id)}
+              aria-pressed={isDefaultDevice}
+              className={`ml-auto rounded-md px-3 py-1 text-[12px] font-semibold transition ${
+                isDefaultDevice
+                  ? 'bg-warning/20 text-warning hover:bg-warning/30'
+                  : 'border border-line text-fg-muted hover:bg-bg-hover hover:text-fg'
+              }`}
+            >
+              {isDefaultDevice ? '★ Default device' : 'Set as default'}
+            </button>
+          ) : null}
         </header>
 
         <DeviceStatusStrip device={device} agents={agents} />

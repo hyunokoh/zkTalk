@@ -8,6 +8,11 @@ import { STORAGE_KEYS, writeAiSetting } from '@/lib/ai-settings';
 import { useTranslation } from '@/lib/i18n';
 import { getDesktopLocalAgentLanguagePreset } from '@/lib/runtime-config';
 import {
+  isAgentBridgeAvailable,
+  readAgentBridgeStatus,
+  setAgentBridgeEnabled,
+} from '@/lib/agent-bridge-toggle';
+import {
   ensureDesktopLocalMachineBridgeOnline,
   readDesktopLocalMachineBridgeState,
   type DesktopLocalMachineBridgeSnapshot,
@@ -120,6 +125,137 @@ function getDesktopBridgeRecentUpdates(
   }
 
   return snapshot.lastCommand ? [snapshot.lastCommand] : [];
+}
+
+interface AgentBridgeState {
+  available: boolean;
+  enabled: boolean;
+  running: boolean;
+  deviceId: string | null;
+  agentCount: number;
+}
+
+function AgentBridgeToggleCard({
+  t,
+}: {
+  t: (key: string, params?: Record<string, string | number>) => string;
+}) {
+  const [state, setState] = useState<AgentBridgeState>({
+    available: false,
+    enabled: false,
+    running: false,
+    deviceId: null,
+    agentCount: 0,
+  });
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = async () => {
+    if (typeof window === 'undefined') return;
+    if (!isAgentBridgeAvailable()) {
+      setState((prev) => ({ ...prev, available: false }));
+      return;
+    }
+    const status = await readAgentBridgeStatus();
+    setState({ available: true, ...status });
+  };
+
+  useEffect(() => {
+    void refresh();
+    const interval = window.setInterval(() => {
+      void refresh();
+    }, 5_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const handleToggle = async () => {
+    if (isPending) return;
+    setError(null);
+    setIsPending(true);
+    try {
+      const next = !state.enabled;
+      await setAgentBridgeEnabled(next);
+      await refresh();
+    } catch {
+      setError(t('settings.aiPage.agentMode.error'));
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  if (!state.available) {
+    return (
+      <div className="rounded-2xl border border-line bg-bg-subtle/60 p-5">
+        <h2 className="text-lg font-semibold text-fg">
+          {t('settings.aiPage.agentMode.title')}
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-fg-muted">
+          {t('settings.aiPage.agentMode.unavailable')}
+        </p>
+      </div>
+    );
+  }
+
+  const statusKey = state.enabled
+    ? state.running
+      ? 'settings.aiPage.agentMode.statusRunning'
+      : 'settings.aiPage.agentMode.statusEnabledIdle'
+    : 'settings.aiPage.agentMode.statusDisabled';
+
+  return (
+    <div
+      data-testid="ai-settings-agent-mode"
+      className="rounded-2xl border border-line bg-bg-subtle/60 p-5"
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-fg">
+            {t('settings.aiPage.agentMode.title')}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-fg-muted">
+            {t('settings.aiPage.agentMode.description')}
+          </p>
+        </div>
+        <button
+          data-testid="ai-settings-agent-mode-toggle"
+          onClick={() => void handleToggle()}
+          disabled={isPending}
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg disabled:cursor-not-allowed disabled:opacity-60 ${
+            state.enabled ? 'bg-accent' : 'bg-bg-subtle'
+          }`}
+          role="switch"
+          aria-checked={state.enabled}
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+              state.enabled ? 'translate-x-5' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
+      <div
+        className="mt-4 flex flex-wrap items-center gap-3 text-xs text-fg-muted"
+        data-testid="ai-settings-agent-mode-status"
+      >
+        <span
+          className={`inline-flex h-2 w-2 rounded-full ${
+            state.running ? 'bg-success' : state.enabled ? 'bg-warning' : 'bg-fg-subtle'
+          }`}
+          aria-hidden="true"
+        />
+        <span>{t(statusKey)}</span>
+        {state.deviceId ? (
+          <span className="font-mono text-[11px] text-fg-subtle">{state.deviceId}</span>
+        ) : null}
+        {state.enabled ? (
+          <span>
+            {t('settings.aiPage.agentMode.agentCount', { count: state.agentCount })}
+          </span>
+        ) : null}
+      </div>
+      {error ? <div className="mt-2 text-sm text-danger">{error}</div> : null}
+    </div>
+  );
 }
 
 export default function AISettingsPage() {
@@ -383,6 +519,8 @@ export default function AISettingsPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <section className="space-y-4">
+          <AgentBridgeToggleCard t={t} />
+
           <ToggleCard
             title={t('settings.aiPage.toggle.assistant.title')}
             description={t('settings.aiPage.toggle.assistant.description')}

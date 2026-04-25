@@ -443,6 +443,16 @@ const ko: Record<string, string> = {
   'settings.aiPage.toggle.channelSummary.title': '채널 요약',
   'settings.aiPage.toggle.channelSummary.description':
     '작성창 동작 메뉴에서 현재 채널의 AI 요약을 사용할 수 있게 합니다.',
+  'settings.aiPage.agentMode.title': '에이전트 모드 (이 Mac에서 호스팅)',
+  'settings.aiPage.agentMode.description':
+    '켜면 이 데스크톱이 에이전트 디바이스로 등록되어 API에 하트비트를 보내고, 같은 계정으로 로그인된 다른 zkTalk 클라이언트에서 보낸 명령을 실행합니다. 끄면 앱을 종료하지 않고도 연결만 해제합니다.',
+  'settings.aiPage.agentMode.unavailable':
+    '에이전트 모드는 데스크톱 앱에서만 동작합니다. zkTalk Desktop을 열어 활성화하세요.',
+  'settings.aiPage.agentMode.statusRunning': '실행 중 · 하트비트 송신',
+  'settings.aiPage.agentMode.statusEnabledIdle': '활성화됨 · 로그인 대기',
+  'settings.aiPage.agentMode.statusDisabled': '비활성',
+  'settings.aiPage.agentMode.agentCount': '에이전트 {{count}}개',
+  'settings.aiPage.agentMode.error': '에이전트 모드를 변경하지 못했습니다. 데스크톱 로그를 확인하세요.',
   'settings.aiPage.translation.title': '자동 번역',
   'settings.aiPage.translation.description':
     '이 계정에 대해 수신 메시지를 어떻게 자동 표시할지 선택하세요. 자동 표시를 켜도 메시지별 수동 번역은 계속 사용할 수 있습니다.',

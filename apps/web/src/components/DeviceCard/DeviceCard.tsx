@@ -1,7 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import type { AgentDevice, DeviceAgent, DeviceState } from '@zktalk/shared';
+import {
+  readDefaultDeviceId,
+  subscribeDefaultDeviceId,
+  writeDefaultDeviceId,
+} from '@/lib/default-device';
 
 function stateLabel(state: DeviceState): string {
   switch (state) {
@@ -69,6 +75,13 @@ export function DeviceCard({ device, agents }: DeviceCardProps) {
     ? Math.round((heartbeat.ramUsed / heartbeat.ramTotal) * 100)
     : null;
 
+  const [defaultDeviceId, setDefaultDeviceId] = useState<string | null>(null);
+  useEffect(() => {
+    setDefaultDeviceId(readDefaultDeviceId());
+    return subscribeDefaultDeviceId((next) => setDefaultDeviceId(next));
+  }, []);
+  const isDefault = defaultDeviceId === device.id;
+
   return (
     <Link
       href={`/agents/${device.id}`}
@@ -91,11 +104,38 @@ export function DeviceCard({ device, agents }: DeviceCardProps) {
               className={`h-2 w-2 shrink-0 rounded-pill ${dotClassFor(device.state)}`}
               aria-hidden="true"
             />
+            {isDefault ? (
+              <span
+                data-testid={`device-card-default-${device.slug}`}
+                className="rounded-pill bg-warning/20 px-1.5 text-[10px] font-semibold uppercase tracking-wider text-warning"
+                title="Default device"
+              >
+                ★ default
+              </span>
+            ) : null}
           </div>
           <p className="truncate text-[12px] text-fg-muted">
             {stateLabel(device.state)} · {device.platform} · /{device.slug}
           </p>
         </div>
+        <button
+          type="button"
+          data-testid={`device-card-set-default-${device.slug}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            writeDefaultDeviceId(isDefault ? null : device.id);
+          }}
+          aria-label={isDefault ? 'Unpin as default device' : 'Pin as default device'}
+          aria-pressed={isDefault}
+          className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold transition ${
+            isDefault
+              ? 'bg-warning/20 text-warning hover:bg-warning/30'
+              : 'text-fg-subtle opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100'
+          }`}
+        >
+          {isDefault ? 'Pinned' : 'Pin'}
+        </button>
       </header>
 
       <div className="grid grid-cols-2 gap-3 text-[12px]">

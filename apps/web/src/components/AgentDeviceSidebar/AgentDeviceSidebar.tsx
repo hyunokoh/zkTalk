@@ -2,10 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchDevices, type ListDevicesResponse } from '@/lib/api-agents';
 import { useTranslation } from '@/lib/i18n';
 import type { AgentDevice, DeviceState } from '@zktalk/shared';
+import {
+  readDefaultDeviceId,
+  subscribeDefaultDeviceId,
+  writeDefaultDeviceId,
+} from '@/lib/default-device';
 
 function DiamondMark({ className = 'h-3 w-3' }: { className?: string }) {
   return (
@@ -49,6 +55,13 @@ export function AgentDeviceSidebar({ activeDeviceId }: { activeDeviceId?: string
     queryFn: fetchDevices,
     staleTime: 15_000,
   });
+
+  const [defaultDeviceId, setDefaultDeviceId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDefaultDeviceId(readDefaultDeviceId());
+    return subscribeDefaultDeviceId((next) => setDefaultDeviceId(next));
+  }, []);
 
   const devices = data?.devices ?? [];
   const dashboardIsActive = pathname === '/agents' && !activeDeviceId;
@@ -112,6 +125,10 @@ export function AgentDeviceSidebar({ activeDeviceId }: { activeDeviceId?: string
                 key={device.id}
                 device={device}
                 isActive={activeDeviceId === device.id}
+                isDefault={defaultDeviceId === device.id}
+                onToggleDefault={() =>
+                  writeDefaultDeviceId(defaultDeviceId === device.id ? null : device.id)
+                }
               />
             ))}
           </ul>
@@ -121,9 +138,38 @@ export function AgentDeviceSidebar({ activeDeviceId }: { activeDeviceId?: string
   );
 }
 
-function DeviceRow({ device, isActive }: { device: AgentDevice; isActive: boolean }) {
+function StarIcon({ filled, className = 'h-3.5 w-3.5' }: { filled: boolean; className?: string }) {
   return (
-    <li>
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth={1.6}
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 3l2.7 5.5 6.1.9-4.4 4.3 1 6-5.4-2.8-5.4 2.8 1-6L3.2 9.4l6.1-.9L12 3z"
+      />
+    </svg>
+  );
+}
+
+function DeviceRow({
+  device,
+  isActive,
+  isDefault,
+  onToggleDefault,
+}: {
+  device: AgentDevice;
+  isActive: boolean;
+  isDefault: boolean;
+  onToggleDefault: () => void;
+}) {
+  return (
+    <li className="group/device-row relative">
       <Link
         href={`/agents/${device.id}`}
         data-testid={`agents-sidebar-device-${device.slug}`}
@@ -150,6 +196,25 @@ function DeviceRow({ device, isActive }: { device: AgentDevice; isActive: boolea
           aria-hidden="true"
         />
       </Link>
+      <button
+        type="button"
+        data-testid={`agents-sidebar-default-${device.slug}`}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggleDefault();
+        }}
+        title={isDefault ? 'Default device' : 'Set as default'}
+        aria-label={isDefault ? 'Default device' : 'Set as default'}
+        aria-pressed={isDefault}
+        className={`absolute right-2 top-1.5 inline-flex h-5 w-5 items-center justify-center rounded transition ${
+          isDefault
+            ? 'text-warning opacity-100'
+            : 'text-fg-subtle opacity-0 hover:bg-bg-hover hover:text-fg group-hover/device-row:opacity-100'
+        }`}
+      >
+        <StarIcon filled={isDefault} />
+      </button>
     </li>
   );
 }

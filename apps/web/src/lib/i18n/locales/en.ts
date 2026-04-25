@@ -443,6 +443,16 @@ const en = {
   'settings.aiPage.toggle.channelSummary.title': 'Channel summary',
   'settings.aiPage.toggle.channelSummary.description':
     'Allow AI-generated summaries for the current channel from the composer actions menu.',
+  'settings.aiPage.agentMode.title': 'Agent mode (host this Mac)',
+  'settings.aiPage.agentMode.description':
+    'When on, this desktop registers as an Agent device, heartbeats to the API, and runs commands queued from any zkTalk client signed in to your account. Turn it off to disconnect without quitting the app.',
+  'settings.aiPage.agentMode.unavailable':
+    'Agent mode runs in the desktop app. Open zkTalk Desktop to enable it.',
+  'settings.aiPage.agentMode.statusRunning': 'Running and heartbeating',
+  'settings.aiPage.agentMode.statusEnabledIdle': 'Enabled, waiting for sign-in',
+  'settings.aiPage.agentMode.statusDisabled': 'Disabled',
+  'settings.aiPage.agentMode.agentCount': '{{count}} agents',
+  'settings.aiPage.agentMode.error': 'Could not update Agent mode. Check the desktop logs.',
   'settings.aiPage.translation.title': 'Automatic translation',
   'settings.aiPage.translation.description':
     'Choose how incoming messages auto-render for this account. Manual per-message translate remains available even when automatic rendering is on.',

@@ -43,9 +43,9 @@ function createMemoryStore() {
   };
 }
 
-test('BUILTIN_AGENT_DRIVERS ships the three canonical slugs', () => {
+test('BUILTIN_AGENT_DRIVERS ships the canonical slugs', () => {
   const slugs = BUILTIN_AGENT_DRIVERS.map((d) => d.agentSlug).sort();
-  assert.deepEqual(slugs, ['browser', 'codex', 'finder', 'shell']);
+  assert.deepEqual(slugs, ['browser', 'claude', 'codex', 'finder', 'shell']);
 });
 
 test('buildDefaultDeviceSlug produces a stable, slug-shaped value', () => {
