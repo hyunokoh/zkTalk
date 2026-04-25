@@ -44,24 +44,57 @@ device testing it must be reachable from the phone — replace
 `http://localhost:4000` with your machine's LAN IP, e.g.
 `http://192.168.1.13:4000`.
 
-## Build for store distribution
+## Build a native app locally
 
-This needs Apple Developer ($99/yr) and a Google Play developer account
-($25 one-time). With Expo Application Services (EAS):
+The native iOS and Android projects are pre-generated and committed
+under `ios/` and `android/`. To rebuild them from `app.json` after a
+config change:
+
+```bash
+npx expo prebuild --platform ios --no-install
+npx expo prebuild --platform android --no-install
+```
+
+### iOS
+
+```bash
+cd ios
+pod install                      # ~45 s — installs 102 CocoaPods
+open zkTalk.xcworkspace          # then ⌘R in Xcode
+```
+
+You can run on the iOS Simulator without an Apple Developer account.
+For a physical device or TestFlight you need the $99/yr program plus a
+provisioning profile.
+
+### Android
+
+You need **Android Studio** (or the standalone command-line SDK). After
+installing, set `ANDROID_HOME` and either install platform-tools via
+the SDK Manager or `sdkmanager "platforms;android-34" "build-tools;34.0.0"`.
+
+```bash
+export ANDROID_HOME=$HOME/Library/Android/sdk      # macOS default
+cd android
+./gradlew assembleDebug                            # → app/build/outputs/apk/debug/app-debug.apk
+./gradlew installDebug                             # installs into a running emulator
+```
+
+For Play Store distribution you additionally need a release keystore
+and a Google Play Console account ($25 one-time).
+
+### EAS (cloud builds, no local toolchain)
+
+If you'd rather not install Xcode / Android Studio, Expo Application
+Services builds the native app in the cloud:
 
 ```bash
 npx eas-cli@latest login
-npx eas-cli build --platform ios       # uploads to TestFlight
-npx eas-cli build --platform android   # uploads to Internal Testing
+npx eas-cli build --platform ios       # ~15 min, uploads to TestFlight
+npx eas-cli build --platform android   # ~10 min, uploads to Internal Testing
 ```
 
-The first build for each platform will provision certificates
-interactively. For local builds without EAS:
-
-```bash
-pnpm ios     # requires Xcode + iOS provisioning profiles
-pnpm android # requires Android Studio + a configured keystore
-```
+EAS still needs the same Apple / Google credentials at submission time.
 
 ## What's new
 

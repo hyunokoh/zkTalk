@@ -7,26 +7,23 @@ hands today" guide. For the long-form release process see
 ## TL;DR — local unsigned build (works today, no certs needed)
 
 ```bash
-# From repo root
-cd apps/web && pnpm build              # builds Next.js standalone
-cd ../desktop
-CSC_IDENTITY_AUTO_DISCOVERY=false npm run pack:mac
-# → apps/desktop/dist/mac-arm64/zkTalk.app
+# From apps/desktop. Make sure no other process is locking apps/web/.next
+# (stop the dev server first).
+CSC_IDENTITY_AUTO_DISCOVERY=false npm run dist:mac        # → ~112 MB .dmg
+CSC_IDENTITY_AUTO_DISCOVERY=false npm run dist:win:x64    # → ~93 MB .exe (NSIS)
+CSC_IDENTITY_AUTO_DISCOVERY=false npm run dist:win:arm64  # → ~98 MB .exe (NSIS)
 ```
 
-For an actual `.dmg` installer (still unsigned):
+Output:
 
-```bash
-CSC_IDENTITY_AUTO_DISCOVERY=false npm run dist:mac
-# → apps/desktop/dist/zkTalk-mac-arm64-<version>.dmg
+```
+apps/desktop/dist/zkTalk-mac-arm64-0.0.1.dmg
+apps/desktop/dist/zkTalk-win-x64-0.0.1.exe
+apps/desktop/dist/zkTalk-win-arm64-0.0.1.exe
 ```
 
-Windows targets (cross-build from macOS works for the unsigned case):
-
-```bash
-CSC_IDENTITY_AUTO_DISCOVERY=false npm run dist:win:x64
-CSC_IDENTITY_AUTO_DISCOVERY=false npm run dist:win:arm64
-```
+If you only want the unpacked `.app` (no installer wrapping), substitute
+`pack:mac` / `pack:win:x64` / `pack:win:arm64`.
 
 The unsigned build is fine for internal testing or sideloading. macOS
 will warn the user the first time they open it (right-click → Open to
