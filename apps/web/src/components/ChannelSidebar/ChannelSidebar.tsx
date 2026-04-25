@@ -17,6 +17,7 @@ import {
   setCollapsedSectionState,
 } from '@/lib/user-settings';
 import { VoiceRoomButton } from '@/components/VoiceRoom';
+import { EditChannelModal } from '@/components/EditChannelModal';
 import { usePresence } from '@/hooks/usePresence';
 import { useUnreadStore } from '@/stores/unread';
 import {
@@ -96,6 +97,8 @@ interface CategoryGroupProps {
   onLockedChannelClick?: (
     channel: Pick<Channel, 'id' | 'name' | 'lockedReason'>,
   ) => void;
+  /** Open the EditChannelModal for the row's channel. */
+  onEditChannel?: (channel: Channel) => void;
 }
 
 function CategoryGroup({
@@ -121,6 +124,7 @@ function CategoryGroup({
   recentVoiceChannelId,
   voiceParticipantCounts,
   onLockedChannelClick,
+  onEditChannel,
 }: CategoryGroupProps) {
   const { t } = useTranslation();
   const categoryKey = category?.id ?? 'uncategorized';
@@ -238,7 +242,7 @@ function CategoryGroup({
               linkLabelParts.push(t('voice.recentChannel'));
             }
 
-            const className = `rounded-md px-2 py-1.5 text-sm transition-colors ${
+            const className = `group/channel-row rounded-md px-2 py-1.5 text-sm transition-colors ${
               isLockedChannel
                 ? 'border border-warning/25 bg-warning/10 text-warning'
                 : isActive
@@ -256,7 +260,7 @@ function CategoryGroup({
               <>
                 <div className="flex items-center gap-1.5">
                   {isAdmin && canViewChannel && (
-                    <span className="shrink-0 cursor-grab text-xs tracking-tight text-fg-subtle">⋮⋮</span>
+                    <span className="shrink-0 cursor-grab text-xs tracking-tight text-fg-subtle opacity-0 transition-opacity group-hover/channel-row:opacity-100" aria-hidden="true">⋮⋮</span>
                   )}
                   {isLiveVoiceChannel ? (
                     <span className="h-2 w-2 shrink-0 rounded-pill bg-success" />
@@ -320,6 +324,27 @@ function CategoryGroup({
                   )}
                   {hasUnread && !hasMentions && (
                     <span className="ml-auto h-2 w-2 shrink-0 rounded-pill bg-accent" />
+                  )}
+                  {isAdmin && canViewChannel && !isLockedChannel && onEditChannel && (
+                    <button
+                      type="button"
+                      data-testid={`channel-sidebar-edit-${channel.id}`}
+                      onClick={(e) => {
+                        // Stop propagation so the row's <Link> doesn't navigate.
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onEditChannel(channel);
+                      }}
+                      title={t('channel.edit')}
+                      aria-label={t('channel.edit')}
+                      className="ml-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-fg-subtle opacity-0 transition hover:bg-bg-elevated hover:text-fg group-hover/channel-row:opacity-100"
+                    >
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+                        <circle cx="12" cy="5" r="1.4" />
+                        <circle cx="12" cy="12" r="1.4" />
+                        <circle cx="12" cy="19" r="1.4" />
+                      </svg>
+                    </button>
                   )}
                 </div>
                 {showSourceDmMatch && (
@@ -441,6 +466,9 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
   const [dragTargetKey, setDragTargetKey] = useState<string | null>(null);
   const [recentVoiceChannelId, setRecentVoiceChannelId] = useState<string | null>(null);
   const [lockedChannelPrompt, setLockedChannelPrompt] = useState<LockedChannelPromptState | null>(null);
+  // Open EditChannelModal (which already supports rename + delete) when an
+  // admin clicks the gear button next to a channel row.
+  const [editingChannel, setEditingChannel] = useState<Channel | null>(null);
   const { data: membersData } = useQuery({
     queryKey: ['community-members-count', community.id],
     queryFn: async () => {
@@ -960,6 +988,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
                   channel.lockedReason === 'invite_required' ? 'invite_required' : 'join_required',
               });
             }}
+            onEditChannel={(channel) => setEditingChannel(channel)}
           />
         )}
 
@@ -1013,6 +1042,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
                     channel.lockedReason === 'invite_required' ? 'invite_required' : 'join_required',
                 });
               }}
+              onEditChannel={(channel) => setEditingChannel(channel)}
             />
           );
         })}
@@ -1037,6 +1067,24 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
           </Link>
         </div>
       </div>
+
+      {editingChannel && (
+        <EditChannelModal
+          channel={editingChannel}
+          communityId={community.id}
+          onClose={() => {
+            const closed = editingChannel;
+            setEditingChannel(null);
+            queryClient.invalidateQueries({ queryKey: ['community-channels', community.id] });
+            // If the modal closed because the channel was deleted, the
+            // user is left sitting on a 404 page. Send them back to the
+            // community root.
+            if (closed && activeChannelId === closed.id) {
+              router.push(`/communities/${community.slug}`);
+            }
+          }}
+        />
+      )}
     </aside>
   );
 }

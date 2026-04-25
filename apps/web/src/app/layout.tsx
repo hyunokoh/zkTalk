@@ -3,7 +3,10 @@ import { Providers } from '@/lib/providers';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'zkTalk',
+  // Korean-first brand. English locales still see zkTalk as the wordmark
+  // in the i18n strings, but the OS-level title (browser tab, desktop
+  // window) shows the localised name to match the actual product name.
+  title: '모임톡',
   description: 'Community messenger for everyone',
 };
 

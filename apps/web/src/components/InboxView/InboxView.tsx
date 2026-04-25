@@ -7,7 +7,7 @@ import { LoadingState } from '@/components/LoadingState';
 import type { InboxItemData } from '@/components/InboxItem';
 import { useTranslation } from '@/lib/i18n';
 
-type TabValue = 'all' | 'mentions' | 'threads';
+type TabValue = 'unread' | 'all' | 'mentions' | 'threads';
 
 interface InboxViewProps {
   items: InboxItemData[];
@@ -17,15 +17,20 @@ interface InboxViewProps {
 
 export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<TabValue>('all');
+  // Default to "Unread" so the page opens on the thing the user actually
+  // came here for — every channel, thread, and DM message they haven't
+  // seen yet, in one place.
+  const [activeTab, setActiveTab] = useState<TabValue>('unread');
 
   const TABS: { label: string; value: TabValue }[] = [
+    { label: t('inbox.unread'), value: 'unread' },
     { label: t('inbox.all'), value: 'all' },
     { label: t('inbox.mentions'), value: 'mentions' },
     { label: t('inbox.threads'), value: 'threads' },
   ];
 
   const filtered = items.filter((item) => {
+    if (activeTab === 'unread') return !item.isRead;
     if (activeTab === 'all') return true;
     if (activeTab === 'mentions') return item.type === 'mention';
     if (activeTab === 'threads') return item.type === 'thread_reply';
@@ -37,6 +42,7 @@ export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
       <div className="flex border-b border-line">
         {TABS.map((tab) => {
           const count = items.filter((i) => {
+            if (tab.value === 'unread') return !i.isRead;
             if (tab.value === 'all') return !i.isRead;
             if (tab.value === 'mentions') return i.type === 'mention' && !i.isRead;
             return i.type === 'thread_reply' && !i.isRead;
@@ -72,11 +78,13 @@ export function InboxView({ items, isLoading, onMarkRead }: InboxViewProps) {
         ) : filtered.length === 0 ? (
           <EmptyState
             title={
-              activeTab === 'all'
-                ? t('inbox.empty')
-                : activeTab === 'mentions'
-                  ? t('inbox.noMentions')
-                  : t('inbox.noThreadReplies')
+              activeTab === 'unread'
+                ? t('inbox.noUnread')
+                : activeTab === 'all'
+                  ? t('inbox.empty')
+                  : activeTab === 'mentions'
+                    ? t('inbox.noMentions')
+                    : t('inbox.noThreadReplies')
             }
             className="m-4"
           />

@@ -14,6 +14,7 @@ import {
   getCachedCommunityOrder,
 } from '@/lib/user-settings';
 import { UserAvatar } from '@/components/UserAvatar';
+import { ProfileEditor } from '@/components/ProfileEditor';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 // Muted pastel palette — used as a subtle differentiator between community
@@ -184,6 +185,10 @@ export function CommunityRail({
   const { fetchUnread, hasCommunityUnread } = useUnreadStore();
   const [avatarVersion, setAvatarVersion] = useState('');
   const [communityOrder, setCommunityOrderState] = useState<string[]>([]);
+  // Clicking the avatar at the top of the rail opens the profile editor
+  // inline as a modal — keeps the avatar's intent ("edit my profile")
+  // distinct from the footer gear ("open the full settings page").
+  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
 
   // Fetch unread counts for all communities
   useEffect(() => {
@@ -299,8 +304,9 @@ export function CommunityRail({
       <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-xl bg-bg-subtle text-[10px] font-semibold tracking-[0.28em] text-fg-muted">
         ZT
       </div>
-      <Link
-        href="/settings#profile-edit"
+      <button
+        type="button"
+        onClick={() => setProfileEditorOpen(true)}
         title={currentUser?.displayName ?? t('profile.edit')}
         aria-label={t('profile.edit')}
         data-testid="community-rail-profile-link"
@@ -313,7 +319,7 @@ export function CommunityRail({
           size="md"
         />
         <span className="sr-only">{t('profile.edit')}</span>
-      </Link>
+      </button>
 
       {onOpenAI && (
         <button
@@ -430,6 +436,9 @@ export function CommunityRail({
       <div className="mt-1 flex w-full items-center justify-center">
         <ThemeToggle />
       </div>
+      {profileEditorOpen ? (
+        <ProfileEditor onClose={() => setProfileEditorOpen(false)} />
+      ) : null}
     </nav>
   );
 }

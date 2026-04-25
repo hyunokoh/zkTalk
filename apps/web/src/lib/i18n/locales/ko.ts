@@ -25,7 +25,7 @@ const ko: Record<string, string> = {
     '모바일에서 복사한 프로필 공유 문장을 desktop에서 바로 열어 친구 추가 화면으로 이어갈 수 있어요.',
 
   // Auth
-  'auth.welcome': 'zkTalk에 오신 것을 환영합니다',
+  'auth.welcome': '모임톡에 오신 것을 환영합니다',
   'auth.emailPrompt': '이메일을 입력하여 로그인하거나 계정을 만드세요',
   'auth.email': '이메일',
   'auth.emailPlaceholder': 'you@example.com',
@@ -216,10 +216,12 @@ const ko: Record<string, string> = {
   'inbox.listSubtitle': '멘션과 스레드 답글을 한곳에서 빠르게 정리하세요.',
   'inbox.markAllRead': '모두 읽음',
   'inbox.markingAllRead': '읽는 중...',
+  'inbox.unread': '안 읽음',
   'inbox.all': '전체',
   'inbox.mentions': '멘션',
   'inbox.threads': '스레드',
   'inbox.empty': '수신함이 비어 있습니다',
+  'inbox.noUnread': '모두 읽었습니다',
   'inbox.noMentions': '아직 멘션이 없습니다',
   'inbox.noThreadReplies': '아직 스레드 답글이 없습니다',
   'inbox.mentionedYou': '님이 회원님을 멘션했습니다:',
@@ -240,7 +242,7 @@ const ko: Record<string, string> = {
   'desktopHarness.destinationUnavailable':
     '대상 화면을 열 수 없습니다. 이미 제거되었을 수 있습니다.',
   'desktopHarness.connectionError':
-    '지금은 zkTalk에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+    '지금은 모임톡에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.',
   'desktopHarness.requestFailed': '데스크톱 전달을 완료하지 못했습니다. 다시 시도해 주세요.',
   'desktopHarness.modeLabel': '모드',
   'desktopHarness.destinationLabel': '대상',
@@ -277,10 +279,10 @@ const ko: Record<string, string> = {
   'agents.subtitle': '연결한 컴퓨터에서 실행 중인 AI 에이전트들이 여기 모입니다.',
   'agents.empty.title': '아직 연결된 디바이스가 없습니다',
   'agents.empty.body':
-    '다른 컴퓨터에 zkTalk을 설치하고 같은 계정으로 로그인하세요. 각 디바이스는 이 화면의 대화 상대가 되고, 여기에서 명령을 보낼 수 있습니다.',
+    '다른 컴퓨터에 모임톡을 설치하고 같은 계정으로 로그인하세요. 각 디바이스는 이 화면의 대화 상대가 되고, 여기에서 명령을 보낼 수 있습니다.',
   'agents.empty.cta': '디바이스 연결 방법',
   'agents.empty.sidebar':
-    '아직 연결된 디바이스가 없습니다. 다른 컴퓨터에 zkTalk을 설치하면 여기에 표시됩니다.',
+    '아직 연결된 디바이스가 없습니다. 다른 컴퓨터에 모임톡을 설치하면 여기에 표시됩니다.',
   'agents.comingSoonBadge': '9B에서 공개',
 
   // 에이전트 디바이스 UI (사이드바, 카드, 상태 바, 페이지, 컴포저, 결과 버블)
@@ -487,7 +489,7 @@ const ko: Record<string, string> = {
     '브라우저와 packaged desktop 알림은 운영체제와 브라우저 권한 상태에 따라 달라집니다. 실제 토글은 시스템에 맡기되, 여기서 언제나 찾을 수 있게 유지합니다.',
   'settings.languageSectionTitle': '언어',
   'settings.languageSectionBody':
-    'web과 desktop에서 zkTalk 설정과 메뉴를 한국어 또는 영어로 표시하도록 선택하세요.',
+    'web과 desktop에서 모임톡 설정과 메뉴를 한국어 또는 영어로 표시하도록 선택하세요.',
   'settings.aiTranslationSectionTitle': 'AI와 번역',
   'settings.aiTranslationSectionBody':
     '공유된 AI 설정 화면에서 자동 번역 기본값, 선택 메시지 AI 동작, 런타임 상태 안내를 함께 관리하세요.',
@@ -542,9 +544,9 @@ const ko: Record<string, string> = {
     '작성창 동작 메뉴에서 현재 채널의 AI 요약을 사용할 수 있게 합니다.',
   'settings.aiPage.agentMode.title': '에이전트 모드 (이 Mac에서 호스팅)',
   'settings.aiPage.agentMode.description':
-    '켜면 이 데스크톱이 에이전트 디바이스로 등록되어 API에 하트비트를 보내고, 같은 계정으로 로그인된 다른 zkTalk 클라이언트에서 보낸 명령을 실행합니다. 끄면 앱을 종료하지 않고도 연결만 해제합니다.',
+    '켜면 이 데스크톱이 에이전트 디바이스로 등록되어 API에 하트비트를 보내고, 같은 계정으로 로그인된 다른 모임톡 클라이언트에서 보낸 명령을 실행합니다. 끄면 앱을 종료하지 않고도 연결만 해제합니다.',
   'settings.aiPage.agentMode.unavailable':
-    '에이전트 모드는 데스크톱 앱에서만 동작합니다. zkTalk Desktop을 열어 활성화하세요.',
+    '에이전트 모드는 데스크톱 앱에서만 동작합니다. 모임톡 데스크톱을 열어 활성화하세요.',
   'settings.aiPage.agentMode.statusRunning': '실행 중 · 하트비트 송신',
   'settings.aiPage.agentMode.statusEnabledIdle': '활성화됨 · 로그인 대기',
   'settings.aiPage.agentMode.statusDisabled': '비활성',
@@ -1066,7 +1068,7 @@ const ko: Record<string, string> = {
   'friend.sharedProfileInputHelp':
     '모바일에서 공유한 문장이나 `zktalk://user/...` 링크를 그대로 붙여넣으면 됩니다.',
   'friend.sharedProfileInputPlaceholder':
-    '예: 홍길동님의 zkTalk 프로필을 추가해 보세요: zktalk://user/...',
+    '예: 홍길동님의 모임톡 프로필을 추가해 보세요: zktalk://user/...',
   'friend.sharedProfilePaste': '클립보드 붙여넣기',
   'friend.sharedProfileOpen': '프로필 열기',
   'friend.sharedProfileParseError':
@@ -1129,7 +1131,7 @@ const ko: Record<string, string> = {
   // Contacts
   'contacts.sync': '주소록에서 친구 찾기',
   'contacts.syncing': '검색 중...',
-  'contacts.found': 'zkTalk에서 {{count}}명의 친구를 찾았습니다',
+  'contacts.found': '모임톡에서 {{count}}명의 친구를 찾았습니다',
   'contacts.noResults': '주소록에서 친구를 찾지 못했습니다',
   'contacts.addAll': '모두 추가',
 
@@ -1171,7 +1173,7 @@ const ko: Record<string, string> = {
   'qr.shareLink': '프로필 링크 공유',
   'qr.copyShareText': '공유 문장 복사',
   'qr.shareTextTemplate':
-    '{{name}}님의 zkTalk 프로필을 추가해 보세요: {{link}}\n\ndesktop 앱에서는 친구 메뉴에 이 문장이나 링크를 그대로 붙여넣으면 됩니다.',
+    '{{name}}님의 모임톡 프로필을 추가해 보세요: {{link}}\n\ndesktop 앱에서는 친구 메뉴에 이 문장이나 링크를 그대로 붙여넣으면 됩니다.',
   'qr.scanDesc': '다른 사람이 이 코드를 스캔하여 친구 요청을 보낼 수 있습니다',
   'qr.shareTextHint':
     'mobile과 같은 공유 문장을 복사해 desktop 친구 화면에 바로 붙여넣을 수 있어요.',
@@ -1188,7 +1190,7 @@ const ko: Record<string, string> = {
     '인터넷 연결이 복구되면 메시지와 실시간 업데이트가 자동으로 다시 동작합니다.',
   'connection.reconnectingTitle': '다시 연결하는 중…',
   'connection.reconnectingBody':
-    'zkTalk가 실시간 연결을 복구하고 있습니다. 잠시 후 새 업데이트가 다시 표시됩니다.',
+    '모임톡이 실시간 연결을 복구하고 있습니다. 잠시 후 새 업데이트가 다시 표시됩니다.',
 
   // P2P File Transfer
   'p2p.shareFile': '파일 공유 (P2P)',
