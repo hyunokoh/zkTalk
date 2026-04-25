@@ -246,6 +246,7 @@ test('dispatchOne claims a queued command, runs it, and submits the result', asy
   });
 
   await bridge.dispatchOne();
+  await bridge.awaitIdle();
 
   const urls = fetchImpl.calls.map((c) => c.url);
   assert.ok(urls.some((u) => u.includes('/api/commands?deviceId=dev-1')));
@@ -318,6 +319,7 @@ test('dispatchOne can route a queued codex command to the local AI driver', asyn
   });
 
   await bridge.dispatchOne();
+  await bridge.awaitIdle();
 
   const resultCall = fetchImpl.calls.find((c) =>
     c.url.endsWith('/api/commands/cmd-ai-1/result'),

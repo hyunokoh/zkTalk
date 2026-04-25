@@ -30,8 +30,17 @@ const { spawn } = require('node:child_process');
 const { createCodexAgentDriver, createClaudeAgentDriver } = require('./agent-ai-driver');
 
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 30_000;
-const DEFAULT_DISPATCH_INTERVAL_MS = 3_000;
+// 1s instead of 3s — the cost is one HTTP poll against the local API,
+// while the win is up to 2s shaved off cold-start latency for every
+// queued AI command. Translate / channel-summary feel snappier.
+const DEFAULT_DISPATCH_INTERVAL_MS = 1_000;
 const DEFAULT_COMMAND_TIMEOUT_MS = 30_000;
+// How many AI commands can run on this machine at the same time. Bumping
+// this from 1 → 3 lets fan-out workloads (e.g. auto-translate calling
+// /api/translate per visible message) overlap their codex round-trips
+// instead of serializing them, which cuts perceived latency from N×8s
+// down to ~max(8s, 8s).
+const DEFAULT_MAX_CONCURRENT_COMMANDS = 3;
 const MAX_OUTPUT_CHARS = 12_000;
 const DEFAULT_PLATFORM = (() => {
   const p = process.platform;
@@ -277,6 +286,7 @@ function createAgentDeviceBridge(options = {}) {
     heartbeatIntervalMs = DEFAULT_HEARTBEAT_INTERVAL_MS,
     dispatchIntervalMs = DEFAULT_DISPATCH_INTERVAL_MS,
     commandTimeoutMs = DEFAULT_COMMAND_TIMEOUT_MS,
+    maxConcurrentCommands = DEFAULT_MAX_CONCURRENT_COMMANDS,
     codexBin = null,
     codexCwd = null,
     fetchImpl = globalThis.fetch,
@@ -460,55 +470,79 @@ function createAgentDeviceBridge(options = {}) {
     }
   }
 
+  // Track active fire-and-forget runs so tests (and graceful shutdown)
+  // can await everything that's still in flight.
+  const inFlight = new Set();
+
+  async function runOneClaimed(claimed) {
+    runningCount += 1;
+    try {
+      logger('info', 'agent-device-bridge: running command', {
+        id: claimed.id,
+        agent: claimed.agentSlug,
+      });
+      const result = await runCommand(claimed);
+      await request(
+        `/api/commands/${encodeURIComponent(claimed.id)}/result`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            exitCode: result.exitCode,
+            stdoutTrunc: result.stdoutTrunc ?? null,
+            stderrTrunc: result.stderrTrunc ?? null,
+          }),
+        },
+      );
+      logger('info', 'agent-device-bridge: command finished', {
+        id: claimed.id,
+        exitCode: result.exitCode,
+      });
+    } catch (err) {
+      logger('warn', 'agent-device-bridge: command run failed', {
+        id: claimed.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      runningCount = Math.max(0, runningCount - 1);
+    }
+  }
+
   async function dispatchOne() {
+    // Tick guard: only one *fetch+claim* pass at a time so we don't
+    // double-claim the same row. Actual command execution still runs
+    // concurrently up to maxConcurrentCommands.
     if (busy) return;
     busy = true;
     try {
+      const slotsAvailable = Math.max(0, maxConcurrentCommands - runningCount);
+      if (slotsAvailable === 0) return;
+
       const actionable = await fetchActionable();
       if (actionable.length === 0) return;
-      const command = actionable[0];
 
-      let claimed;
-      try {
-        const res = await request(
-          `/api/commands/${encodeURIComponent(command.id)}/claim`,
-          { method: 'POST', body: JSON.stringify({}) },
-        );
-        claimed = res?.command ?? command;
-      } catch (err) {
-        // Another process may have claimed it, or status changed. Skip and retry
-        // on next tick.
-        logger('debug', 'agent-device-bridge: claim failed', {
-          commandId: command.id,
-          error: err instanceof Error ? err.message : String(err),
-        });
-        return;
-      }
-
-      runningCount += 1;
-      try {
-        logger('info', 'agent-device-bridge: running command', {
-          id: claimed.id,
-          agent: claimed.agentSlug,
-        });
-        const result = await runCommand(claimed);
-        await request(
-          `/api/commands/${encodeURIComponent(claimed.id)}/result`,
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              exitCode: result.exitCode,
-              stdoutTrunc: result.stdoutTrunc ?? null,
-              stderrTrunc: result.stderrTrunc ?? null,
-            }),
-          },
-        );
-        logger('info', 'agent-device-bridge: command finished', {
-          id: claimed.id,
-          exitCode: result.exitCode,
-        });
-      } finally {
-        runningCount = Math.max(0, runningCount - 1);
+      const toClaim = actionable.slice(0, slotsAvailable);
+      for (const command of toClaim) {
+        let claimed;
+        try {
+          const res = await request(
+            `/api/commands/${encodeURIComponent(command.id)}/claim`,
+            { method: 'POST', body: JSON.stringify({}) },
+          );
+          claimed = res?.command ?? command;
+        } catch (err) {
+          logger('debug', 'agent-device-bridge: claim failed', {
+            commandId: command.id,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          continue;
+        }
+        // Fire-and-forget: each claimed command runs in its own async
+        // chain so the next tick's claim+dispatch isn't blocked while a
+        // codex round-trip is in flight. We still track the promise in
+        // `inFlight` so awaitIdle() and graceful shutdown can join.
+        const promise = runOneClaimed(claimed).catch(() => {});
+        inFlight.add(promise);
+        promise.finally(() => inFlight.delete(promise));
       }
     } catch (err) {
       logger('warn', 'agent-device-bridge: dispatch error', {
@@ -556,11 +590,21 @@ function createAgentDeviceBridge(options = {}) {
     }
   }
 
+  // Wait for any fire-and-forget command runs queued by dispatchOne to
+  // settle. Used by tests that drive dispatchOne directly and by
+  // graceful shutdown so we don't leave stranded codex processes.
+  async function awaitIdle() {
+    while (inFlight.size > 0) {
+      await Promise.allSettled(Array.from(inFlight));
+    }
+  }
+
   return {
     start,
     stop,
     sendHeartbeat,
     dispatchOne,
+    awaitIdle,
     getDeviceId() {
       return cachedDeviceId;
     },
