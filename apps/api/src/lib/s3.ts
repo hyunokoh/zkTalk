@@ -1,8 +1,10 @@
 import {
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
+  CreateBucketCommand,
   CreateMultipartUploadCommand,
   GetObjectCommand,
+  HeadBucketCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -165,4 +167,50 @@ export function getStorageBucket() {
 
 export function getPresignTtlSeconds() {
   return S3_PRESIGN_TTL_SECONDS;
+}
+
+export async function putStoredObject(options: {
+  bucket?: string;
+  objectKey: string;
+  body: Buffer | Uint8Array;
+  contentType?: string;
+}) {
+  return s3.send(
+    new PutObjectCommand({
+      Bucket: options.bucket ?? S3_BUCKET,
+      Key: options.objectKey,
+      Body: options.body,
+      ContentType: options.contentType,
+    }),
+  );
+}
+
+/**
+ * Idempotent — creates the configured bucket if it does not already exist.
+ * Called at API startup so a fresh dev environment doesn't have to run
+ * `mc mb` manually before the first upload. Only logs and never throws,
+ * since the rest of the API can still boot if the storage check fails.
+ */
+export async function ensureStorageBucketExists(
+  logger: { info: (msg: string) => void; warn: (msg: string) => void },
+): Promise<void> {
+  try {
+    await s3.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
+    return;
+  } catch {
+    // Either the bucket doesn't exist or we lack permission to head it.
+    // Try to create it; if that also fails the upstream upload calls will
+    // surface the actual error.
+  }
+
+  try {
+    await s3.send(new CreateBucketCommand({ Bucket: S3_BUCKET }));
+    logger.info(`[s3] created bucket "${S3_BUCKET}"`);
+  } catch (error) {
+    logger.warn(
+      `[s3] could not create bucket "${S3_BUCKET}": ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }

@@ -23,6 +23,7 @@ import {
   summarizeConnectionTarget,
 } from './lib/server-log.js';
 import { db } from './lib/db/index.js';
+import { ensureStorageBucketExists } from './lib/s3.js';
 import { redis } from './lib/redis.js';
 import { sql } from 'drizzle-orm';
 import authRoutes from './modules/auth/auth.routes.js';
@@ -298,6 +299,10 @@ const s3Endpoint = getS3Endpoint();
 const aiRuntimeSummary = getAIRuntimeSummary();
 
 try {
+  await ensureStorageBucketExists({
+    info: (msg) => app.log.info(msg),
+    warn: (msg) => app.log.warn(msg),
+  });
   await app.listen({ port, host });
   app.log.info(
     buildStartupLogContext({

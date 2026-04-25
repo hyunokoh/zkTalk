@@ -21,6 +21,14 @@ const nextConfig: NextConfig = {
         pathname: '/api/upload/**',
       },
     ],
+    // Same-origin proxy that rewrites `/api/upload/...` URLs from the API
+    // onto a Next route (so cookies + range requests work). Without this
+    // entry the Next image optimizer 400s every avatar/community icon.
+    localPatterns: [
+      {
+        pathname: '/api/public-assets/**',
+      },
+    ],
   },
 };
 

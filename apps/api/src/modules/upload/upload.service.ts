@@ -16,6 +16,7 @@ import {
   getStorageBucket,
   getStoredObjectStream,
   headStoredObject,
+  putStoredObject,
 } from '../../lib/s3.js';
 import { checkPermission } from '../channel/channel.service.js';
 import * as communityRepo from '../community/community.repository.js';
@@ -428,6 +429,17 @@ export async function saveUploadedFile(
     const [, communityId, channelId] = keyParts;
     await checkPermission(userId, communityId, channelId, 'upload_attachment');
   }
+
+  // Persist to object storage so the matching `getStoredObjectStream` reads
+  // (used by getAssetFile / getAttachmentFile) can find the bytes. The local
+  // filesystem branch is preserved as a defensive copy in dev — handy when
+  // someone is poking around with `ls uploads/` — but the API only relies
+  // on S3 for retrieval.
+  await putStoredObject({
+    objectKey: storageKey,
+    body: fileBuffer,
+    contentType: inferAssetMimeType(storageKey),
+  });
 
   const filePath = resolveStoragePath(storageKey);
   await mkdir(path.dirname(filePath), { recursive: true });
