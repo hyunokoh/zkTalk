@@ -732,3 +732,40 @@ export const commandExecutions = pgTable('command_executions', {
   index('command_executions_status_idx').on(t.status),
   index('command_executions_queued_at_idx').on(t.queuedAt),
 ]);
+
+/**
+ * Business cards — a personal address book that the user builds by
+ * scanning paper cards or typing them in. Lives next to the messenger
+ * surface so a contact picked up at an event becomes searchable next
+ * to the people you already chat with.
+ *
+ * Optional fields are filled in incrementally:
+ *   - `cardImageUrl` is the photo of the card itself (the "scan").
+ *   - `personPhotoUrl` is the holder's face photo, useful for recall.
+ *   - `linkedUserId` connects the card to a zkTalk user once you find
+ *     them on the platform (search by phone/email).
+ *   - `extractedAt` is set when the OCR pipeline (future) populates the
+ *     structured fields automatically; null means hand-entered.
+ */
+export const businessCards = pgTable('business_cards', {
+  id: text('id').primaryKey(),
+  ownerUserId: text('owner_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  displayName: text('display_name').notNull(),
+  company: text('company'),
+  jobTitle: text('job_title'),
+  phone: text('phone'),
+  email: text('email'),
+  address: text('address'),
+  website: text('website'),
+  notes: text('notes'),
+  cardImageUrl: text('card_image_url'),
+  personPhotoUrl: text('person_photo_url'),
+  linkedUserId: text('linked_user_id').references(() => users.id, { onDelete: 'set null' }),
+  extractedAt: timestamp('extracted_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('business_cards_owner_idx').on(t.ownerUserId),
+  index('business_cards_owner_name_idx').on(t.ownerUserId, t.displayName),
+  index('business_cards_owner_company_idx').on(t.ownerUserId, t.company),
+]);

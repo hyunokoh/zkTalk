@@ -510,3 +510,39 @@ export interface QueueCommandInput {
   dmConversationId?: string | null;
   agentThreadId?: string | null;
 }
+
+// ── Business cards ────────────────────────────────────────────────────
+
+export interface BusinessCard {
+  id: string;
+  ownerUserId: string;
+  displayName: string;
+  company: string | null;
+  jobTitle: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  website: string | null;
+  notes: string | null;
+  cardImageUrl: string | null;
+  personPhotoUrl: string | null;
+  linkedUserId: string | null;
+  extractedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBusinessCardInput {
+  displayName: string;
+  company?: string | null;
+  jobTitle?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  website?: string | null;
+  notes?: string | null;
+  cardImageUrl?: string | null;
+  personPhotoUrl?: string | null;
+}
+
+export type UpdateBusinessCardInput = Partial<CreateBusinessCardInput>;

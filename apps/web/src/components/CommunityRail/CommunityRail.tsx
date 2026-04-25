@@ -60,6 +60,7 @@ type TopLevelRoute =
   | 'friends'
   | 'agents'
   | 'bookmarks'
+  | 'cards'
   | 'settings';
 
 function HomeIcon({ className = 'h-5 w-5' }: { className?: string }) {
@@ -118,6 +119,16 @@ function BookmarkIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 4.5h10.5A1.5 1.5 0 0 1 18.75 6v14.25L12 16.5l-6.75 3.75V6A1.5 1.5 0 0 1 6.75 4.5Z" />
+    </svg>
+  );
+}
+
+function CardsIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <rect x="3" y="6" width="18" height="12" rx="2" />
+      <circle cx="9" cy="11" r="1.6" />
+      <path strokeLinecap="round" d="M9 14h.01M14 10h4M14 13h3" />
     </svg>
   );
 }
@@ -289,6 +300,13 @@ export function CommunityRail({
       title: t('nav.bookmarks'),
       isActive: pathname.startsWith('/bookmarks'),
       icon: <BookmarkIcon />,
+    },
+    {
+      key: 'cards',
+      href: '/cards',
+      title: t('nav.cards'),
+      isActive: pathname.startsWith('/cards'),
+      icon: <CardsIcon />,
     },
     {
       key: 'settings',

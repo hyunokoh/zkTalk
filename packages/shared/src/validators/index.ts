@@ -607,3 +607,22 @@ export const SubmitCommandResultSchema = z
     stderrTrunc: z.string().max(32_000).nullable().optional(),
   })
   .strict();
+
+// ── Business cards ────────────────────────────────────────────────────
+
+export const CreateBusinessCardSchema = z
+  .object({
+    displayName: z.string().min(1).max(120),
+    company: z.string().max(160).nullable().optional(),
+    jobTitle: z.string().max(120).nullable().optional(),
+    phone: z.string().max(64).nullable().optional(),
+    email: z.string().email().max(254).nullable().optional().or(z.literal('').transform(() => null)),
+    address: z.string().max(500).nullable().optional(),
+    website: z.string().max(500).nullable().optional(),
+    notes: z.string().max(2000).nullable().optional(),
+    cardImageUrl: z.string().url().max(2048).nullable().optional(),
+    personPhotoUrl: z.string().url().max(2048).nullable().optional(),
+  })
+  .strict();
+
+export const UpdateBusinessCardSchema = CreateBusinessCardSchema.partial();
