@@ -1175,6 +1175,18 @@ const ko: Record<string, string> = {
   'contacts.noResults': '주소록에서 친구를 찾지 못했습니다',
   'contacts.addAll': '모두 추가',
 
+  // 파일에서 친구 가져오기 (vCard / CSV)
+  'friendImport.title': '주소록 파일에서 가져오기',
+  'friendImport.help':
+    '아이폰·안드로이드·구글·아웃룩 모두 주소록을 vCard(.vcf) 또는 CSV로 내보낼 수 있어요. 그 파일을 올리면 전화번호를 기기에서 해시한 다음 모임톡에 검색합니다.',
+  'friendImport.pickFile': '.vcf 또는 .csv 파일 선택',
+  'friendImport.parsedSummary': '연락처 {{contacts}}명, 전화번호 {{phones}}개',
+  'friendImport.findOnZktalk': '모임톡에서 이 연락처들 찾기',
+  'friendImport.noPhonesFound': '파일에서 전화번호를 찾지 못했어요',
+  'friendImport.parseError': '파일을 읽지 못했어요. .vcf 나 .csv 내보내기 파일이 맞는지 확인해 주세요.',
+  'friendImport.toastSynced': '모임톡에서 {{count}}명을 찾았어요',
+  'friendImport.toastError': '친구 가져오기 실패',
+
   // Privacy / Sealed Sender
   'privacy.sealedSender': '익명 발신',
   'privacy.sealedDesc': '서버가 메시지 발신자를 볼 수 없습니다',

@@ -4,6 +4,7 @@ import React, { Suspense } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { FriendList } from '@/components/FriendList';
 import { ContactSync } from '@/components/ContactSync';
+import { FriendImport } from '@/components/FriendImport';
 
 export default function FriendsPage() {
   const { t } = useTranslation();
@@ -21,6 +22,11 @@ export default function FriendsPage() {
         {/* Contact-based friend suggestions */}
         <div className="mt-6">
           <ContactSync />
+        </div>
+
+        {/* File import (vCard / CSV) */}
+        <div className="mt-4">
+          <FriendImport />
         </div>
 
         {/* Friends list */}

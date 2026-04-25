@@ -1180,6 +1180,18 @@ const en = {
   'contacts.noResults': 'No friends found in contacts',
   'contacts.addAll': 'Add all',
 
+  // Friend import (vCard / CSV file upload)
+  'friendImport.title': 'Import from a contacts file',
+  'friendImport.help':
+    'Export your phone contacts as a vCard (.vcf) or CSV file (Apple, Google, Outlook all support this) and upload it here. We hash the phone numbers locally before sending.',
+  'friendImport.pickFile': 'Choose a .vcf or .csv file',
+  'friendImport.parsedSummary': '{{contacts}} contacts, {{phones}} phone numbers',
+  'friendImport.findOnZktalk': 'Find these contacts on zkTalk',
+  'friendImport.noPhonesFound': "Couldn't find any phone numbers in that file",
+  'friendImport.parseError': "Couldn't read that file — make sure it's a .vcf or .csv export",
+  'friendImport.toastSynced': 'Found {{count}} match(es) on zkTalk',
+  'friendImport.toastError': 'Friend import failed',
+
   // Privacy / Sealed Sender
   'privacy.sealedSender': 'Sealed Sender',
   'privacy.sealedDesc': 'Server cannot see who sent each message',
