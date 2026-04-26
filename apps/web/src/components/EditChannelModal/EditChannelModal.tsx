@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { ChannelBridges } from '@/components/ChannelBridges';
 import type { Channel } from '@zktalk/shared';
 
 interface EditChannelModalProps {
@@ -203,6 +204,9 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
               {(updateChannel.error as Error).message || t('channel.editError')}
             </p>
           )}
+
+          {/* Bridges to external chat platforms */}
+          <ChannelBridges channelId={channel.id} />
 
           {/* Archive section */}
           <div className="border-t border-line pt-4">

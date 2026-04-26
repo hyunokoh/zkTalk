@@ -9,6 +9,7 @@ import { realtimeService } from '../realtime/realtime.service.js';
 import { incrementMentionCount } from '../unread/unread.repository.js';
 import { sendPushToUsers } from '../push-token/push-token.service.js';
 import { assertCanAccessChannel } from '../channel/channel-access.service.js';
+import { dispatchOutbound as dispatchBridgeOutbound } from '../bridge/bridge.service.js';
 
 // ---------------------------------------------------------------------------
 // Permission helper (delegates to the channel repo helpers already in this
@@ -321,6 +322,24 @@ export async function createMessage(
       WebSocketEvent.MESSAGE_CREATED,
       result,
     );
+
+    // Mirror to any external bridges (Telegram/Discord) configured on
+    // this channel. Fire-and-forget — bridge failures must never block
+    // the user's message round-trip. dispatchBridgeOutbound itself
+    // checks the message-origin loop guard so inbound mirrors don't
+    // bounce back out.
+    dispatchBridgeOutbound({
+      channelId,
+      messageId: created.id,
+      authorDisplayName: result.author?.displayName ?? 'zkTalk',
+      authorAvatarUrl: result.author?.avatarUrl ?? null,
+      bodyPlaintext,
+    }).catch((err) => {
+      logServerError('Bridge', 'Outbound dispatch failed', err, {
+        communityId: channel.communityId,
+        channelId,
+      });
+    });
   }
   return result;
 }

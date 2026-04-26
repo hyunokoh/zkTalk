@@ -1234,6 +1234,27 @@ const ko: Record<string, string> = {
   'apiKeys.toastRevoked': '키를 폐기했어요',
   'apiKeys.docsHint': '퀵스타트와 전체 레퍼런스:',
 
+  // 외부 채팅 브릿지 (Telegram / Discord)
+  'bridges.title': '외부 채팅 브릿지',
+  'bridges.help':
+    '이 채널을 Telegram 그룹이나 Discord 채널과 연결합니다. Telegram 은 양방향(서로 메시지가 오감), Discord 는 현재 outbound 만 (zkTalk → Discord) 지원하고 Discord 메시지가 거꾸로 들어오는 inbound 는 아직 없어요.',
+  'bridges.empty': '연결된 브릿지가 없습니다.',
+  'bridges.addTelegram': 'Telegram 연결',
+  'bridges.addDiscord': 'Discord 연결',
+  'bridges.create': '만들기',
+  'bridges.enable': '켜기',
+  'bridges.disable': '끄기',
+  'bridges.tgBidirectional': '양방향 · Telegram 메시지도 여기에 들어옵니다',
+  'bridges.tgOutboundOnly': 'Outbound 전용',
+  'bridges.dcOutboundOnly': 'Outbound 전용 · Discord 메시지는 아직 들어오지 않습니다',
+  'bridges.telegramHint':
+    'BotFather 에서 받은 봇 토큰과, 봇이 들어가 있는 그룹의 chat_id 를 붙여넣으세요. 자세한 절차는 docs/bridges.md.',
+  'bridges.discordHint':
+    'Discord 서버 설정 → 연동 → 웹훅 → 새 웹훅 만들기 → URL 복사 한 값을 붙여넣으세요.',
+  'bridges.toastCreated': '브릿지를 만들었어요.',
+  'bridges.toastRemoved': '브릿지를 삭제했어요.',
+  'bridges.toastError': '브릿지 작업에 실패했어요.',
+
   // Privacy / Sealed Sender
   'privacy.sealedSender': '익명 발신',
   'privacy.sealedDesc': '서버가 메시지 발신자를 볼 수 없습니다',

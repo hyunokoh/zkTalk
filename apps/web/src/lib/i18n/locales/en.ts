@@ -1239,6 +1239,27 @@ const en = {
   'apiKeys.toastRevoked': 'Key revoked',
   'apiKeys.docsHint': 'Quickstart and full reference:',
 
+  // External chat bridges (Telegram / Discord)
+  'bridges.title': 'External chat bridges',
+  'bridges.help':
+    'Mirror this channel to a Telegram group or Discord channel. Telegram is bidirectional (messages flow both ways). Discord is outbound only — your zkTalk messages appear there, but Discord messages do not flow back yet.',
+  'bridges.empty': 'No bridges yet.',
+  'bridges.addTelegram': 'Telegram bridge',
+  'bridges.addDiscord': 'Discord bridge',
+  'bridges.create': 'Create',
+  'bridges.enable': 'Enable',
+  'bridges.disable': 'Disable',
+  'bridges.tgBidirectional': 'Bidirectional · Telegram messages mirror back here',
+  'bridges.tgOutboundOnly': 'Outbound only',
+  'bridges.dcOutboundOnly': 'Outbound only · Discord messages do not flow back',
+  'bridges.telegramHint':
+    'Paste your bot token from BotFather, plus the chat ID of the group the bot is added to. See docs/bridges.md.',
+  'bridges.discordHint':
+    'Paste a channel webhook URL from Discord (server settings → Integrations → Webhooks → New Webhook → Copy URL).',
+  'bridges.toastCreated': 'Bridge created.',
+  'bridges.toastRemoved': 'Bridge removed.',
+  'bridges.toastError': 'Bridge action failed.',
+
   // Privacy / Sealed Sender
   'privacy.sealedSender': 'Sealed Sender',
   'privacy.sealedDesc': 'Server cannot see who sent each message',

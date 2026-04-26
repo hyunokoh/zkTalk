@@ -748,6 +748,52 @@ export const commandExecutions = pgTable('command_executions', {
  *     structured fields automatically; null means hand-entered.
  */
 /**
+ * Bridge a zkTalk channel to an external chat platform (Telegram group,
+ * Discord channel). Outbound: every zkTalk message in this channel is
+ * mirrored to the external platform. Inbound (Telegram only for now):
+ * messages arriving on the external side are mirrored back as zkTalk
+ * messages in this channel.
+ *
+ * `config` carries platform-specific secrets:
+ *   - telegram: { botToken, chatId, webhookSecret? }
+ *   - discord:  { webhookUrl }   // outbound-only
+ *
+ * `inboundSecret` is the URL-path token Telegram embeds when calling
+ * our webhook — it lets us route an incoming update to the right bridge
+ * without authenticated headers.
+ */
+export const channelBridges = pgTable('channel_bridges', {
+  id: text('id').primaryKey(),
+  channelId: text('channel_id').notNull().references(() => channels.id, { onDelete: 'cascade' }),
+  platform: text('platform').notNull(), // 'telegram' | 'discord'
+  externalLabel: text('external_label'), // human-readable, eg "@my_telegram_group"
+  config: text('config').notNull(), // JSON-encoded; secrets live here
+  inboundSecret: text('inbound_secret'),
+  enabled: boolean('enabled').notNull().default(true),
+  createdByUserId: text('created_by_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('channel_bridges_inbound_secret_idx').on(t.inboundSecret),
+  index('channel_bridges_channel_idx').on(t.channelId),
+]);
+
+/**
+ * Records the external origin of a zkTalk message that was mirrored in
+ * from a bridged platform. Used as a loop-guard so we don't re-mirror
+ * an inbound message back out, and to display a "from Telegram" badge.
+ */
+export const messageBridgeOrigins = pgTable('message_bridge_origins', {
+  messageId: text('message_id').primaryKey().references(() => messages.id, { onDelete: 'cascade' }),
+  bridgeId: text('bridge_id').notNull().references(() => channelBridges.id, { onDelete: 'cascade' }),
+  platform: text('platform').notNull(),
+  externalAuthorName: text('external_author_name'),
+  externalAuthorId: text('external_author_id'),
+  externalMessageId: text('external_message_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
  * Public API keys — let an external program or AI agent authenticate
  * to zkTalk on behalf of a user. The plaintext key is shown once at
  * creation; only `key_hash` (SHA-256 of the secret part) is stored.
