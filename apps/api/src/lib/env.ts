@@ -16,6 +16,20 @@ export function isProductionEnv(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
+// Minimum bytes of entropy for any HMAC/JWT secret in production.
+// 32 bytes (≈43 base64 chars) is the threshold below which collisions /
+// brute force becomes feasible.
+const MIN_PROD_SECRET_LENGTH = 32;
+
+function ensureProdSecretStrong(envName: string, value: string): void {
+  if (!isProductionEnv()) return;
+  if (value.length < MIN_PROD_SECRET_LENGTH) {
+    throw new Error(
+      `${envName} must be at least ${MIN_PROD_SECRET_LENGTH} characters in production`,
+    );
+  }
+}
+
 function getConfiguredSecret(
   envName: string,
   fallbackValue: string,
@@ -28,6 +42,7 @@ function getConfiguredSecret(
     if (isProductionEnv() && directValue === fallbackValue) {
       throw new Error(`${envName} must not use the development fallback in production`);
     }
+    ensureProdSecretStrong(envName, directValue);
     return directValue;
   }
 
@@ -37,6 +52,7 @@ function getConfiguredSecret(
       if (isProductionEnv() && fallbackEnvValue === fallbackValue) {
         throw new Error(`${fallbackEnvName} must not use the development fallback in production`);
       }
+      ensureProdSecretStrong(fallbackEnvName, fallbackEnvValue);
       return fallbackEnvValue;
     }
   }

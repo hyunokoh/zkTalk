@@ -1,3 +1,4 @@
+import { promises as dns } from 'node:dns';
 import { AppError } from '../../lib/errors.js';
 import * as repo from './business-card.repository.js';
 import type { CreateBusinessCardInput, UpdateBusinessCardInput } from '@zktalk/shared';
@@ -110,11 +111,28 @@ async function fetchImageAsBase64(
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw AppError.badRequest('imageUrl must use http or https.');
   }
-  // Block SSRF to internal networks and cloud metadata. The image must
-  // come from a public URL or the same public-asset host the upload
-  // service itself serves from.
+  // Block SSRF to internal networks and cloud metadata. Two layers:
+  // (1) hostname/IP literal blocklist, (2) DNS lookup so a hostname
+  // that resolves to a private IP (or DNS rebinding tricks) doesn't
+  // sneak through.
   if (isPrivateOrInternalHost(parsed.hostname)) {
     throw AppError.badRequest('imageUrl must point to a public host.');
+  }
+  if (
+    !/^[\d.]+$/.test(parsed.hostname) &&
+    !parsed.hostname.includes(':')
+  ) {
+    try {
+      const addrs = await dns.lookup(parsed.hostname, { all: true, verbatim: true });
+      for (const a of addrs) {
+        if (isPrivateOrInternalHost(a.address)) {
+          throw AppError.badRequest('imageUrl must point to a public host.');
+        }
+      }
+    } catch (err) {
+      if (err instanceof AppError) throw err;
+      throw AppError.badRequest('imageUrl host did not resolve.');
+    }
   }
   const res = await fetch(imageUrl);
   if (!res.ok) {

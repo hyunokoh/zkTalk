@@ -96,8 +96,12 @@ export default async function authRoutes(app: FastifyInstance) {
   });
 
   // ── QR Code Login ────────────────────────────────────────────────
+  // generate + status are intentionally pre-auth (the desktop client
+  // calls them before the user has a session). Apply the strict auth
+  // rate limit to both so an attacker can't generate or poll tokens
+  // in bulk to enumerate the keyspace.
 
-  app.post('/api/auth/qr/generate', async (_request, reply) => {
+  app.post('/api/auth/qr/generate', authRateLimit, async (_request, reply) => {
     const result = await authService.generateQrToken();
     return reply.send(result);
   });
@@ -108,7 +112,7 @@ export default async function authRoutes(app: FastifyInstance) {
     return reply.send({ success: true });
   });
 
-  app.get('/api/auth/qr/status/:token', async (request, reply) => {
+  app.get('/api/auth/qr/status/:token', authRateLimit, async (request, reply) => {
     const { token } = QrTokenParamsSchema.parse(request.params);
     const result = await authService.checkQrTokenStatus(token);
 
