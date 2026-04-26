@@ -765,21 +765,27 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
         <div className="rounded-md border border-line bg-bg-subtle px-4 py-4 shadow-[var(--shadow-1)]">
           <div className="flex min-w-0 items-start gap-3">
             <div className="flex min-w-0 flex-1 flex-col">
-              <div className="flex min-w-0 items-center gap-1.5">
-                <div className="truncate text-[1rem] font-semibold tracking-[-0.01em] text-fg">{community.name}</div>
-                <svg className="h-4 w-4 shrink-0 text-fg-subtle" viewBox="0 0 20 20" fill="currentColor">
+              {/* Name + chevron — clicking jumps to community settings.
+                  Used to be decorative SVG that did nothing. */}
+              <Link
+                href={`/communities/${community.slug}/settings`}
+                className="group/header flex min-w-0 items-center gap-1.5 rounded-md py-0.5 transition hover:bg-bg-hover"
+                title={t('settings.communitySettings')}
+                data-testid="channel-sidebar-community-name"
+              >
+                <span className="truncate text-[1rem] font-semibold tracking-[-0.01em] text-fg">{community.name}</span>
+                <svg className="h-4 w-4 shrink-0 text-fg-subtle transition group-hover/header:text-fg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                 </svg>
-              </div>
-              <p className="mt-1 text-xs leading-5 text-fg-muted">{t('channel.sidebarSubtitle')}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
-                <span className="rounded-pill border border-line bg-bg px-2.5 py-1 text-fg-muted">
+              </Link>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                <span className="whitespace-nowrap rounded-pill border border-line bg-bg px-2.5 py-1 text-fg-muted">
                   {memberCount === 1
                     ? t('discover.member', { count: String(memberCount) })
                     : t('discover.members', { count: String(memberCount) })}
                 </span>
                 {onlineCount > 0 ? (
-                  <span className="flex items-center gap-1 rounded-pill border border-success/30 bg-success/10 px-2.5 py-1 text-success">
+                  <span className="flex items-center gap-1 whitespace-nowrap rounded-pill border border-success/30 bg-success/10 px-2.5 py-1 text-success">
                     <span className="h-2 w-2 rounded-pill bg-success" />
                     {onlineCount}
                   </span>

@@ -86,9 +86,9 @@ export function EditChannelModal({ channel, communityId, onClose }: EditChannelM
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-subtle" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-subtle p-4" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-lg bg-bg-subtle p-6 shadow-xl"
+        className="flex max-h-[90vh] w-full max-w-md flex-col overflow-y-auto rounded-lg bg-bg-subtle p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="mb-4 text-lg font-semibold text-fg-muted">{t('channel.edit')}</h2>
