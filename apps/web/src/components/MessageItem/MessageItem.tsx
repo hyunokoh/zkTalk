@@ -237,9 +237,11 @@ export function MessageItem({
   const aiRuntimePresentation = useMemo(() => getAiRuntimePresentation(t, aiRuntime), [aiRuntime, t]);
   const aiActionsEnabled = aiRuntime ? isAiRuntimeUsable(aiRuntime) : true;
   const aiActionTitleSuffix = aiRuntimePresentation
-    ? `${aiRuntimePresentation.label}. ${aiRuntimePresentation.description}`
+    // Tooltip suffix is just the short provider label now ("실AI",
+    // "모의 AI", etc.). The long "현재 로그인 세션은…" explanation
+    // moved to /settings/ai.
+    ? aiRuntimePresentation.label
     : '';
-  const selectedMessageAiScopeHint = t('ai.selectedMessageScopeHint');
 
   useEffect(() => {
     if (!isEncrypted || !e2eeDecrypt) {
@@ -1127,20 +1129,19 @@ export function MessageItem({
                         ? 'rounded-pill border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-warning'
                         : 'rounded-pill border border-danger/30 bg-danger/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-danger'
                   }
-                  title={aiRuntimePresentation.description}
+                  // Short tooltip — full provider explanation lives at
+                  // /settings/ai. Putting it on every message bubble
+                  // was visual noise.
+                  title={aiRuntimePresentation.label}
                 >
                   {aiRuntimePresentation.label}
                 </span>
               ) : null}
             </div>
           ) : null}
-          {AI_MESSAGE_ACTIONS_VISIBLE && onRequestAiAction ? (
-            <p className="mt-2 max-w-[20rem] text-[11px] leading-4 text-fg-subtle">
-              {[aiRuntimePresentation?.description, selectedMessageAiScopeHint]
-                .filter(Boolean)
-                .join(' ')}
-            </p>
-          ) : null}
+          {/* The verbose "현재 로그인 세션은 …" paragraph that used to
+              live here moved to /settings/ai (Settings → AI). The
+              message-level UI keeps only the small status pill above. */}
 
           {/* Reply in thread */}
           <button

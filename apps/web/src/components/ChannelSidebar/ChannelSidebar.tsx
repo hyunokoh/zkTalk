@@ -781,8 +781,10 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
             </svg>
           </Link>
 
-          {/* Row 2: member count + admin actions */}
-          <div className="mt-2 flex items-center gap-2 text-[11px]">
+          {/* Row 2: member count + admin actions. Wraps to a second
+              line at narrow sidebar widths so the + button never falls
+              outside the card. */}
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
             <Link
               href={`/communities/${community.slug}/settings/members`}
               className="whitespace-nowrap rounded-pill border border-line bg-bg px-2.5 py-1 text-fg-muted transition hover:border-accent/40 hover:bg-bg-hover hover:text-fg"
