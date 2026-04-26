@@ -57,6 +57,45 @@ function parseJsonReply(raw: string): ExtractedBusinessCard {
   };
 }
 
+// SSRF guard: block requests aimed at the host's own internal network.
+// Private/loopback/link-local ranges + the cloud metadata IPs that AWS,
+// GCP and Azure all serve from 169.254.169.254 / fd00:ec2::254.
+function isPrivateOrInternalHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  if (h === 'localhost') return true;
+  // IPv4 literal — split octets
+  const v4 = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(h);
+  if (v4) {
+    const [, a, b] = v4;
+    const oa = Number(a);
+    const ob = Number(b);
+    if (oa === 10) return true;
+    if (oa === 127) return true;
+    if (oa === 0) return true;
+    if (oa === 169 && ob === 254) return true; // link-local + cloud metadata
+    if (oa === 172 && ob >= 16 && ob <= 31) return true;
+    if (oa === 192 && ob === 168) return true;
+    if (oa >= 224) return true; // multicast / reserved
+    return false;
+  }
+  // IPv6 literal — bracketed in URL.hostname comes back unbracketed here
+  if (h.includes(':')) {
+    if (h === '::' || h === '::1') return true;
+    if (h.startsWith('fc') || h.startsWith('fd')) return true; // unique local
+    if (h.startsWith('fe80')) return true; // link-local
+    if (h.startsWith('::ffff:')) {
+      // IPv4-mapped — recurse on the v4 part
+      const v4mapped = h.slice(7);
+      return isPrivateOrInternalHost(v4mapped);
+    }
+    return false;
+  }
+  // Hostname (not IP literal). The dev MinIO bucket lives at `minio` /
+  // `localhost`; either name we want to block from external user input.
+  if (h === 'minio' || h === '0.0.0.0') return true;
+  return false;
+}
+
 async function fetchImageAsBase64(
   imageUrl: string,
 ): Promise<{ base64: string; mediaType: string }> {
@@ -70,6 +109,12 @@ async function fetchImageAsBase64(
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw AppError.badRequest('imageUrl must use http or https.');
+  }
+  // Block SSRF to internal networks and cloud metadata. The image must
+  // come from a public URL or the same public-asset host the upload
+  // service itself serves from.
+  if (isPrivateOrInternalHost(parsed.hostname)) {
+    throw AppError.badRequest('imageUrl must point to a public host.');
   }
   const res = await fetch(imageUrl);
   if (!res.ok) {

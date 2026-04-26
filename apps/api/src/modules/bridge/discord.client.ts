@@ -35,6 +35,11 @@ export async function sendDiscordWebhook(opts: {
   avatarUrl?: string | null;
 }): Promise<DiscordSendResult> {
   const url = new URL(opts.webhookUrl);
+  // Re-check the host on every send: if a bridge config row gets
+  // tampered with to point at evil.com, we still won't egress there.
+  if (url.protocol !== 'https:' || !isDiscordHost(url.hostname)) {
+    throw new Error('Discord webhook URL is no longer valid');
+  }
   // ?wait=true makes Discord return the created message envelope including its id
   url.searchParams.set('wait', 'true');
 
@@ -65,13 +70,28 @@ export async function sendDiscordWebhook(opts: {
  * Discord recognises it. We GET the webhook (no token-leaking required;
  * the URL itself contains the token) and check the channel id field.
  */
+// Allow discord.com / discordapp.com and their subdomains (e.g.
+// canary.discord.com), but NOT bait domains like attackerdiscord.com.
+function isDiscordHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  return (
+    h === 'discord.com' ||
+    h === 'discordapp.com' ||
+    h.endsWith('.discord.com') ||
+    h.endsWith('.discordapp.com')
+  );
+}
+
 export async function verifyDiscordWebhook(webhookUrl: string): Promise<{
   channelId: string;
   guildId: string | null;
   name: string;
 }> {
   const url = new URL(webhookUrl);
-  if (!url.hostname.endsWith('discord.com') && !url.hostname.endsWith('discordapp.com')) {
+  if (url.protocol !== 'https:') {
+    throw new Error('Discord webhook URL must use https');
+  }
+  if (!isDiscordHost(url.hostname)) {
     throw new Error('Webhook URL must point to discord.com');
   }
   const res = await fetch(webhookUrl, { method: 'GET' });

@@ -287,6 +287,35 @@ export async function findBridgeByInboundSecret(secret: string) {
   return repo.findByInboundSecret(secret);
 }
 
+/**
+ * Constant-time check that the Telegram-supplied
+ * `X-Telegram-Bot-Api-Secret-Token` header matches the secret we sent
+ * up at setWebhook time. Returns true on match (or on bridges where the
+ * webhookSecret was never stored — back-compat for older rows).
+ */
+export function verifyTelegramHeaderSecret(
+  bridge: repo.BridgeRow,
+  headers: Record<string, string | string[] | undefined>,
+): boolean {
+  let cfg: TelegramConfig;
+  try {
+    cfg = JSON.parse(bridge.config) as TelegramConfig;
+  } catch {
+    return false;
+  }
+  // No stored secret means the bridge was created before header
+  // verification existed — fall back to the URL-secret check alone.
+  if (!cfg.webhookSecret) return true;
+  const raw = headers['x-telegram-bot-api-secret-token'];
+  const presented = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof presented !== 'string') return false;
+  // Constant-time equality
+  const a = Buffer.from(presented);
+  const b = Buffer.from(cfg.webhookSecret);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
 export async function recordInboundOrigin(opts: {
   messageId: string;
   bridgeId: string;

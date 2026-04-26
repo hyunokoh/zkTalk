@@ -103,11 +103,15 @@ export default async function bridgeRoutes(app: FastifyInstance) {
     );
   });
 
-  // ---- public webhook (no auth — secret is in the URL) ------------------
+  // ---- public webhook (no session auth — authenticated by URL secret +
+  // a Telegram-supplied secret_token header) ---------------------------
   // Telegram POSTs an `Update` JSON here whenever a message arrives in a
-  // chat the bot is in. We look up the bridge by the path secret, parse
-  // the update, materialise it as a zkTalk message, and tag the message
-  // with bridge origin so we don't loop it back to Telegram.
+  // chat the bot is in. Two layers of defence so a leaked URL alone is
+  // not enough to spoof updates:
+  //   (a) the URL :secret has to match an active bridge row
+  //   (b) Telegram echoes back our setWebhook secret_token in a header
+  //       (`X-Telegram-Bot-Api-Secret-Token`) which we compare in
+  //       constant time against the value we stored on the bridge.
   app.post<{ Params: { secret: string } }>(
     '/api/bridges/telegram/webhook/:secret',
     async (req: FastifyRequest, reply) => {
@@ -116,6 +120,11 @@ export default async function bridgeRoutes(app: FastifyInstance) {
       if (!bridge || bridge.platform !== 'telegram' || !bridge.enabled) {
         // Always 200 OK — Telegram retries forever on non-2xx and we don't
         // want a stale URL to make Telegram hammer us.
+        return reply.status(200).send({ ok: true });
+      }
+      // Verify the secret_token header. This rejects forged callers who
+      // somehow learned the URL but never proved they own the bot.
+      if (!bridgeService.verifyTelegramHeaderSecret(bridge, req.headers)) {
         return reply.status(200).send({ ok: true });
       }
 
