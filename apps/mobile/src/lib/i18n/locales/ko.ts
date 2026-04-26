@@ -1343,6 +1343,38 @@ const ko: Record<string, string> = {
   'apiKeys.issuedHint':
     '전체 비밀값은 이 화면에서만 볼 수 있어요. 닫으면 접두사만 남고, 모임톡도 다시 보여줄 수 없습니다.',
   'apiKeys.toastCopied': '클립보드에 복사했어요',
+
+  // 명함
+  'cards.title': '명함',
+  'cards.addNew': '추가',
+  'cards.searchPlaceholder': '이름·회사·이메일로 검색…',
+  'cards.empty': '아직 등록된 명함이 없어요. + 추가 를 눌러 명함을 스캔해 보세요.',
+  'cards.deleteConfirm': '이 명함을 삭제할까요?',
+  'cards.field.displayName': '이름',
+  'cards.field.company': '회사',
+  'cards.field.jobTitle': '직책',
+  'cards.field.phone': '전화',
+  'cards.field.email': '이메일',
+  'cards.addSheetTitle': '명함 추가',
+  'cards.addSheetBody': '카메라로 찍거나 앨범에서 여러 장을 골라 한 번에 OCR 합니다.',
+  'cards.addPickCamera': '📷 카메라로 촬영',
+  'cards.addPickGallery': '🖼 앨범에서 선택',
+  'cards.bulkTitle': '저장 전 검토',
+  'cards.bulkUploading': '업로드 중…',
+  'cards.bulkExtracting': '명함 읽는 중…',
+  'cards.bulkReady': '준비 완료',
+  'cards.bulkRowSaving': '저장 중…',
+  'cards.bulkRowSaved': '저장됨',
+  'cards.bulkRowError': '오류',
+  'cards.bulkSaveAll': '모두 저장 ({{count}})',
+  'cards.bulkSaving': '저장 중…',
+  'cards.bulkNeedNames': '저장하려면 각 명함에 이름이 필요해요.',
+  'cards.bulkSavedToast': '명함 {{count}}장을 저장했어요.',
+  'cards.bulkPartialFail': '{{count}}장 저장 실패.',
+  'cards.bulkAnotherTitle': '한 장 더?',
+  'cards.bulkAnotherBody': '계속 촬영하거나 여기까지 검토하고 끝낼 수 있어요.',
+  'cards.bulkAnotherMore': '📷 한 장 더',
+  'cards.bulkAnotherDone': '검토하기',
 };
 
 export default ko;

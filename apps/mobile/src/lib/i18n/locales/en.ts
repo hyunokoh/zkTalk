@@ -1351,6 +1351,38 @@ const en: Record<string, string> = {
   'apiKeys.issuedHint':
     'The full secret is only visible once. After you close this banner, only the prefix is stored.',
   'apiKeys.toastCopied': 'Key copied to clipboard',
+
+  // Business cards
+  'cards.title': 'Business cards',
+  'cards.addNew': 'Add',
+  'cards.searchPlaceholder': 'Search by name, company, email…',
+  'cards.empty': 'No business cards yet. Tap + Add to scan one.',
+  'cards.deleteConfirm': 'Delete this business card?',
+  'cards.field.displayName': 'Name',
+  'cards.field.company': 'Company',
+  'cards.field.jobTitle': 'Job title',
+  'cards.field.phone': 'Phone',
+  'cards.field.email': 'Email',
+  'cards.addSheetTitle': 'Add business cards',
+  'cards.addSheetBody': 'Snap photos with the camera or pick several from your gallery — they all go through OCR together.',
+  'cards.addPickCamera': '📷 Take photo',
+  'cards.addPickGallery': '🖼 Pick from gallery',
+  'cards.bulkTitle': 'Review before saving',
+  'cards.bulkUploading': 'Uploading…',
+  'cards.bulkExtracting': 'Reading card…',
+  'cards.bulkReady': 'Ready',
+  'cards.bulkRowSaving': 'Saving…',
+  'cards.bulkRowSaved': 'Saved',
+  'cards.bulkRowError': 'Error',
+  'cards.bulkSaveAll': 'Save all ({{count}})',
+  'cards.bulkSaving': 'Saving…',
+  'cards.bulkNeedNames': 'Each card needs a name before it can be saved.',
+  'cards.bulkSavedToast': 'Saved {{count}} business cards.',
+  'cards.bulkPartialFail': '{{count}} cards failed to save.',
+  'cards.bulkAnotherTitle': 'Another card?',
+  'cards.bulkAnotherBody': 'Snap one more, or finish and review what you have so far.',
+  'cards.bulkAnotherMore': '📷 Snap another',
+  'cards.bulkAnotherDone': 'Finish & review',
 };
 
 export default en;

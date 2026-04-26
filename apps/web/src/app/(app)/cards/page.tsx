@@ -14,6 +14,7 @@ import { uploadImageAsset } from '@/lib/upload-assets';
 import { isImageFileLike } from '@/lib/file-mime';
 import { useTranslation } from '@/lib/i18n';
 import { useToastStore } from '@/stores/toast';
+import { CardsBulkImport } from '@/components/CardsBulkImport';
 
 type EditableField =
   | 'displayName'
@@ -95,6 +96,7 @@ export default function BusinessCardsPage() {
   const [uploadingCardImage, setUploadingCardImage] = useState(false);
   const [uploadingPersonPhoto, setUploadingPersonPhoto] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const cardsQuery = useQuery({
     queryKey: ['business-cards', searchInput.trim()],
@@ -249,9 +251,17 @@ export default function BusinessCardsPage() {
         />
         <button
           type="button"
+          data-testid="cards-bulk-button"
+          onClick={() => setBulkOpen(true)}
+          className="ml-auto inline-flex h-8 items-center gap-1 rounded-md border border-line bg-bg-elevated px-3 text-[12px] font-semibold text-fg hover:bg-bg-hover"
+        >
+          + {t('cards.bulkButton')}
+        </button>
+        <button
+          type="button"
           data-testid="cards-add-button"
           onClick={openCreateEditor}
-          className="ml-auto inline-flex h-8 items-center gap-1 rounded-md bg-accent px-3 text-[12px] font-semibold text-[color:var(--on-accent)] hover:bg-accent-strong"
+          className="inline-flex h-8 items-center gap-1 rounded-md bg-accent px-3 text-[12px] font-semibold text-[color:var(--on-accent)] hover:bg-accent-strong"
         >
           + {t('cards.addNew')}
         </button>
@@ -443,6 +453,12 @@ export default function BusinessCardsPage() {
           </form>
         </div>
       ) : null}
+
+      <CardsBulkImport
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ['business-cards'] })}
+      />
     </section>
   );
 }

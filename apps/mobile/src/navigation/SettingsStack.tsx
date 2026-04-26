@@ -10,6 +10,7 @@ import MyQrScreen from '../screens/MyQrScreen';
 import BackupScreen from '../screens/BackupScreen';
 import BookmarksScreen from '../screens/BookmarksScreen';
 import ApiKeysScreen from '../screens/ApiKeysScreen';
+import CardsScreen from '../screens/CardsScreen';
 import { useTranslation } from '../lib/i18n';
 import { colors } from '../theme';
 import type { SettingsStackParamList } from './types';
@@ -79,6 +80,11 @@ export default function SettingsStack() {
         name="ApiKeys"
         component={ApiKeysScreen}
         options={{ title: t('apiKeys.title') }}
+      />
+      <Stack.Screen
+        name="Cards"
+        component={CardsScreen}
+        options={{ title: t('cards.title') }}
       />
     </Stack.Navigator>
   );

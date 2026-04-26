@@ -587,6 +587,14 @@ export default function SettingsScreen({ navigation, route }: Props) {
             <Text style={styles.menuText}>{t('apiKeys.title')}</Text>
             <Text style={styles.menuArrow}>{'›'}</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('Cards')}
+          >
+            <Text style={styles.menuIcon}>{'📇'}</Text>
+            <Text style={styles.menuText}>{t('cards.title')}</Text>
+            <Text style={styles.menuArrow}>{'›'}</Text>
+          </TouchableOpacity>
         </View>
       ) : null}
 

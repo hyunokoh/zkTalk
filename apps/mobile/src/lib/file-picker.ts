@@ -130,6 +130,39 @@ export async function pickImage(
 }
 
 /**
+ * Pick MULTIPLE images from the device gallery in one shot. Used by the
+ * bulk business-card import flow.
+ */
+export async function pickImagesMulti(): Promise<PickedFile[]> {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== 'granted') {
+    throw new Error('Camera roll permission is required to select images');
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 0.8,
+    allowsMultipleSelection: true,
+    selectionLimit: 0,
+  });
+
+  if (result.canceled || result.assets.length === 0) {
+    return [];
+  }
+
+  return result.assets.map((asset) => {
+    const fileName = asset.fileName ?? asset.uri.split('/').pop() ?? 'image.jpg';
+    const mimeType = asset.mimeType ?? guessMimeType(fileName);
+    return {
+      uri: asset.uri,
+      name: fileName,
+      mimeType,
+      size: asset.fileSize ?? 0,
+    };
+  });
+}
+
+/**
  * Take a photo with the camera.
  */
 export async function takePhoto(): Promise<PickedFile | null> {

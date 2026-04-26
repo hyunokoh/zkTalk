@@ -157,6 +157,7 @@ export type SettingsStackParamList = {
   Backup: undefined;
   Bookmarks: undefined;
   ApiKeys: undefined;
+  Cards: undefined;
 };
 
 // Main Tab Navigator
