@@ -18,6 +18,7 @@ import {
 } from '@/lib/user-settings';
 import { VoiceRoomButton } from '@/components/VoiceRoom';
 import { EditChannelModal } from '@/components/EditChannelModal';
+import { CategoryManager } from '@/components/CategoryManager';
 import { usePresence } from '@/hooks/usePresence';
 import { useUnreadStore } from '@/stores/unread';
 import {
@@ -244,8 +245,9 @@ function CategoryGroup({
 
             // No row borders — they were leaking out as bracket-shapes at
             // the rail/sidebar boundary. Active state uses background tint
-            // only, unread uses font-weight + tone, locked uses warning bg.
-            const className = `group/channel-row rounded-md px-2 py-1.5 text-sm transition-colors ${
+            // only, unread uses font-weight + tone + a left-shoulder dot
+            // (Discord style), locked uses warning bg.
+            const className = `group/channel-row relative rounded-md px-2 py-1.5 text-sm transition-colors ${
               isLockedChannel
                 ? 'bg-warning/10 text-warning'
                 : isActive
@@ -261,6 +263,17 @@ function CategoryGroup({
 
             const content = (
               <>
+                {/* Discord-style left shoulder dot for unread channels.
+                    Sits just outside the row's px-2 padding so it reads
+                    as an "unread" badge attached to the row. hasUnread
+                    already excludes the active channel; we additionally
+                    skip it when there's a mention pill on the right. */}
+                {hasUnread && !hasMentions && (
+                  <span
+                    className="pointer-events-none absolute left-[-2px] top-1/2 h-2 w-2 -translate-y-1/2 rounded-pill bg-fg"
+                    aria-hidden="true"
+                  />
+                )}
                 <div className="flex items-center gap-1.5">
                   {isAdmin && canViewChannel && (
                     <span className="shrink-0 cursor-grab text-xs tracking-tight text-fg-subtle opacity-0 transition-opacity group-hover/channel-row:opacity-100" aria-hidden="true">⋮⋮</span>
@@ -325,9 +338,9 @@ function CategoryGroup({
                       {unread.mentions}
                     </span>
                   )}
-                  {hasUnread && !hasMentions && (
-                    <span className="ml-auto h-2 w-2 shrink-0 rounded-pill bg-accent" />
-                  )}
+                  {/* The right-side unread dot moved to the left shoulder
+                      (rendered above the flex row). Mention pill on the
+                      right stays as-is. */}
                   {isAdmin && canViewChannel && !isLockedChannel && onEditChannel && (
                     <button
                       type="button"
@@ -472,6 +485,7 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
   // Open EditChannelModal (which already supports rename + delete) when an
   // admin clicks the gear button next to a channel row.
   const [editingChannel, setEditingChannel] = useState<Channel | null>(null);
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
   const { data: membersData } = useQuery({
     queryKey: ['community-members-count', community.id],
     queryFn: async () => {
@@ -783,16 +797,30 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
                 </svg>
               </Link>
               {isAdmin && (
-                <button
-                  type="button"
-                  onClick={() => onAddChannel?.(null)}
-                  className="rounded-md border border-accent/30 bg-accent-soft p-2 text-accent transition hover:bg-accent-strong hover:text-[color:var(--on-accent)]"
-                  title={t('channel.create')}
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                  </svg>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setCategoryManagerOpen(true)}
+                    className="rounded-md border border-line bg-bg p-2 text-fg-muted transition hover:bg-bg-hover hover:text-fg"
+                    title={t('category.manage')}
+                    data-testid="channel-sidebar-manage-categories"
+                  >
+                    {/* Folder icon */}
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2 5a2 2 0 012-2h3.5a1 1 0 01.8.4l1.4 1.6H16a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V5z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onAddChannel?.(null)}
+                    className="rounded-md border border-accent/30 bg-accent-soft p-2 text-accent transition hover:bg-accent-strong hover:text-[color:var(--on-accent)]"
+                    title={t('channel.create')}
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -1086,6 +1114,13 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
               router.push(`/communities/${community.slug}`);
             }
           }}
+        />
+      )}
+
+      {categoryManagerOpen && (
+        <CategoryManager
+          communityId={community.id}
+          onClose={() => setCategoryManagerOpen(false)}
         />
       )}
     </aside>
