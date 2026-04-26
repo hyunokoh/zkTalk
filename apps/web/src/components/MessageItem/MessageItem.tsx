@@ -463,6 +463,20 @@ export function MessageItem({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [pinActionMenu]);
 
+  // Click-anywhere-outside-this-row dismisses the action menu the user
+  // toggled on with the row click handler. Without this the menu would
+  // stay pinned forever once revealed.
+  useEffect(() => {
+    if (!showActions) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (rowRef.current && !rowRef.current.contains(e.target as Node)) {
+        setShowActions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showActions]);
+
   const reactionMutation = useMutation({
     mutationFn: ({ emoji, remove }: { emoji: string; remove: boolean }) =>
       remove
@@ -815,9 +829,17 @@ export function MessageItem({
       data-testid="message-row"
       data-message-id={message.id}
       tabIndex={0}
-      className={`group relative flex rounded-lg px-4 py-1 ${startsGroup ? 'mt-4' : 'mt-1'} transition hover:bg-bg-hover`}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
+      className={`group relative flex cursor-pointer rounded-lg px-4 py-1 ${startsGroup ? 'mt-4' : 'mt-1'} transition hover:bg-bg-hover`}
+      onClick={(event) => {
+        // Click on the row reveals the action bar. Clicking on a real
+        // interactive child (button / link / input) is left alone so we
+        // don't accidentally toggle off when the user actually meant
+        // to push a button. Click outside any message row clears the
+        // selection (handled by a global listener).
+        const target = event.target as HTMLElement;
+        if (target.closest('button, a, input, textarea, label')) return;
+        setShowActions((prev) => !prev);
+      }}
       onFocusCapture={handleRowFocusCapture}
       onBlurCapture={handleRowBlurCapture}
     >
