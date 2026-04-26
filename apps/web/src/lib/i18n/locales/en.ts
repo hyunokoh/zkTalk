@@ -310,25 +310,13 @@ const en = {
   'cards.toastExtracted': 'Filled in fields from the card scan.',
   'cards.toastExtractError': 'Could not read the card. Try a clearer photo or fill in by hand.',
 
-  // Bulk import
-  'cards.bulkButton': 'Bulk import',
-  'cards.bulkTitle': 'Bulk add business cards',
-  'cards.bulkHint':
-    'Pick several card photos at once. Each one is uploaded, scanned with AI, and lined up here for review. Edit anything that came out wrong, then save them all in one go.',
-  'cards.bulkPickFiles': 'Add photos',
-  'cards.bulkRowsSummary': '{{total}} photos · {{ready}} ready to save',
-  'cards.bulkSaveAll': 'Save all ({{count}})',
-  'cards.bulkSaving': 'Saving…',
-  'cards.bulkEmpty': 'No photos yet. Click "Add photos" to begin.',
-  'cards.bulkUploading': 'Uploading…',
-  'cards.bulkExtracting': 'Reading card…',
-  'cards.bulkReady': 'Ready',
-  'cards.bulkRowSaving': 'Saving',
-  'cards.bulkRowSaved': 'Saved',
-  'cards.bulkRowError': 'Error',
-  'cards.bulkNeedNames': 'Each card needs a name before saving.',
-  'cards.bulkSavedToast': 'Saved {{count}} business cards.',
-  'cards.bulkPartialFail': '{{count}} cards failed to save. Edit them and retry.',
+  // Add card photos (single or many at once — picker accepts multi)
+  'cards.addBlank': 'Blank card',
+  'cards.addBlankHint': 'Add a card without a photo, fill the fields by hand.',
+  'cards.untitled': '(unnamed — tap to edit)',
+  'cards.ingestPending': 'Saving {{count}} card(s)…',
+  'cards.bulkSavedToast': 'Saved {{count}} business card(s). Tap any card to correct fields.',
+  'cards.bulkPartialFail': '{{count}} card(s) failed to save.',
 
   'nav.discover': 'Discover',
   'nav.agents': 'Agents',

@@ -311,25 +311,13 @@ const ko: Record<string, string> = {
   'cards.toastExtracted': '명함에서 항목을 자동으로 채웠습니다.',
   'cards.toastExtractError': '명함을 읽지 못했습니다. 더 선명한 사진을 사용하거나 직접 입력해 주세요.',
 
-  // 명함 일괄 등록
-  'cards.bulkButton': '여러 장 등록',
-  'cards.bulkTitle': '명함 여러 장 한 번에 등록',
-  'cards.bulkHint':
-    '사진을 여러 장 골라서 한 번에 올리세요. 각각 업로드 → AI 추출 → 아래에 표로 정리됩니다. 잘못 읽힌 부분만 손보고 한 번에 저장하면 끝.',
-  'cards.bulkPickFiles': '사진 추가',
-  'cards.bulkRowsSummary': '사진 {{total}}장 · 저장 가능 {{ready}}장',
-  'cards.bulkSaveAll': '모두 저장 ({{count}})',
-  'cards.bulkSaving': '저장 중…',
-  'cards.bulkEmpty': '아직 사진이 없어요. "사진 추가" 를 눌러 시작하세요.',
-  'cards.bulkUploading': '업로드 중…',
-  'cards.bulkExtracting': '명함 읽는 중…',
-  'cards.bulkReady': '준비 완료',
-  'cards.bulkRowSaving': '저장',
-  'cards.bulkRowSaved': '저장됨',
-  'cards.bulkRowError': '오류',
-  'cards.bulkNeedNames': '저장하려면 각 명함에 이름이 필요해요.',
-  'cards.bulkSavedToast': '명함 {{count}}장을 저장했어요.',
-  'cards.bulkPartialFail': '{{count}}장 저장에 실패했어요. 수정 후 다시 시도해 주세요.',
+  // 명함 사진 추가 (단일/여러장 동시)
+  'cards.addBlank': '빈 명함',
+  'cards.addBlankHint': '사진 없이 빈 명함을 만들어 직접 입력합니다.',
+  'cards.untitled': '(이름 없음 — 눌러서 수정)',
+  'cards.ingestPending': '{{count}}장 저장 중…',
+  'cards.bulkSavedToast': '명함 {{count}}장을 저장했어요. 항목 수정은 카드를 눌러서 하세요.',
+  'cards.bulkPartialFail': '{{count}}장 저장에 실패했어요.',
 
   'nav.discover': '찾기',
   'nav.agents': '에이전트',

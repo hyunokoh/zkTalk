@@ -9,7 +9,10 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Modal,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,7 +24,9 @@ import {
   deleteBusinessCard,
   extractBusinessCard,
   type BusinessCard,
+  type CreateBusinessCardInput,
 } from '../lib/api-business-cards';
+import { api } from '../lib/api';
 import {
   takePhoto,
   pickImagesMulti,
@@ -29,42 +34,22 @@ import {
   type PickedFile,
 } from '../lib/file-picker';
 
-type RowStatus = 'uploading' | 'extracting' | 'ready' | 'saving' | 'saved' | 'error';
-
-interface BulkRow {
+interface EditState {
   id: string;
-  uri: string;
-  cardImageUrl: string | null;
-  status: RowStatus;
-  errorMessage?: string;
-  fields: {
-    displayName: string;
-    company: string;
-    jobTitle: string;
-    phone: string;
-    email: string;
-  };
-}
-
-const EMPTY_FIELDS: BulkRow['fields'] = {
-  displayName: '',
-  company: '',
-  jobTitle: '',
-  phone: '',
-  email: '',
-};
-
-function makeRowId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  displayName: string;
+  company: string;
+  jobTitle: string;
+  phone: string;
+  email: string;
+  notes: string;
 }
 
 export default function CardsScreen() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
-  const [bulkRows, setBulkRows] = useState<BulkRow[]>([]);
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [savingAll, setSavingAll] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [editing, setEditing] = useState<EditState | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['business-cards', search.trim()],
@@ -78,103 +63,73 @@ export default function CardsScreen() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['business-cards'] }),
   });
 
-  // ---- bulk add: kick off OCR for one picked file --------------------------
-  const ingestPicked = useCallback(
-    async (picked: PickedFile) => {
-      const row: BulkRow = {
-        id: makeRowId(),
-        uri: picked.uri,
-        cardImageUrl: null,
-        status: 'uploading',
-        fields: { ...EMPTY_FIELDS },
-      };
-      setBulkRows((prev) => [...prev, row]);
-      setBulkOpen(true);
+  const updateMut = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<CreateBusinessCardInput> }) =>
+      api<{ card: BusinessCard }>(`/api/business-cards/${id}`, { method: 'PATCH', body: patch }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['business-cards'] });
+      setEditing(null);
+    },
+    onError: () => Alert.alert(t('common.error'), t('cards.toastSaveError') ?? 'Save failed'),
+  });
 
+  // Each picked photo runs upload → OCR → create as its own card. No
+  // pre-save review modal — the user corrects fields by tapping the
+  // saved card. Failed OCR still produces a card with the photo so it's
+  // not lost.
+  const ingestPhoto = useCallback(
+    async (picked: PickedFile) => {
+      setPendingCount((n) => n + 1);
       try {
         const url = await uploadImageAsset(picked, 'user_avatar');
-        setBulkRows((prev) =>
-          prev.map((r) => (r.id === row.id ? { ...r, cardImageUrl: url, status: 'extracting' } : r)),
-        );
+        let extracted: Awaited<ReturnType<typeof extractBusinessCard>> | null = null;
         try {
-          const fields = await extractBusinessCard(url);
-          setBulkRows((prev) =>
-            prev.map((r) =>
-              r.id === row.id
-                ? {
-                    ...r,
-                    status: 'ready',
-                    fields: {
-                      displayName: fields.displayName ?? '',
-                      company: fields.company ?? '',
-                      jobTitle: fields.jobTitle ?? '',
-                      phone: fields.phone ?? '',
-                      email: fields.email ?? '',
-                    },
-                  }
-                : r,
-            ),
-          );
-        } catch (err) {
-          // Image uploaded fine but OCR failed — keep the row so user can fill
-          setBulkRows((prev) =>
-            prev.map((r) =>
-              r.id === row.id
-                ? { ...r, status: 'ready', errorMessage: err instanceof Error ? err.message : 'OCR failed' }
-                : r,
-            ),
-          );
+          extracted = await extractBusinessCard(url);
+        } catch {
+          // ignore — save with placeholder name + photo
         }
-      } catch (err) {
-        setBulkRows((prev) =>
-          prev.map((r) =>
-            r.id === row.id
-              ? { ...r, status: 'error', errorMessage: err instanceof Error ? err.message : 'Upload failed' }
-              : r,
-          ),
-        );
+        await createBusinessCard({
+          displayName: extracted?.displayName?.trim() || t('cards.untitled'),
+          company: extracted?.company ?? null,
+          jobTitle: extracted?.jobTitle ?? null,
+          phone: extracted?.phone ?? null,
+          email: extracted?.email ?? null,
+          cardImageUrl: url,
+        });
+        qc.invalidateQueries({ queryKey: ['business-cards'] });
+      } catch {
+        Alert.alert(t('cards.bulkPartialFail', { count: 1 }));
+      } finally {
+        setPendingCount((n) => Math.max(0, n - 1));
       }
     },
-    [],
+    [qc, t],
   );
 
-  // ---- camera "take another" loop -----------------------------------------
   const handleTakePhoto = useCallback(async () => {
     try {
       const photo = await takePhoto();
       if (!photo) return;
-      void ingestPicked(photo);
-      // Ask if the user wants to keep snapping. Async loop, but we don't
-      // block the UI — each snapped photo enters OCR in the background.
-      Alert.alert(
-        t('cards.bulkAnotherTitle'),
-        t('cards.bulkAnotherBody'),
-        [
-          { text: t('cards.bulkAnotherDone'), style: 'cancel' },
-          { text: t('cards.bulkAnotherMore'), onPress: () => void handleTakePhoto() },
-        ],
-      );
+      void ingestPhoto(photo);
+      Alert.alert(t('cards.bulkAnotherTitle'), t('cards.bulkAnotherBody'), [
+        { text: t('cards.bulkAnotherDone'), style: 'cancel' },
+        { text: t('cards.bulkAnotherMore'), onPress: () => void handleTakePhoto() },
+      ]);
     } catch (err) {
-      Alert.alert(
-        t('common.error'),
-        err instanceof Error ? err.message : 'Camera failed',
-      );
+      Alert.alert(t('common.error'), err instanceof Error ? err.message : 'Camera failed');
     }
-  }, [ingestPicked, t]);
+  }, [ingestPhoto, t]);
 
   const handlePickGallery = useCallback(async () => {
     try {
       const picks = await pickImagesMulti();
       for (const p of picks) {
-        void ingestPicked(p);
+        void ingestPhoto(p);
       }
     } catch (err) {
-      Alert.alert(
-        t('common.error'),
-        err instanceof Error ? err.message : 'Gallery failed',
-      );
+      Alert.alert(t('common.error'), err instanceof Error ? err.message : 'Gallery failed');
     }
-  }, [ingestPicked, t]);
+  }, [ingestPhoto, t]);
 
   const handleAddPress = useCallback(() => {
     Alert.alert(t('cards.addSheetTitle'), t('cards.addSheetBody'), [
@@ -184,72 +139,47 @@ export default function CardsScreen() {
     ]);
   }, [t, handleTakePhoto, handlePickGallery]);
 
-  const updateField = useCallback((id: string, field: keyof BulkRow['fields'], value: string) => {
-    setBulkRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, fields: { ...r.fields, [field]: value } } : r)),
-    );
+  const openEdit = useCallback((card: BusinessCard) => {
+    setEditing({
+      id: card.id,
+      displayName: card.displayName,
+      company: card.company ?? '',
+      jobTitle: card.jobTitle ?? '',
+      phone: card.phone ?? '',
+      email: card.email ?? '',
+      notes: card.notes ?? '',
+    });
   }, []);
 
-  const removeRow = useCallback((id: string) => {
-    setBulkRows((prev) => prev.filter((r) => r.id !== id));
-  }, []);
-
-  const handleSaveAll = useCallback(async () => {
-    const saveable = bulkRows.filter(
-      (r) => r.status === 'ready' && r.fields.displayName.trim().length > 0,
-    );
-    if (saveable.length === 0) {
-      Alert.alert(t('cards.bulkNeedNames'));
+  const saveEdit = useCallback(() => {
+    if (!editing) return;
+    if (!editing.displayName.trim()) {
+      Alert.alert(t('cards.toastNameRequired') ?? 'Name required');
       return;
     }
-    setSavingAll(true);
-    let failed = 0;
+    updateMut.mutate({
+      id: editing.id,
+      patch: {
+        displayName: editing.displayName.trim(),
+        company: editing.company.trim() || null,
+        jobTitle: editing.jobTitle.trim() || null,
+        phone: editing.phone.trim() || null,
+        email: editing.email.trim() || null,
+        notes: editing.notes.trim() || null,
+      },
+    });
+  }, [editing, updateMut, t]);
 
-    await Promise.all(
-      saveable.map(async (row) => {
-        setBulkRows((prev) =>
-          prev.map((r) => (r.id === row.id ? { ...r, status: 'saving' } : r)),
-        );
-        try {
-          await createBusinessCard({
-            displayName: row.fields.displayName.trim(),
-            company: row.fields.company.trim() || null,
-            jobTitle: row.fields.jobTitle.trim() || null,
-            phone: row.fields.phone.trim() || null,
-            email: row.fields.email.trim() || null,
-            cardImageUrl: row.cardImageUrl ?? null,
-          });
-          setBulkRows((prev) =>
-            prev.map((r) => (r.id === row.id ? { ...r, status: 'saved' } : r)),
-          );
-        } catch {
-          failed += 1;
-          setBulkRows((prev) =>
-            prev.map((r) => (r.id === row.id ? { ...r, status: 'error' } : r)),
-          );
-        }
-      }),
-    );
-
-    setSavingAll(false);
-    qc.invalidateQueries({ queryKey: ['business-cards'] });
-
-    if (failed === 0) {
-      Alert.alert(t('cards.bulkSavedToast', { count: saveable.length }));
-      setBulkRows((prev) => prev.filter((r) => r.status !== 'saved'));
-      if (bulkRows.every((r) => r.status === 'saved' || r.status === 'error')) {
-        setBulkOpen(false);
-      }
-    } else {
-      Alert.alert(t('cards.bulkPartialFail', { count: failed }));
-    }
-  }, [bulkRows, qc, t]);
-
-  // ---------------------------------------------------------------------- UI
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t('cards.title')}</Text>
+        {pendingCount > 0 ? (
+          <View style={styles.pendingPill}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.pendingText}>{t('cards.ingestPending', { count: pendingCount })}</Text>
+          </View>
+        ) : null}
         <TouchableOpacity style={styles.addBtn} onPress={handleAddPress}>
           <Text style={styles.addBtnText}>+ {t('cards.addNew')}</Text>
         </TouchableOpacity>
@@ -263,79 +193,6 @@ export default function CardsScreen() {
         placeholderTextColor={colors.textMuted}
       />
 
-      {bulkOpen && bulkRows.length > 0 ? (
-        <View style={styles.bulkPanel}>
-          <View style={styles.bulkHeader}>
-            <Text style={styles.bulkTitle}>{t('cards.bulkTitle')}</Text>
-            <TouchableOpacity onPress={() => setBulkOpen(false)}>
-              <Text style={styles.bulkCollapse}>{t('common.cancel')}</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={styles.bulkScroll}>
-            {bulkRows.map((row) => (
-              <View key={row.id} style={styles.bulkRow}>
-                <Image source={{ uri: row.uri }} style={styles.bulkThumb} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.bulkStatus}>
-                    {row.status === 'uploading' && t('cards.bulkUploading')}
-                    {row.status === 'extracting' && t('cards.bulkExtracting')}
-                    {row.status === 'ready' && t('cards.bulkReady')}
-                    {row.status === 'saving' && t('cards.bulkRowSaving')}
-                    {row.status === 'saved' && t('cards.bulkRowSaved')}
-                    {row.status === 'error' && (row.errorMessage || t('cards.bulkRowError'))}
-                  </Text>
-                  <TextInput
-                    style={styles.bulkInput}
-                    value={row.fields.displayName}
-                    onChangeText={(v) => updateField(row.id, 'displayName', v)}
-                    placeholder={t('cards.field.displayName')}
-                    placeholderTextColor={colors.textMuted}
-                  />
-                  <TextInput
-                    style={styles.bulkInput}
-                    value={row.fields.company}
-                    onChangeText={(v) => updateField(row.id, 'company', v)}
-                    placeholder={t('cards.field.company')}
-                    placeholderTextColor={colors.textMuted}
-                  />
-                  <TextInput
-                    style={styles.bulkInput}
-                    value={row.fields.phone}
-                    onChangeText={(v) => updateField(row.id, 'phone', v)}
-                    placeholder={t('cards.field.phone')}
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="phone-pad"
-                  />
-                  <TextInput
-                    style={styles.bulkInput}
-                    value={row.fields.email}
-                    onChangeText={(v) => updateField(row.id, 'email', v)}
-                    placeholder={t('cards.field.email')}
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
-                <TouchableOpacity onPress={() => removeRow(row.id)} style={styles.bulkRemove}>
-                  <Text style={styles.bulkRemoveText}>×</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-          <TouchableOpacity
-            style={[styles.saveAllBtn, savingAll && styles.saveAllDisabled]}
-            onPress={() => void handleSaveAll()}
-            disabled={savingAll}
-          >
-            <Text style={styles.saveAllText}>
-              {savingAll
-                ? t('cards.bulkSaving')
-                : t('cards.bulkSaveAll', { count: bulkRows.filter((r) => r.status === 'ready').length })}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
       {isLoading ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} />
       ) : cards.length === 0 ? (
@@ -346,7 +203,7 @@ export default function CardsScreen() {
           keyExtractor={(c) => c.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
-            <View style={styles.cardItem}>
+            <TouchableOpacity style={styles.cardItem} onPress={() => openEdit(item)} activeOpacity={0.7}>
               {item.cardImageUrl ? (
                 <Image source={{ uri: item.cardImageUrl }} style={styles.cardThumb} />
               ) : (
@@ -365,7 +222,8 @@ export default function CardsScreen() {
                 {item.email ? <Text style={styles.cardMeta}>✉ {item.email}</Text> : null}
               </View>
               <TouchableOpacity
-                onPress={() =>
+                onPress={(e) => {
+                  e.stopPropagation();
                   Alert.alert(item.displayName, t('cards.deleteConfirm'), [
                     { text: t('common.cancel'), style: 'cancel' },
                     {
@@ -373,16 +231,64 @@ export default function CardsScreen() {
                       style: 'destructive',
                       onPress: () => deleteMut.mutate(item.id),
                     },
-                  ])
-                }
+                  ]);
+                }}
                 style={styles.cardDelete}
               >
                 <Text style={styles.cardDeleteText}>{t('common.delete')}</Text>
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}
+
+      {/* Edit modal — opens when a card is tapped. */}
+      <Modal visible={!!editing} animationType="slide" presentationStyle="pageSheet">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1, backgroundColor: colors.background }}
+        >
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setEditing(null)}>
+              <Text style={styles.modalCancel}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>{t('cards.editorEditTitle') ?? t('cards.title')}</Text>
+            <TouchableOpacity onPress={saveEdit} disabled={updateMut.isPending}>
+              <Text style={[styles.modalSave, updateMut.isPending && { opacity: 0.5 }]}>
+                {t('common.save')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {editing ? (
+            <ScrollView contentContainerStyle={styles.modalBody}>
+              {(
+                [
+                  ['displayName', t('cards.field.displayName')],
+                  ['company', t('cards.field.company')],
+                  ['jobTitle', t('cards.field.jobTitle')],
+                  ['phone', t('cards.field.phone')],
+                  ['email', t('cards.field.email')],
+                ] as const
+              ).map(([field, label]) => (
+                <View key={field} style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>{label}</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={editing[field]}
+                    onChangeText={(v) => setEditing((prev) => (prev ? { ...prev, [field]: v } : prev))}
+                    placeholder={label}
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType={
+                      field === 'phone' ? 'phone-pad' : field === 'email' ? 'email-address' : 'default'
+                    }
+                    autoCapitalize={field === 'email' ? 'none' : 'sentences'}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          ) : null}
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -395,8 +301,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
   title: { color: colors.textPrimary, fontSize: fs.xl, fontWeight: '700', flex: 1 },
+  pendingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.round,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  pendingText: { color: colors.textMuted, fontSize: fs.xs },
   addBtn: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.round,
@@ -439,54 +358,30 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
   },
   cardDeleteText: { color: colors.textMuted, fontSize: fs.xs },
-  bulkPanel: {
-    margin: spacing.lg,
-    marginTop: 0,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    maxHeight: 480,
-    overflow: 'hidden',
-  },
-  bulkHeader: {
+  modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing.md,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
+    backgroundColor: colors.surface,
   },
-  bulkTitle: { color: colors.textPrimary, fontSize: fs.base, fontWeight: '700' },
-  bulkCollapse: { color: colors.textMuted, fontSize: fs.sm },
-  bulkScroll: { maxHeight: 320 },
-  bulkRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  bulkThumb: { width: 56, height: 72, borderRadius: borderRadius.sm, backgroundColor: colors.background },
-  bulkStatus: { color: colors.textMuted, fontSize: fs.xs, marginBottom: spacing.xs },
-  bulkInput: {
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    fontSize: fs.sm,
+  modalCancel: { color: colors.textMuted, fontSize: fs.base },
+  modalTitle: { color: colors.textPrimary, fontSize: fs.base, fontWeight: '700' },
+  modalSave: { color: colors.primary, fontSize: fs.base, fontWeight: '700' },
+  modalBody: { padding: spacing.lg, gap: spacing.md },
+  fieldGroup: { gap: 4 },
+  fieldLabel: { color: colors.textMuted, fontSize: fs.xs, fontWeight: '600' },
+  fieldInput: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     color: colors.textPrimary,
+    fontSize: fs.base,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    marginBottom: 4,
   },
-  bulkRemove: { padding: spacing.xs },
-  bulkRemoveText: { color: colors.textMuted, fontSize: fs.lg },
-  saveAllBtn: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  saveAllDisabled: { opacity: 0.5 },
-  saveAllText: { color: colors.white, fontSize: fs.base, fontWeight: '700' },
 });

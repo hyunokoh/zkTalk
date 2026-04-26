@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { BusinessCard, CreateBusinessCardInput } from '@zktalk/shared';
 import {
@@ -14,7 +14,6 @@ import { uploadImageAsset } from '@/lib/upload-assets';
 import { isImageFileLike } from '@/lib/file-mime';
 import { useTranslation } from '@/lib/i18n';
 import { useToastStore } from '@/stores/toast';
-import { CardsBulkImport } from '@/components/CardsBulkImport';
 
 type EditableField =
   | 'displayName'
@@ -96,7 +95,10 @@ export default function BusinessCardsPage() {
   const [uploadingCardImage, setUploadingCardImage] = useState(false);
   const [uploadingPersonPhoto, setUploadingPersonPhoto] = useState(false);
   const [extracting, setExtracting] = useState(false);
-  const [bulkOpen, setBulkOpen] = useState(false);
+  // ingestPending = number of newly-picked photos still being processed
+  // (upload → OCR → save). Drives the small status pill in the header.
+  const [ingestPending, setIngestPending] = useState(0);
+  const addInputRef = useRef<HTMLInputElement>(null);
 
   const cardsQuery = useQuery({
     queryKey: ['business-cards', searchInput.trim()],
@@ -115,6 +117,71 @@ export default function BusinessCardsPage() {
     setForm(EMPTY_FORM);
     setActiveId(null);
     setEditorOpen(true);
+  };
+
+  // "+ 명함 추가" picks one or many photos. Each photo is uploaded,
+  // OCR'd, and saved as its own card immediately — no review modal.
+  // The user can click any saved card afterwards to correct fields.
+  const handleAddPhotos = async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (files.length === 0) return;
+
+    const accepted = files.filter((f) => isImageFileLike(f));
+    if (accepted.length === 0) {
+      showToast({ tone: 'error', message: t('cards.toastInvalidImage') });
+      return;
+    }
+
+    setIngestPending((n) => n + accepted.length);
+    let savedCount = 0;
+    let failedCount = 0;
+
+    await Promise.all(
+      accepted.map(async (file) => {
+        try {
+          const url = await uploadImageAsset(file, 'user_avatar');
+          let extracted: Awaited<ReturnType<typeof extractBusinessCard>> | null = null;
+          try {
+            extracted = await extractBusinessCard(url);
+          } catch {
+            // OCR failed (e.g. AI key not set) — still save with image so
+            // the user can fill the rest in by tapping the card.
+          }
+          await createBusinessCard({
+            displayName: extracted?.displayName?.trim() || t('cards.untitled'),
+            company: extracted?.company ?? null,
+            jobTitle: extracted?.jobTitle ?? null,
+            phone: extracted?.phone ?? null,
+            email: extracted?.email ?? null,
+            address: extracted?.address ?? null,
+            website: extracted?.website ?? null,
+            notes: null,
+            cardImageUrl: url,
+            personPhotoUrl: null,
+          });
+          savedCount += 1;
+        } catch {
+          failedCount += 1;
+        } finally {
+          setIngestPending((n) => Math.max(0, n - 1));
+        }
+      }),
+    );
+
+    queryClient.invalidateQueries({ queryKey: ['business-cards'] });
+    if (savedCount > 0) {
+      showToast({
+        tone: failedCount > 0 ? 'info' : 'success',
+        message: t('cards.bulkSavedToast', { count: savedCount }),
+      });
+    }
+    if (failedCount > 0) {
+      showToast({
+        tone: 'error',
+        message: t('cards.bulkPartialFail', { count: failedCount }),
+      });
+    }
   };
 
   const openEditor = (card: BusinessCard) => {
@@ -249,21 +316,40 @@ export default function BusinessCardsPage() {
           placeholder={t('cards.searchPlaceholder')}
           className="ml-4 h-8 w-64 rounded-md border border-line bg-bg-elevated px-3 text-[13px] text-fg outline-none focus:border-accent"
         />
-        <button
-          type="button"
-          data-testid="cards-bulk-button"
-          onClick={() => setBulkOpen(true)}
-          className="ml-auto inline-flex h-8 items-center gap-1 rounded-md border border-line bg-bg-elevated px-3 text-[12px] font-semibold text-fg hover:bg-bg-hover"
-        >
-          + {t('cards.bulkButton')}
-        </button>
+        {ingestPending > 0 ? (
+          <span
+            className="ml-auto inline-flex items-center gap-2 rounded-pill border border-line bg-bg-subtle px-3 py-1 text-[11px] text-fg-muted"
+            data-testid="cards-ingest-status"
+          >
+            <span className="h-1.5 w-1.5 animate-pulse rounded-pill bg-accent" />
+            {t('cards.ingestPending', { count: ingestPending })}
+          </span>
+        ) : null}
+        <input
+          ref={addInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => void handleAddPhotos(e)}
+          data-testid="cards-add-input"
+        />
         <button
           type="button"
           data-testid="cards-add-button"
-          onClick={openCreateEditor}
-          className="inline-flex h-8 items-center gap-1 rounded-md bg-accent px-3 text-[12px] font-semibold text-[color:var(--on-accent)] hover:bg-accent-strong"
+          onClick={() => addInputRef.current?.click()}
+          className={`${ingestPending > 0 ? '' : 'ml-auto'} inline-flex h-8 items-center gap-1 rounded-md bg-accent px-3 text-[12px] font-semibold text-[color:var(--on-accent)] hover:bg-accent-strong`}
         >
           + {t('cards.addNew')}
+        </button>
+        <button
+          type="button"
+          data-testid="cards-add-blank-button"
+          onClick={openCreateEditor}
+          className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-bg-elevated px-3 text-[12px] font-semibold text-fg hover:bg-bg-hover"
+          title={t('cards.addBlankHint')}
+        >
+          {t('cards.addBlank')}
         </button>
       </header>
 
@@ -453,12 +539,6 @@ export default function BusinessCardsPage() {
           </form>
         </div>
       ) : null}
-
-      <CardsBulkImport
-        open={bulkOpen}
-        onClose={() => setBulkOpen(false)}
-        onSaved={() => queryClient.invalidateQueries({ queryKey: ['business-cards'] })}
-      />
     </section>
   );
 }
