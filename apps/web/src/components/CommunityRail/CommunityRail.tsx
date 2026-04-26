@@ -356,13 +356,6 @@ export function CommunityRail({
           const badgeCount = item.count ?? 0;
           return (
             <div key={item.key} className="group relative">
-              <span
-                className={`absolute -left-2 top-1/2 -translate-y-1/2 rounded-r-full bg-accent transition-all ${
-                  item.isActive
-                    ? 'h-6 w-[3px] opacity-100'
-                    : 'h-4 w-[3px] opacity-0 group-hover:opacity-60'
-                }`}
-              />
               <Link
                 href={item.href}
                 title={item.title}
@@ -397,13 +390,6 @@ export function CommunityRail({
 
           return (
             <div key={community.id} className="group relative">
-              <span
-                className={`absolute -left-2 top-1/2 -translate-y-1/2 rounded-r-full bg-accent transition-all ${
-                  isActive
-                    ? 'h-6 w-[3px] opacity-100'
-                    : 'h-4 w-[3px] opacity-0 group-hover:opacity-60'
-                }`}
-              />
               <Link
                 href={`/communities/${community.slug}`}
                 title={community.name}
