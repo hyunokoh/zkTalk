@@ -760,45 +760,56 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
 
   return (
     <aside className="flex h-full w-full flex-col border-r border-line bg-bg text-fg">
-      {/* Community header */}
+      {/* Community header — name on its own row so it can use the
+          full width and never get truncated by the action buttons.
+          Action buttons + member-count pills sit on a second row
+          below it. */}
       <div className="shrink-0 border-b border-line px-4 pb-4 pt-5">
-        <div className="rounded-md border border-line bg-bg-subtle px-4 py-4 shadow-[var(--shadow-1)]">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="flex min-w-0 flex-1 flex-col">
-              {/* Name + chevron — clicking jumps to community settings.
-                  Used to be decorative SVG that did nothing. */}
+        <div className="rounded-md border border-line bg-bg-subtle px-4 py-3 shadow-[var(--shadow-1)]">
+          {/* Row 1: community name + chevron, full width */}
+          <Link
+            href={`/communities/${community.slug}/settings`}
+            className="group/header flex min-w-0 items-center gap-1 rounded-md py-0.5 transition hover:bg-bg-hover"
+            title={t('settings.communitySettings')}
+            data-testid="channel-sidebar-community-name"
+          >
+            <span className="min-w-0 flex-1 truncate text-[1rem] font-semibold tracking-[-0.01em] text-fg">
+              {community.name}
+            </span>
+            <svg className="h-4 w-4 shrink-0 text-fg-subtle transition group-hover/header:text-fg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+            </svg>
+          </Link>
+
+          {/* Row 2: member count + admin actions */}
+          <div className="mt-2 flex items-center gap-2 text-[11px]">
+            <Link
+              href={`/communities/${community.slug}/settings/members`}
+              className="whitespace-nowrap rounded-pill border border-line bg-bg px-2.5 py-1 text-fg-muted transition hover:border-accent/40 hover:bg-bg-hover hover:text-fg"
+              title={t('community.viewMembers') ?? t('community.members') ?? 'Members'}
+              data-testid="channel-sidebar-member-count"
+            >
+              {memberCount === 1
+                ? t('discover.member', { count: String(memberCount) })
+                : t('discover.members', { count: String(memberCount) })}
+            </Link>
+            {onlineCount > 0 ? (
               <Link
-                href={`/communities/${community.slug}/settings`}
-                className="group/header flex min-w-0 items-center gap-1.5 rounded-md py-0.5 transition hover:bg-bg-hover"
-                title={t('settings.communitySettings')}
-                data-testid="channel-sidebar-community-name"
+                href={`/communities/${community.slug}/settings/members`}
+                className="flex items-center gap-1 whitespace-nowrap rounded-pill border border-success/30 bg-success/10 px-2.5 py-1 text-success transition hover:bg-success/20"
+                title={t('community.viewMembers') ?? 'Online'}
               >
-                <span className="truncate text-[1rem] font-semibold tracking-[-0.01em] text-fg">{community.name}</span>
-                <svg className="h-4 w-4 shrink-0 text-fg-subtle transition group-hover/header:text-fg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                </svg>
+                <span className="h-2 w-2 rounded-pill bg-success" />
+                {onlineCount}
               </Link>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                <span className="whitespace-nowrap rounded-pill border border-line bg-bg px-2.5 py-1 text-fg-muted">
-                  {memberCount === 1
-                    ? t('discover.member', { count: String(memberCount) })
-                    : t('discover.members', { count: String(memberCount) })}
-                </span>
-                {onlineCount > 0 ? (
-                  <span className="flex items-center gap-1 whitespace-nowrap rounded-pill border border-success/30 bg-success/10 px-2.5 py-1 text-success">
-                    <span className="h-2 w-2 rounded-pill bg-success" />
-                    {onlineCount}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
+            ) : null}
+            <div className="ml-auto flex shrink-0 items-center gap-1">
               <Link
                 href={`/communities/${community.slug}/settings`}
-                className="rounded-md border border-line bg-bg p-2 text-fg-muted transition hover:bg-bg-hover hover:text-fg"
+                className="rounded-md border border-line bg-bg p-1.5 text-fg-muted transition hover:bg-bg-hover hover:text-fg"
                 title={t('settings.communitySettings')}
               >
-                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
                 </svg>
               </Link>
@@ -807,22 +818,21 @@ export function ChannelSidebar({ community, isAdmin = false, onAddChannel, onCha
                   <button
                     type="button"
                     onClick={() => setCategoryManagerOpen(true)}
-                    className="rounded-md border border-line bg-bg p-2 text-fg-muted transition hover:bg-bg-hover hover:text-fg"
+                    className="rounded-md border border-line bg-bg p-1.5 text-fg-muted transition hover:bg-bg-hover hover:text-fg"
                     title={t('category.manage')}
                     data-testid="channel-sidebar-manage-categories"
                   >
-                    {/* Folder icon */}
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M2 5a2 2 0 012-2h3.5a1 1 0 01.8.4l1.4 1.6H16a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V5z" />
                     </svg>
                   </button>
                   <button
                     type="button"
                     onClick={() => onAddChannel?.(null)}
-                    className="rounded-md border border-accent/30 bg-accent-soft p-2 text-accent transition hover:bg-accent-strong hover:text-[color:var(--on-accent)]"
+                    className="rounded-md border border-accent/30 bg-accent-soft p-1.5 text-accent transition hover:bg-accent-strong hover:text-[color:var(--on-accent)]"
                     title={t('channel.create')}
                   >
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
                     </svg>
                   </button>
