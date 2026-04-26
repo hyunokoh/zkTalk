@@ -63,4 +63,6 @@ contextBridge.exposeInMainWorld('zkTalkDesktop', {
   openFile: (payload) => ipcRenderer.invoke('desktop-files:open', payload),
   saveFile: (payload) => ipcRenderer.invoke('desktop-files:save', payload),
   retryLoad: () => ipcRenderer.invoke('desktop:retry-load'),
+  // Returns the packaged Electron app version (matches package.json).
+  getVersion: () => ipcRenderer.invoke('desktop:get-version'),
 });

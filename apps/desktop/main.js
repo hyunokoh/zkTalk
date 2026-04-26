@@ -5824,6 +5824,9 @@ async function loadApp() {
 }
 
 ipcMain.handle('desktop-config:get', () => getDesktopConfigSnapshot());
+// Surface the packaged app version to the renderer so the in-app
+// update-check banner can compare it to the latest GitHub release.
+ipcMain.handle('desktop:get-version', () => app.getVersion());
 ipcMain.on('desktop-config:sync', (event) => {
   event.returnValue = getDesktopConfigSnapshot();
 });

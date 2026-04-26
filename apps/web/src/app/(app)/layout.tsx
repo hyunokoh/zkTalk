@@ -13,6 +13,7 @@ import { ConnectionStatusBar } from '@/components/ConnectionStatusBar';
 import { DesktopLocalMachineBridgeAutoConnect } from '@/components/DesktopLocalMachineBridgeAutoConnect';
 import { ToastViewport } from '@/components/ToastViewport';
 import { AIAssistant } from '@/components/AIAssistant/AIAssistant';
+import { UpdateCheckBanner } from '@/components/UpdateCheckBanner';
 import { AI_SETTINGS_UPDATED_EVENT, isAiAssistantEnabled } from '@/lib/ai-settings';
 import { api } from '@/lib/api';
 import { clearQueue } from '@/lib/offline-queue';
@@ -423,6 +424,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex min-h-0 flex-1">{children}</div>
       </main>
 
+      <UpdateCheckBanner />
       <AIAssistant open={aiAssistantEnabled && aiAssistantOpen} onClose={() => setAiAssistantOpen(false)} />
     </div>
   );

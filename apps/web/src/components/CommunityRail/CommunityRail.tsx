@@ -302,9 +302,6 @@ export function CommunityRail({
 
   return (
     <nav className="flex h-screen w-full flex-col items-center gap-2 overflow-y-auto border-r border-line bg-bg px-2 py-3 [scrollbar-width:thin]">
-      <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-xl bg-bg-subtle text-[10px] font-semibold tracking-[0.28em] text-fg-muted">
-        ZT
-      </div>
       <Link
         href="/settings"
         title={currentUser?.displayName ?? t('settings.title')}
@@ -360,7 +357,10 @@ export function CommunityRail({
 
       <div className="mx-auto my-1 h-px w-8 bg-line" />
 
-      <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto py-1">
+      {/* Communities list: no inner scroll — the outer <nav> is the
+          single scrollable surface so dragging on top-nav, communities
+          and create/theme tiles all behave the same. */}
+      <div className="flex w-full flex-col items-center gap-1 py-1">
         {applyCommunityOrder(communities, communityOrder).map((community) => {
           const isActive = activeSlug === community.slug;
           const tile = getCommunityTileTint(community.id);

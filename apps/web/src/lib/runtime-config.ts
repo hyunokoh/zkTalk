@@ -56,6 +56,7 @@ declare global {
         start: number;
         end: number;
       }) => Promise<Uint8Array | number[] | ArrayBuffer>;
+      getVersion?: () => Promise<string>;
     };
   }
 }
