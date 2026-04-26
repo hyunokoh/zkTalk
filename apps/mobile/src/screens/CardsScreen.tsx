@@ -34,6 +34,11 @@ import {
   type PickedFile,
 } from '../lib/file-picker';
 
+interface StagedPhoto {
+  id: string;
+  picked: PickedFile;
+}
+
 interface EditState {
   id: string;
   displayName: string;
@@ -44,11 +49,20 @@ interface EditState {
   notes: string;
 }
 
+function makeStageId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export default function CardsScreen() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
-  const [pendingCount, setPendingCount] = useState(0);
+
+  // Photos the user has captured/picked but NOT yet committed. OCR + save
+  // only run when the user taps "저장 (N장)" — they can retake or remove
+  // any item before that point.
+  const [staged, setStaged] = useState<StagedPhoto[]>([]);
+  const [savingCount, setSavingCount] = useState(0);
   const [editing, setEditing] = useState<EditState | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -70,47 +84,27 @@ export default function CardsScreen() {
       qc.invalidateQueries({ queryKey: ['business-cards'] });
       setEditing(null);
     },
-    onError: () => Alert.alert(t('common.error'), t('cards.toastSaveError') ?? 'Save failed'),
+    onError: () => Alert.alert(t('common.error'), t('cards.toastSaveError')),
   });
 
-  // Each picked photo runs upload → OCR → create as its own card. No
-  // pre-save review modal — the user corrects fields by tapping the
-  // saved card. Failed OCR still produces a card with the photo so it's
-  // not lost.
-  const ingestPhoto = useCallback(
-    async (picked: PickedFile) => {
-      setPendingCount((n) => n + 1);
-      try {
-        const url = await uploadImageAsset(picked, 'user_avatar');
-        let extracted: Awaited<ReturnType<typeof extractBusinessCard>> | null = null;
-        try {
-          extracted = await extractBusinessCard(url);
-        } catch {
-          // ignore — save with placeholder name + photo
-        }
-        await createBusinessCard({
-          displayName: extracted?.displayName?.trim() || t('cards.untitled'),
-          company: extracted?.company ?? null,
-          jobTitle: extracted?.jobTitle ?? null,
-          phone: extracted?.phone ?? null,
-          email: extracted?.email ?? null,
-          cardImageUrl: url,
-        });
-        qc.invalidateQueries({ queryKey: ['business-cards'] });
-      } catch {
-        Alert.alert(t('cards.bulkPartialFail', { count: 1 }));
-      } finally {
-        setPendingCount((n) => Math.max(0, n - 1));
-      }
-    },
-    [qc, t],
-  );
+  // ---- staging: just collect photos, don't upload yet ---------------------
+  const addToStage = useCallback((picks: PickedFile[]) => {
+    const stamped = picks.map((p) => ({ id: makeStageId(), picked: p }));
+    setStaged((prev) => [...prev, ...stamped]);
+  }, []);
+
+  const removeStaged = useCallback((id: string) => {
+    setStaged((prev) => prev.filter((p) => p.id !== id));
+  }, []);
 
   const handleTakePhoto = useCallback(async () => {
     try {
       const photo = await takePhoto();
       if (!photo) return;
-      void ingestPhoto(photo);
+      addToStage([photo]);
+      // Burst-mode loop: after a successful capture, ask whether to keep
+      // shooting. The OS camera screen already gave the user a Use/Retake
+      // step so by the time we get here the photo is intentional.
       Alert.alert(t('cards.bulkAnotherTitle'), t('cards.bulkAnotherBody'), [
         { text: t('cards.bulkAnotherDone'), style: 'cancel' },
         { text: t('cards.bulkAnotherMore'), onPress: () => void handleTakePhoto() },
@@ -118,18 +112,16 @@ export default function CardsScreen() {
     } catch (err) {
       Alert.alert(t('common.error'), err instanceof Error ? err.message : 'Camera failed');
     }
-  }, [ingestPhoto, t]);
+  }, [addToStage, t]);
 
   const handlePickGallery = useCallback(async () => {
     try {
       const picks = await pickImagesMulti();
-      for (const p of picks) {
-        void ingestPhoto(p);
-      }
+      if (picks.length > 0) addToStage(picks);
     } catch (err) {
       Alert.alert(t('common.error'), err instanceof Error ? err.message : 'Gallery failed');
     }
-  }, [ingestPhoto, t]);
+  }, [addToStage, t]);
 
   const handleAddPress = useCallback(() => {
     Alert.alert(t('cards.addSheetTitle'), t('cards.addSheetBody'), [
@@ -139,6 +131,49 @@ export default function CardsScreen() {
     ]);
   }, [t, handleTakePhoto, handlePickGallery]);
 
+  // ---- commit: only NOW do upload + OCR + save ----------------------------
+  const handleSaveAll = useCallback(async () => {
+    if (staged.length === 0) return;
+    const pending = staged;
+    setStaged([]);
+    setSavingCount(pending.length);
+
+    let saved = 0;
+    let failed = 0;
+    await Promise.all(
+      pending.map(async (item) => {
+        try {
+          const url = await uploadImageAsset(item.picked, 'user_avatar');
+          let extracted: Awaited<ReturnType<typeof extractBusinessCard>> | null = null;
+          try {
+            extracted = await extractBusinessCard(url);
+          } catch {
+            // OCR failed — still save card with photo so it's not lost
+          }
+          await createBusinessCard({
+            displayName: extracted?.displayName?.trim() || t('cards.untitled'),
+            company: extracted?.company ?? null,
+            jobTitle: extracted?.jobTitle ?? null,
+            phone: extracted?.phone ?? null,
+            email: extracted?.email ?? null,
+            cardImageUrl: url,
+          });
+          saved += 1;
+        } catch {
+          failed += 1;
+        } finally {
+          setSavingCount((n) => Math.max(0, n - 1));
+        }
+      }),
+    );
+
+    qc.invalidateQueries({ queryKey: ['business-cards'] });
+    if (failed > 0) {
+      Alert.alert(t('cards.bulkPartialFail', { count: failed }));
+    }
+  }, [staged, qc, t]);
+
+  // ---- tap-to-edit --------------------------------------------------------
   const openEdit = useCallback((card: BusinessCard) => {
     setEditing({
       id: card.id,
@@ -154,7 +189,7 @@ export default function CardsScreen() {
   const saveEdit = useCallback(() => {
     if (!editing) return;
     if (!editing.displayName.trim()) {
-      Alert.alert(t('cards.toastNameRequired') ?? 'Name required');
+      Alert.alert(t('cards.toastNameRequired'));
       return;
     }
     updateMut.mutate({
@@ -174,10 +209,10 @@ export default function CardsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t('cards.title')}</Text>
-        {pendingCount > 0 ? (
+        {savingCount > 0 ? (
           <View style={styles.pendingPill}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.pendingText}>{t('cards.ingestPending', { count: pendingCount })}</Text>
+            <Text style={styles.pendingText}>{t('cards.ingestPending', { count: savingCount })}</Text>
           </View>
         ) : null}
         <TouchableOpacity style={styles.addBtn} onPress={handleAddPress}>
@@ -192,6 +227,38 @@ export default function CardsScreen() {
         placeholder={t('cards.searchPlaceholder')}
         placeholderTextColor={colors.textMuted}
       />
+
+      {/* Staging area — visible while there are uncommitted photos */}
+      {staged.length > 0 ? (
+        <View style={styles.stagePanel}>
+          <View style={styles.stageHeader}>
+            <Text style={styles.stageTitle}>{t('cards.stageTitle', { count: staged.length })}</Text>
+            <Text style={styles.stageHint}>{t('cards.stageHint')}</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.stageRow}
+          >
+            {staged.map((item) => (
+              <View key={item.id} style={styles.stageItem}>
+                <Image source={{ uri: item.picked.uri }} style={styles.stageThumb} />
+                <TouchableOpacity onPress={() => removeStaged(item.id)} style={styles.stageRemove}>
+                  <Text style={styles.stageRemoveText}>×</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity onPress={handleAddPress} style={styles.stageAddMore}>
+              <Text style={styles.stageAddMoreText}>+</Text>
+            </TouchableOpacity>
+          </ScrollView>
+          <TouchableOpacity style={styles.stageSaveBtn} onPress={() => void handleSaveAll()}>
+            <Text style={styles.stageSaveText}>
+              {t('cards.stageSave', { count: staged.length })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       {isLoading ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} />
@@ -242,7 +309,6 @@ export default function CardsScreen() {
         />
       )}
 
-      {/* Edit modal — opens when a card is tapped. */}
       <Modal visible={!!editing} animationType="slide" presentationStyle="pageSheet">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -252,7 +318,7 @@ export default function CardsScreen() {
             <TouchableOpacity onPress={() => setEditing(null)}>
               <Text style={styles.modalCancel}>{t('common.cancel')}</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>{t('cards.editorEditTitle') ?? t('cards.title')}</Text>
+            <Text style={styles.modalTitle}>{t('cards.editorEditTitle')}</Text>
             <TouchableOpacity onPress={saveEdit} disabled={updateMut.isPending}>
               <Text style={[styles.modalSave, updateMut.isPending && { opacity: 0.5 }]}>
                 {t('common.save')}
@@ -358,6 +424,56 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
   },
   cardDeleteText: { color: colors.textMuted, fontSize: fs.xs },
+  // staging
+  stagePanel: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  stageHeader: { marginBottom: spacing.sm },
+  stageTitle: { color: colors.textPrimary, fontSize: fs.base, fontWeight: '700' },
+  stageHint: { color: colors.textMuted, fontSize: fs.xs, marginTop: 2 },
+  stageRow: { gap: spacing.sm, paddingVertical: spacing.xs },
+  stageItem: { position: 'relative' },
+  stageThumb: { width: 80, height: 100, borderRadius: borderRadius.md, backgroundColor: colors.background },
+  stageRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stageRemoveText: { color: colors.textPrimary, fontSize: fs.base, lineHeight: 18, fontWeight: '700' },
+  stageAddMore: {
+    width: 80,
+    height: 100,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stageAddMoreText: { color: colors.textMuted, fontSize: 28, fontWeight: '300' },
+  stageSaveBtn: {
+    marginTop: spacing.md,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.round,
+    alignItems: 'center',
+  },
+  stageSaveText: { color: colors.white, fontSize: fs.base, fontWeight: '700' },
+  // edit modal
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
