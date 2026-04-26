@@ -242,16 +242,19 @@ function CategoryGroup({
               linkLabelParts.push(t('voice.recentChannel'));
             }
 
+            // No row borders — they were leaking out as bracket-shapes at
+            // the rail/sidebar boundary. Active state uses background tint
+            // only, unread uses font-weight + tone, locked uses warning bg.
             const className = `group/channel-row rounded-md px-2 py-1.5 text-sm transition-colors ${
               isLockedChannel
-                ? 'border border-warning/25 bg-warning/10 text-warning'
+                ? 'bg-warning/10 text-warning'
                 : isActive
-                  ? 'border border-accent bg-accent-soft text-accent'
+                  ? 'bg-accent-soft text-accent'
                   : isHighlightedVoiceChannel
-                    ? 'border border-line bg-bg-subtle text-fg hover:bg-bg-hover'
+                    ? 'bg-bg-subtle text-fg hover:bg-bg-hover'
                     : hasUnread
-                      ? 'border border-line font-semibold text-fg hover:bg-bg-hover'
-                      : 'border border-transparent text-fg-muted hover:bg-bg-hover hover:text-fg'
+                      ? 'font-semibold text-fg hover:bg-bg-hover'
+                      : 'text-fg-muted hover:bg-bg-hover hover:text-fg'
             } ${draggedChannelId === channel.id ? 'opacity-50' : ''} ${
               dragTargetKey === itemTargetKey ? 'ring-1 ring-inset ring-accent' : ''
             }`;

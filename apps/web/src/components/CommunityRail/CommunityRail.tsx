@@ -14,7 +14,8 @@ import {
   getCachedCommunityOrder,
 } from '@/lib/user-settings';
 import { UserAvatar } from '@/components/UserAvatar';
-import { ProfileEditor } from '@/components/ProfileEditor';
+// ProfileEditor used to open inline from the rail; the avatar now links
+// straight to /settings instead, so the modal is no longer mounted here.
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 // Muted pastel palette — used as a subtle differentiator between community
@@ -133,16 +134,6 @@ function CardsIcon({ className = 'h-5 w-5' }: { className?: string }) {
   );
 }
 
-function SettingsIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.75l1.15 2.33 2.58.38-1.86 1.82.44 2.57L12 9.77 9.69 10.85l.44-2.57-1.86-1.82 2.58-.38L12 3.75z" />
-      <circle cx="12" cy="12" r="3.25" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5.5 13.2v-2.4l-1.75-1 1.25-2.17 2 .45 1.7-1.4-.15-2.05h2.5" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 10.8v2.4l1.75 1-1.25 2.17-2-.45-1.7 1.4.15 2.05h-2.5" />
-    </svg>
-  );
-}
 
 function PlusIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
@@ -196,10 +187,9 @@ export function CommunityRail({
   const { fetchUnread, hasCommunityUnread } = useUnreadStore();
   const [avatarVersion, setAvatarVersion] = useState('');
   const [communityOrder, setCommunityOrderState] = useState<string[]>([]);
-  // Clicking the avatar at the top of the rail opens the profile editor
-  // inline as a modal — keeps the avatar's intent ("edit my profile")
-  // distinct from the footer gear ("open the full settings page").
-  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
+  // The rail avatar links straight to /settings (where the profile editor
+  // also lives) — one entry point, not two. Settings is no longer a
+  // separate icon in the rail.
 
   // Fetch unread counts for all communities
   useEffect(() => {
@@ -308,36 +298,28 @@ export function CommunityRail({
       isActive: pathname.startsWith('/cards'),
       icon: <CardsIcon />,
     },
-    {
-      key: 'settings',
-      href: '/settings',
-      title: t('nav.settings'),
-      isActive: pathname.startsWith('/settings'),
-      icon: <SettingsIcon />,
-    },
   ];
 
   return (
-    <nav className="flex h-screen w-full flex-col items-center gap-2 border-r border-line bg-bg px-2 py-3">
+    <nav className="flex h-screen w-full flex-col items-center gap-2 overflow-y-auto border-r border-line bg-bg px-2 py-3 [scrollbar-width:thin]">
       <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-xl bg-bg-subtle text-[10px] font-semibold tracking-[0.28em] text-fg-muted">
         ZT
       </div>
-      <button
-        type="button"
-        onClick={() => setProfileEditorOpen(true)}
-        title={currentUser?.displayName ?? t('profile.edit')}
-        aria-label={t('profile.edit')}
+      <Link
+        href="/settings"
+        title={currentUser?.displayName ?? t('settings.title')}
+        aria-label={t('settings.title')}
         data-testid="community-rail-profile-link"
         className="group relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-150 hover:bg-bg-hover"
       >
         <UserAvatar
           key={`${currentUser?.displayName ?? 'profile'}:${profileAvatarUrl ?? ''}`}
-          displayName={currentUser?.displayName ?? t('profile.edit')}
+          displayName={currentUser?.displayName ?? t('settings.title')}
           avatarUrl={profileAvatarUrl}
           size="md"
         />
-        <span className="sr-only">{t('profile.edit')}</span>
-      </button>
+        <span className="sr-only">{t('settings.title')}</span>
+      </Link>
 
       {onOpenAI && (
         <button
@@ -440,9 +422,6 @@ export function CommunityRail({
       <div className="mt-1 flex w-full items-center justify-center">
         <ThemeToggle />
       </div>
-      {profileEditorOpen ? (
-        <ProfileEditor onClose={() => setProfileEditorOpen(false)} />
-      ) : null}
     </nav>
   );
 }
