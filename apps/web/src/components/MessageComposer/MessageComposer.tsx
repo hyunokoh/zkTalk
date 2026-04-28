@@ -224,29 +224,49 @@ async function uploadAttachmentWithMultipartSupport({
     },
   );
 
-  const completedParts: Array<{ partNumber: number; etag: string }> = [];
-  for (const part of parts) {
-    const start = (part.partNumber - 1) * partSize;
-    const end = Math.min(start + partSize, attachment.file.size);
-    const partBody = isDesktopPickedFile(attachment.file)
-      ? new Blob([Uint8Array.from(await readDesktopFileChunk(attachment.file, start, end))], {
-        type: mimeType,
-      })
-      : attachment.file.slice(start, end, mimeType);
-    const uploadRes = await uploadWithRateLimitRetry(
-      part.uploadUrl,
-      partBody,
-      {
-        'Content-Type': mimeType,
-      },
-    );
-    await assertOkResponse(uploadRes, `Attachment upload failed with status ${uploadRes.status}`);
-    completedParts.push({
-      partNumber: part.partNumber,
-      etag: getMultipartUploadEtag(uploadRes),
-    });
-    onProgress(0.15 + (part.partNumber / presign.partCount) * 0.6);
+  // Parallel multipart upload. Browsers cap to 6 connections per
+  // origin, so 4 concurrent S3 PUTs is the sweet spot — fast without
+  // starving any other in-flight requests on the same host.
+  const PARALLEL_UPLOADS = 4;
+  const completedParts: Array<{ partNumber: number; etag: string }> = new Array(parts.length);
+  let finishedCount = 0;
+  let cursor = 0;
+  const partSizeBytes = partSize; // closure capture (already null-checked above)
+
+  async function worker() {
+    while (true) {
+      const idx = cursor++;
+      if (idx >= parts.length) return;
+      const part = parts[idx];
+      const start = (part.partNumber - 1) * partSizeBytes;
+      const end = Math.min(start + partSizeBytes, attachment.file.size);
+      const partBody = isDesktopPickedFile(attachment.file)
+        ? new Blob(
+            [Uint8Array.from(await readDesktopFileChunk(attachment.file, start, end))],
+            { type: mimeType },
+          )
+        : attachment.file.slice(start, end, mimeType);
+      const uploadRes = await uploadWithRateLimitRetry(
+        part.uploadUrl,
+        partBody,
+        { 'Content-Type': mimeType },
+      );
+      await assertOkResponse(uploadRes, `Attachment upload failed with status ${uploadRes.status}`);
+      completedParts[idx] = {
+        partNumber: part.partNumber,
+        etag: getMultipartUploadEtag(uploadRes),
+      };
+      finishedCount += 1;
+      // Sequence-agnostic progress: the user just wants to see the
+      // bar move forward as bytes drain off, regardless of which part
+      // landed first.
+      onProgress(0.15 + (finishedCount / presign.partCount) * 0.6);
+    }
   }
+
+  await Promise.all(
+    Array.from({ length: Math.min(PARALLEL_UPLOADS, parts.length) }, () => worker()),
+  );
 
   await apiWithRateLimitRetry(`/api/upload/sessions/${presign.uploadSessionId}/complete`, {
     method: 'POST',
