@@ -1248,6 +1248,24 @@ const en = {
   'bridges.toastRemoved': 'Bridge removed.',
   'bridges.toastError': 'Bridge action failed.',
 
+  // DM E2EE safety-number panel
+  'dmSecurity.title': 'Verify your encryption keys',
+  'dmSecurity.subtitle':
+    'Compare this number with {{name}} on a voice call to make sure no one is intercepting your messages.',
+  'dmSecurity.safetyNumberLabel': 'Safety number',
+  'dmSecurity.howTo':
+    'Call {{name}} and read the number aloud. If both sides see the same number, your conversation is end-to-end encrypted with no one in the middle. If they differ, stop sharing sensitive info.',
+  'dmSecurity.myKey': 'Your key fingerprint',
+  'dmSecurity.theirKey': "{{name}}'s key fingerprint",
+  'dmSecurity.copy': 'Copy',
+  'dmSecurity.copied': 'Safety number copied',
+  'dmSecurity.disclaimer':
+    "Numbers change when either side regenerates their key (e.g. signs in on a new device, clears browser storage). That's expected — verify again after a known device change.",
+  'dmSecurity.selfKeyMissing':
+    'Your encryption key has not been generated yet. Send any DM to set it up, then come back.',
+  'dmSecurity.peerKeyMissing':
+    "{{name}} has not set up encryption yet. Ask them to open this conversation once.",
+
   // Privacy / Sealed Sender
   'privacy.sealedSender': 'Sealed Sender',
   'privacy.sealedDesc': 'Server cannot see who sent each message',

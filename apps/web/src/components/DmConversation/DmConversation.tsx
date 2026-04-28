@@ -33,6 +33,7 @@ import {
 import { resolveFileMimeType } from '@/lib/file-mime';
 import { createFilePreviewUrl, revokeFilePreviewUrl } from '@/lib/file-preview';
 import { UserAvatar } from '@/components/UserAvatar';
+import { DmSecurityPanel } from '@/components/DmSecurityPanel';
 import {
   WebSocketEvent,
   buildSelectedMessageAiContract,
@@ -544,6 +545,7 @@ export function DmConversation({ conversationId }: DmConversationProps) {
 
   // Decrypted message cache: messageId -> decrypted plaintext
   const [decryptedCache, setDecryptedCache] = useState<Record<string, string>>({});
+  const [securityPanelOpen, setSecurityPanelOpen] = useState(false);
 
   const {
     data: messagesData,
@@ -1657,6 +1659,20 @@ export function DmConversation({ conversationId }: DmConversationProps) {
               </div>
             </div>
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-l border-line pl-3">
+              {isDirect && otherUserId ? (
+                <button
+                  type="button"
+                  onClick={() => setSecurityPanelOpen(true)}
+                  data-testid="dm-header-security-button"
+                  title={t('dmSecurity.title')}
+                  className="shrink-0 rounded-md border border-line-strong bg-bg-elevated p-1.5 text-fg transition-colors hover:bg-bg-hover"
+                >
+                  {/* Lock icon — opens the safety-number panel */}
+                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M10 1a4 4 0 00-4 4v3H5a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2v-7a2 2 0 00-2-2h-1V5a4 4 0 00-4-4zm2 7V5a2 2 0 10-4 0v3h4z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => {
@@ -2350,6 +2366,19 @@ export function DmConversation({ conversationId }: DmConversationProps) {
           </div>
         </div>
       )}
+
+      {isDirect && otherUserId ? (
+        <DmSecurityPanel
+          open={securityPanelOpen}
+          onClose={() => setSecurityPanelOpen(false)}
+          otherUserId={otherUserId}
+          otherDisplayName={
+            participants.find((p) => p.userId !== currentUser?.id)?.user.displayName
+              ?? headerName
+              ?? otherUserId
+          }
+        />
+      ) : null}
     </div>
   );
 }

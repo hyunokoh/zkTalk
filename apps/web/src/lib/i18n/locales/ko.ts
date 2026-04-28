@@ -1243,6 +1243,24 @@ const ko: Record<string, string> = {
   'bridges.toastRemoved': '브릿지를 삭제했어요.',
   'bridges.toastError': '브릿지 작업에 실패했어요.',
 
+  // DM E2EE 안전 번호 패널
+  'dmSecurity.title': '암호화 키 확인',
+  'dmSecurity.subtitle':
+    '음성 통화로 {{name}} 와 이 번호를 맞춰 보세요. 같으면 중간에서 누가 가로채지 않았다는 증거입니다.',
+  'dmSecurity.safetyNumberLabel': '안전 번호',
+  'dmSecurity.howTo':
+    '{{name}} 에게 전화해서 이 번호를 소리내어 읽어 보세요. 양쪽 화면에 같은 번호가 보이면 이 대화는 종단간 암호화되어 있고 중간자가 없다는 뜻입니다. 다르면 민감한 정보 공유를 멈추세요.',
+  'dmSecurity.myKey': '내 키 지문',
+  'dmSecurity.theirKey': "{{name}} 의 키 지문",
+  'dmSecurity.copy': '복사',
+  'dmSecurity.copied': '안전 번호를 복사했습니다',
+  'dmSecurity.disclaimer':
+    '한쪽이 키를 새로 만들면 (다른 기기 로그인, 브라우저 저장소 삭제 등) 번호가 바뀝니다. 정상적인 경우 다시 한 번 비교해서 확인하면 됩니다.',
+  'dmSecurity.selfKeyMissing':
+    '아직 내 암호화 키가 생성되지 않았어요. DM 을 한 번 보내서 키를 만든 뒤 다시 열어 보세요.',
+  'dmSecurity.peerKeyMissing':
+    '{{name}} 가 아직 암호화 키를 설정하지 않았어요. 상대방이 이 대화창을 한 번 열면 자동으로 만들어집니다.',
+
   // Privacy / Sealed Sender
   'privacy.sealedSender': '익명 발신',
   'privacy.sealedDesc': '서버가 메시지 발신자를 볼 수 없습니다',
